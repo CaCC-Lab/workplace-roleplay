@@ -277,18 +277,23 @@ def show_scenario(scenario_id):
     if scenario_id not in scenarios:
         return "シナリオが見つかりません。", 404
 
+    # 利用可能なモデル一覧を取得
+    local_models = get_available_local_models()
+    openai_models = [f"openai/{model}" for model in get_available_openai_models()]
+    all_models = local_models + openai_models
+
     scenario_data = scenarios[scenario_id]
     return render_template("scenario.html", 
                          scenario_id=scenario_id,
                          scenario_title=scenario_data["title"],
                          scenario_desc=scenario_data["description"],
-                         scenario=scenario_data)
+                         scenario=scenario_data,
+                         models=all_models)  # モデル一覧を追加
 
 @app.route("/api/scenario_chat", methods=["POST"])
 def scenario_chat():
     """
     ロールプレイモード専用のチャットAPI
-    - シナリオごとに別メモリを管理し、AIに「上司役」「同僚役」などを演じさせる
     """
     data = request.json
     if data is None:
@@ -296,9 +301,17 @@ def scenario_chat():
 
     user_message = data.get("message", "")
     scenario_id = data.get("scenario_id", "")
+    selected_model = data.get("model", "gpt-3.5-turbo")  # デフォルトモデルを設定
     
     if not scenario_id or scenario_id not in scenarios:
         return jsonify({"error": "無効なシナリオIDです"}), 400
+
+    # モデルの選択
+    if selected_model.startswith("openai/"):
+        openai_model_name = selected_model.split("/")[1]
+        llm_instance = create_openai_llm(model_name=openai_model_name)
+    else:
+        llm_instance = create_ollama_llm(selected_model)
 
     # シナリオ情報を取得
     scenario_data = scenarios[scenario_id]

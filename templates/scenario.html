@@ -27,6 +27,11 @@
         <!-- チャット部分 -->
         <div id="chat-messages"></div>
         <div id="input-container">
+            <select id="model-select">
+                {% for model in models %}
+                    <option value="{{ model }}">{{ model }}</option>
+                {% endfor %}
+            </select>
             <input type="text" id="message-input" placeholder="メッセージを入力...">
             <button id="send-button">送信</button>
             <button id="clear-button">シナリオをリセット</button>
@@ -96,7 +101,8 @@
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
                     message: msg,
-                    scenario_id: scenarioId
+                    scenario_id: scenarioId,
+                    model: document.getElementById('model-select').value
                 })
             })
             .then(res => res.json())
