@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>シナリオ: {{ scenario_title }}</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <h1>{{ scenario_title }}</h1>
+    
+    <!-- シナリオの説明を詳しく表示 -->
+    <div class="scenario-info">
+        <h2>シナリオ概要</h2>
+        <p>{{ scenario_desc }}</p>
+        <div class="learning-points">
+            <h3>学習ポイント</h3>
+            <ul>
+                {% for point in scenario.learning_points %}
+                    <li>{{ point }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <hr>
+
+    <!-- チャット部分 -->
+    <div id="chat-messages"></div>
+    <div class="input-area">
+        <input type="text" id="message-input" placeholder="メッセージを入力...">
+        <button id="send-button">送信</button>
+        <button id="clear-button">シナリオをリセット</button>
+    </div>
+
+    <!-- フィードバック部分をより目立つように -->
+    <div id="feedback-section" class="feedback-section">
+        <h2>フィードバック</h2>
+        <p class="feedback-hint">ロールプレイが終わったら、以下のボタンでフィードバックを取得できます。</p>
+        <button id="get-feedback-button" class="primary-button">
+            <span class="icon">📝</span> フィードバックを取得
+        </button>
+        <div id="feedback-content"></div>
+    </div>
+
+    <script>
+        const scenarioId = "{{ scenario_id }}";  // テンプレートからシナリオIDを取得
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const clearButton = document.getElementById('clear-button');
+
+        // ページ読み込み時に最初のメッセージを取得
+        window.addEventListener('load', async () => {
+            try {
+                // シナリオ開始（最初のメッセージを取得）
+                const response = await fetch("/api/scenario_chat", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        message: "",  // 空メッセージで最初の挨拶を要求
+                        scenario_id: scenarioId
+                    })
+                });
+                const data = await response.json();
+                if (data.response) {
+                    displayMessage("相手役: " + data.response, "bot-message");
+                }
+            } catch (err) {
+                console.error(err);
+                displayMessage("エラーが発生しました", "bot-message");
+            }
+        });
+
+        sendButton.addEventListener('click', sendMessage);
+        clearButton.addEventListener('click', clearScenarioHistory);
+        messageInput.addEventListener('keypress', function(e){
+            if(e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const msg = messageInput.value.trim();
+            if(!msg) return;
+
+            displayMessage("あなた: " + msg, "user-message");
+
+            fetch("/api/scenario_chat", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    message: msg,
+                    scenario_id: scenarioId
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                displayMessage("相手役: " + data.response, "bot-message");
+            })
+            .catch(err => {
+                console.error(err);
+                displayMessage("エラーが発生しました", "bot-message");
+            });
+
+            messageInput.value = "";
+        }
+
+        function displayMessage(text, className) {
+            const div = document.createElement("div");
+            div.className = "message " + className;
+            div.textContent = text;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function clearScenarioHistory(){
+            fetch("/api/scenario_clear", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ scenario_id: scenarioId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success"){
+                    chatMessages.innerHTML = "";
+                    displayMessage("シナリオ履歴がクリアされました", "bot-message");
+                } else {
+                    displayMessage("エラー: " + data.message, "bot-message");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                displayMessage("エラーが発生しました", "bot-message");
+            });
+        }
+
+        document.getElementById('get-feedback-button').addEventListener('click', async () => {
+            try {
+                const button = document.getElementById('get-feedback-button');
+                const content = document.getElementById('feedback-content');
+                
+                // ボタンを無効化して処理中表示
+                button.disabled = true;
+                button.textContent = "フィードバック生成中...";
+                
+                const response = await fetch('/api/scenario_feedback', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        scenario_id: scenarioId
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.feedback) {
+                    content.innerHTML = marked.parse(data.feedback);
+                    content.classList.add('active');
+                    document.getElementById('feedback-section').scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error('フィードバック取得エラー:', error);
+                alert('フィードバックの取得に失敗しました');
+            } finally {
+                // ボタンを元に戻す
+                button.disabled = false;
+                button.innerHTML = '<span class="icon">📝</span> フィードバックを取得';
+            }
+        });
+    </script>
+</body>
+</html>

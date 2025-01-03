@@ -169,3 +169,69 @@ button {
     }
 }
 
+#feedback-section {
+    margin: 30px 20px;
+    padding: 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    background-color: #fff;
+}
+
+.feedback-hint {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.primary-button {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.primary-button:hover {
+    background-color: #3a7bc8;
+}
+
+.primary-button .icon {
+    font-size: 20px;
+}
+
+#feedback-content {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: var(--border-radius);
+    display: none;
+}
+
+#feedback-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-out;
+}
+
+#feedback-content h1,
+#feedback-content h2,
+#feedback-content h3 {
+    color: var(--primary-color);
+    margin-top: 1em;
+}
+
+#feedback-content ul {
+    padding-left: 20px;
+}
+
+#get-feedback-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#get-feedback-button:hover {
+    background-color: #45a049;
+}
+

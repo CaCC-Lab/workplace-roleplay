@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>シナリオ一覧</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <h1>職場のあなた再現シート ロールプレイ一覧</h1>
+    <p>下記のシナリオから選択してロールプレイを体験してください。</p>
+    <ul>
+        {% for scenario_id, scenario_info in scenarios.items() %}
+            <li>
+                <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}">
+                    {{ scenario_info.title }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+    <hr>
+    <p><a href="{{ url_for('index') }}">自由チャットに戻る</a></p>
+</body>
+</html>
