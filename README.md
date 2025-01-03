@@ -4,47 +4,52 @@
 
 ## 主な機能
 
-- 🎭 シナリオベースのロールプレイ
-- 💭 自由会話練習
-- 📝 会話フィードバック
-- 🔄 ローカル/クラウドLLMの切り替え
-- 📊 学習ポイントの可視化
+- 🎭 シナリオベースのロールプレイ練習
+  - 上司との急な依頼への対応
+  - 同僚との作業分担の調整
+  - その他職場での一般的なシチュエーション
+- 💭 自由会話練習モード
+- 📝 詳細なフィードバック機能
+- 🔄 複数のAIモデル対応
+  - OpenAI GPTシリーズ
+  - ローカルLLM（Ollama経由）
+- 📊 学習履歴の記録と振り返り
 
 ## 必要条件
 
 - Python 3.8以上
-- Ollama（ローカルLLM用）
-- OpenAI API Key（OpenAIモデル用）
+- Ollama（ローカルLLM実行用）
+- OpenAI APIキー（OpenAIモデル使用時）
 
-## セットアップ
+## インストール方法
 
 1. リポジトリのクローン
 ```bash
-git clone https://github.com/yourusername/workplace-communication-practice.git
-cd workplace-communication-practice
+git clone https://github.com/yourusername/roleplay-chatbot-webapp.git
+cd roleplay-chatbot-webapp
 ```
 
 2. 仮想環境の作成と有効化
 ```bash
 python -m venv venv
-# Windows
+# Windowsの場合
 .\venv\Scripts\activate
-# Linux/Mac
+# macOS/Linuxの場合
 source venv/bin/activate
 ```
 
-3. 依存パッケージのインストール
+3. 必要なパッケージのインストール
 ```bash
 pip install -r requirements.txt
 ```
 
 4. 環境変数の設定
-`.env`ファイルを作成し、以下を設定：
+`.env`ファイルを作成し、以下の内容を設定：
 ```
 OPENAI_API_KEY=your-api-key-here
 ```
 
-## 実行方法
+## 使用方法
 
 1. Ollamaサーバーの起動（別ターミナルで）
 ```bash
@@ -61,14 +66,44 @@ python roleplay-chatbot-wepapp-main.py
 http://localhost:5000
 ```
 
-## 開発者向け
+## 機能の使い方
+
+### シナリオ練習
+1. トップページから「シナリオを選ぶ」をクリック
+2. 練習したいシナリオを選択
+3. AIとロールプレイを実施
+4. 会話終了後にフィードバックを取得
+
+### 自由会話練習
+1. トップページから「会話を始める」をクリック
+2. 使用するAIモデルを選択
+3. 自由にAIと会話練習
+
+### 学習履歴
+- 「学習履歴を見る」から過去の練習内容を確認可能
+- フィードバック内容の振り返りが可能
+
+## 開発者向け情報
 
 開発用パッケージのインストール：
 ```bash
 pip install -r requirements-dev.txt
 ```
 
+## 使用している主な技術
+
+- Flask: Webアプリケーションフレームワーク
+- LangChain: LLMとの対話管理
+- OpenAI API: GPTモデルの利用
+- Ollama: ローカルLLMの実行
+
 ## ライセンス
 
-MITライセンス
+本プロジェクトはMITライセンスの下で公開されています。
+
+## 注意事項
+
+- このアプリケーションは学習・練習用です
+- 実際の職場での判断は、状況に応じて適切に行ってください
+- APIキーは適切に管理し、公開しないようご注意ください
 

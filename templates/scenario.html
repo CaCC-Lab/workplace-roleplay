@@ -71,22 +71,33 @@
         // ページ読み込み時に最初のメッセージを取得
         window.addEventListener('load', async () => {
             try {
+                const selectedModel = document.getElementById('model-select').value;
                 // シナリオ開始（最初のメッセージを取得）
                 const response = await fetch("/api/scenario_chat", {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify({
                         message: "",  // 空メッセージで最初の挨拶を要求
-                        scenario_id: scenarioId
+                        scenario_id: scenarioId,
+                        model: selectedModel  // モデルの選択を追加
                     })
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
                 if (data.response) {
                     displayMessage("相手役: " + data.response, "bot-message");
                 }
             } catch (err) {
-                console.error(err);
-                displayMessage("エラーが発生しました", "bot-message");
+                console.error("Error:", err);
+                displayMessage("エラーが発生しました: " + err.message, "error-message");
             }
         });
 
@@ -98,29 +109,40 @@
             }
         });
 
-        function sendMessage() {
+        async function sendMessage() {
             const msg = messageInput.value.trim();
             if(!msg) return;
 
+            const selectedModel = document.getElementById('model-select').value;
             displayMessage("あなた: " + msg, "user-message");
 
-            fetch("/api/scenario_chat", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    message: msg,
-                    scenario_id: scenarioId,
-                    model: document.getElementById('model-select').value
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                displayMessage("相手役: " + data.response, "bot-message");
-            })
-            .catch(err => {
-                console.error(err);
-                displayMessage("エラーが発生しました", "bot-message");
-            });
+            try {
+                const response = await fetch("/api/scenario_chat", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        message: msg,
+                        scenario_id: scenarioId,
+                        model: selectedModel
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                if (data.response) {
+                    displayMessage("相手役: " + data.response, "bot-message");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                displayMessage("エラーが発生しました: " + err.message, "error-message");
+            }
 
             messageInput.value = "";
         }
@@ -187,5 +209,30 @@
             }
         });
     </script>
+
+    <style>
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+
+        .bot-message {
+            background-color: #e9ecef;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+
+        .user-message {
+            background-color: #d4edda;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+    </style>
 </body>
 </html>

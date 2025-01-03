@@ -14,7 +14,7 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
 import requests
 import os
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from datetime import datetime
 
 # LangChain関連
@@ -26,6 +26,9 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
 from openai import OpenAI as OpenAIClient  # OpenAIクライアントを追加
 from langchain_core.runnables import RunnableWithMessageHistory  # 新しい会話チェーン
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
 
 # 環境変数の読み込み
 from dotenv import load_dotenv
@@ -113,17 +116,11 @@ def create_ollama_llm(model_name: str):
 def create_openai_llm(model_name: str = "gpt-3.5-turbo") -> ChatOpenAI:
     """
     LangChainのOpenAI Chat modelインスタンス生成
-    
-    Args:
-        model_name (str): 使用するモデル名
-    
-    Returns:
-        ChatOpenAI: OpenAIのチャットモデルインスタンス
     """
     return ChatOpenAI(
         temperature=DEFAULT_TEMPERATURE,
         api_key=OPENAI_API_KEY,
-        max_tokens=512,
+        max_tokens=1500,
         model=model_name,
     )
 
@@ -131,45 +128,118 @@ def create_openai_llm(model_name: str = "gpt-3.5-turbo") -> ChatOpenAI:
 # 実際にはデータベースや外部ファイルなどで管理するのがおすすめ
 scenarios = {
     "scenario1": {
-        "title": "上司から急な仕事を頼まれた",
-        "description": "既に他のタスクが立て込んでいる中、上司から急な依頼...",
+        "title": "上司から曖昧な仕事を依頼された",
+        "description": "上司から「この書類、今度の会議で配布するから参加者分準備をしておいて」とだけ依頼される場面です。",
+        "difficulty": "初級",
+        "tags": ["指示の確認", "コミュニケーション基礎", "報告・連絡・相談"],
         "role_info": "AIは上司役、あなたは新入社員",
         "character_setting": {
             "personality": "40代後半の男性課長。仕事はできるが部下の状況への配慮が少し足りない。基本的には良い上司だが、納期に追われると強引になることも。",
             "speaking_style": "「〜かな」「〜だけど」など、やや砕けた話し方。ただし指示を出すときは「〜してもらえる？」「〜お願いできる？」とやや丁寧に。",
-            "situation": "重要クライアントからの急な要望で、今日中に資料を修正する必要がある。既に夕方5時を回っている。",
-            "initial_approach": "「すまない、ちょっと急ぎの件で相談があるんだけど...」と、やや申し訳なさそうに声をかける"
+            "situation": "重要な会議の準備で忙しく、部下への指示を手短に済ませたい状況。",
+            "initial_approach": "（資料を手に持ちながら）「あ、ちょっといい？この書類、今度の会議で配布するから参加者分準備をしておいて」"
         },
         "learning_points": [
-            "タスクの優先順位付け",
-            "上司への状況説明の仕方",
-            "建設的な代替案の提示"
+            "曖昧な指示を受けた際の確認の仕方",
+            "上司への質問の適切な方法",
+            "必要な情報の洗い出し方"
         ],
         "feedback_points": [
+            "質問の的確さ",
             "コミュニケーションの明確さ",
-            "態度の適切さ",
-            "問題解決力"
+            "確認事項の網羅性"
         ]
     },
     "scenario2": {
-        "title": "同僚と作業分担でもめそう",
-        "description": "同僚と一緒に取り組むプロジェクトで、分担が不公平になっている気がする。いつも自分だけ残業している状況。どう切り出す？",
-        "role_info": "AIは同僚役、あなたは同僚A",
+        "title": "締切が迫っている仕事を抱えているときに、上司から別の仕事を頼まれた",
+        "description": "既存の締切間近の仕事がある中で、上司から「悪いけど大至急で見積書20社分作ってくれ！」と新しい仕事を依頼される場面です。",
+        "difficulty": "中級",
+        "tags": ["優先順位管理", "タスク調整", "状況説明"],
+        "role_info": "AIは上司役、あなたは中堅社員",
         "character_setting": {
-            "personality": "20代後半の男性社員。仕事は普通にできるが、自分の都合を優先しがち。悪意はないが少し自己中心的。",
-            "speaking_style": "フランクな話し方。「〜だよね」「〜じゃん」など、カジュアルな口調。",
-            "situation": "共同プロジェクトで、自分の担当部分はさっさと済ませて帰ろうとしている。相手の負担には気付いていない様子。",
-            "initial_approach": "「お、今日も残業？大変だね〜。僕はもう終わったから帰ろうと思ってたんだけど。」と、やや無神経に声をかける"
+            "personality": "50代前半の女性部長。仕事は非常に出来るが、複数のプロジェクトを同時に進行させているため、部下の状況を把握しきれていないことも。",
+            "speaking_style": "テキパキとした口調。「〜お願い」「〜してもらえる？」など、丁寧だが急いでいる様子が伝わる話し方。",
+            "situation": "取引先からの急な要請で、新しい見積書の作成が必要になった。",
+            "initial_approach": "（急ぎ足で近づいてきて）「悪いけど大至急で見積書20社分作ってくれる？今日中に必要なの！」"
         },
         "learning_points": [
-            "公平な作業分担の提案方法",
-            "建設的な対話の進め方",
-            "感情的にならない伝え方"
+            "現在の業務状況の適切な説明方法",
+            "優先順位の確認と調整",
+            "建設的な代替案の提示"
         ],
         "feedback_points": [
-            "主張の明確さ",
-            "感情のコントロール",
-            "解決策の具体性"
+            "状況説明の明確さ",
+            "解決策の提案力",
+            "コミュニケーションの適切さ"
+        ]
+    },
+    "scenario3": {
+        "title": "先輩からの指示にミスがあった",
+        "description": "先輩から「印刷をしてほしい書類と印刷部数の書かれたメモ」を渡され、印刷するように頼まれた。しかし、メモに間違えを見つけた。",
+        "difficulty": "中級",
+        "tags": ["指示の確認", "ミスの指摘", "コミュニケーション"],
+        "role_info": "AIは先輩役、あなたは後輩社員",
+        "character_setting": {
+            "personality": "30代前半の女性社員。細かいことに気がつくが、時々ミスをすることもある。",
+            "speaking_style": "丁寧だが、時々早口になる。",
+            "situation": "急いでいるため、細かいミスに気づかずに指示を出してしまった。",
+            "initial_approach": "「この書類、印刷しておいてくれる？メモに部数を書いておいたから。」"
+        },
+        "learning_points": [
+            "ミスを見つけた際の指摘方法",
+            "指示内容の確認方法",
+            "適切なコミュニケーションの取り方"
+        ],
+        "feedback_points": [
+            "ミスの指摘の仕方",
+            "指示の確認の適切さ",
+            "コミュニケーションの明確さ"
+        ]
+    },
+    "scenario4": {
+        "title": "自分は帰ろうと思ったのに、先輩がまだ仕事中だった",
+        "description": "自分の仕事が終わり帰ろうとしたが、先輩がまだ仕事をしているのを見かけた場面です。",
+        "difficulty": "初級",
+        "tags": ["職場の雰囲気", "コミュニケーション", "気配り"],
+        "role_info": "AIは先輩役、あなたは後輩社員",
+        "character_setting": {
+            "personality": "40代の男性社員。仕事熱心で、後輩の面倒見が良い。",
+            "speaking_style": "落ち着いた口調で話す。",
+            "situation": "まだ仕事が残っており、後輩が帰るのを見て少し驚いている。",
+            "initial_approach": "「お疲れ様。もう帰るの？」"
+        },
+        "learning_points": [
+            "職場での気配りの仕方",
+            "先輩への声掛けの方法",
+            "職場の雰囲気を読む力"
+        ],
+        "feedback_points": [
+            "気配りの適切さ",
+            "コミュニケーションの円滑さ",
+            "職場の雰囲気を読む力"
+        ]
+    },
+    "scenario5": {
+        "title": "後輩のミスなのに自分が怒られた",
+        "description": "単なる先輩であり、後輩の上司ではないのにも関わらず、一緒に作業をしていたというだけで後輩がミスしたことを上司に怒られた。",
+        "difficulty": "上級",
+        "tags": ["責任の所在", "コミュニケーション", "問題解決"],
+        "role_info": "AIは上司役、あなたは先輩社員",
+        "character_setting": {
+            "personality": "50代の男性部長。厳しいが、公平な判断を心がけている。",
+            "speaking_style": "厳格な口調で話す。",
+            "situation": "後輩のミスについて、先輩としての責任を問うている。",
+            "initial_approach": "「後輩がミスしたと聞いた。一緒に作業していた君が先輩としてしっかりフォローしないとダメだろう。」"
+        },
+        "learning_points": [
+            "責任の所在を明確にする方法",
+            "上司への報告の仕方",
+            "問題解決のためのコミュニケーション"
+        ],
+        "feedback_points": [
+            "責任の所在の明確さ",
+            "報告の適切さ",
+            "問題解決のためのコミュニケーション"
         ]
     }
 }
@@ -344,124 +414,128 @@ def scenario_chat():
         scenario_id = data.get("scenario_id", "")
         selected_model = data.get("model", DEFAULT_MODEL)
         
+        print(f"Received request: message={user_message}, scenario_id={scenario_id}, model={selected_model}")
+        
         if not scenario_id or scenario_id not in scenarios:
             return jsonify({"error": "無効なシナリオIDです"}), 400
 
-        # シナリオ情報を取得
         scenario_data = scenarios[scenario_id]
         
-        # シナリオ専用の会話履歴をセッションに保存
+        # セステムプロンプトを構築
+        system_prompt = f"""\
+# ロールプレイの基本設定
+あなたは{scenario_data["role_info"].split("、")[0].replace("AIは", "")}として振る舞います。
+
+## キャラクター詳細
+- 性格: {scenario_data["character_setting"]["personality"]}
+- 話し方: {scenario_data["character_setting"]["speaking_style"]}
+- 現在の状況: {scenario_data["character_setting"]["situation"]}
+
+## 演技の指針
+1. 一貫性：設定された役柄を終始一貫して演じ続けること
+2. 自然さ：指定された話し方を守りながら、不自然にならないよう注意
+3. 感情表現：
+   - 表情や態度も含めて表現（例：「困ったように眉をひそめながら」）
+   - 感情の変化を適度に表現
+4. 反応の適切さ：
+   - 相手の発言内容に対する適切な理解と反応
+   - 文脈に沿った返答
+5. 会話の自然な展開：
+   - 一方的な会話を避ける
+   - 適度な質問や確認を含める
+   - 相手の反応を見ながら会話を進める
+
+## 会話の制約
+1. 返答の長さ：1回の発言は3行程度まで
+2. 話題の一貫性：急な話題転換を避ける
+3. 職場らしさ：敬語と略語を適切に使い分ける
+
+## 現在の文脈
+{scenario_data["description"]}
+
+## 特記事項
+- ユーザーの成長を促す反応を心がける
+- 極端な否定は避け、建設的な対話を維持
+- 必要に応じて適度な困難さを提示
+"""
+        
+        # セッション初期化
         if "scenario_history" not in session:
             session["scenario_history"] = {}
-
+        
         if scenario_id not in session["scenario_history"]:
             session["scenario_history"][scenario_id] = []
 
-        # モデルの選択と初期化
-        if selected_model.startswith("openai/"):
-            openai_model_name = selected_model.split("/")[1]
-            llm_instance = create_openai_llm(model_name=openai_model_name)
-        else:
-            # Ollamaモデルの場合、存在確認
-            if selected_model not in get_available_local_models():
-                return jsonify({
-                    "error": f"モデル '{selected_model}' が見つかりません。"
-                           f"ollama pull {selected_model} を実行してください。"
-                }), 404
-            llm_instance = create_ollama_llm(selected_model)
+        # モデルの初期化
+        try:
+            if selected_model.startswith('openai/'):
+                openai_model_name = selected_model.split("/")[1]
+                llm = create_openai_llm(model_name=openai_model_name)
+            else:
+                available_models = get_available_local_models()
+                if selected_model not in available_models:
+                    return jsonify({
+                        "error": f"モデル '{selected_model}' が見つかりません。"
+                    }), 404
+                llm = create_ollama_llm(selected_model)
+        except Exception as e:
+            print(f"Model initialization error: {str(e)}")
+            return jsonify({"error": f"モデルの初期化に失敗しました: {str(e)}"}), 500
 
-        # 会話履歴を使ってメモリを初期化
-        memory = ConversationBufferMemory()
-        
-        # システムプロンプトを構築
-        system_prompt = f"""\
-# ロールプレイの設定
-あなたは{scenario_data["role_info"].split("、")[0].replace("AIは", "")}です。
+        try:
+            # 会話履歴の構築
+            messages: List[BaseMessage] = []
+            messages.append(SystemMessage(content=system_prompt))
+            
+            # 過去の会話履歴を追加
+            for entry in session["scenario_history"][scenario_id]:
+                if entry["human"]:
+                    messages.append(HumanMessage(content=entry["human"]))
+                if entry["ai"]:
+                    messages.append(AIMessage(content=entry["ai"]))
 
-## キャラクター設定
-性格: {scenario_data["character_setting"]["personality"]}
-話し方: {scenario_data["character_setting"]["speaking_style"]}
-状況: {scenario_data["character_setting"]["situation"]}
-
-## 演技の注意点
-1. 常に設定された役柄を一貫して演じ続けてください
-2. 指定された話し方を厳密に守ってください
-3. 感情や表情も自然に表現してください（例：「少し困ったような表情で」「申し訳なさそうに」など）
-4. 相手の発言に対して適切な反応を示してください
-5. 職場での適切な距離感を保ちつつ、リアルな会話を心がけてください
-6. 一度に長すぎる発言は避け、自然な会話の長さを保ってください
-
-## 現在の状況
-{scenario_data["description"]}
+            # 新しいメッセージの処理
+            if len(session["scenario_history"][scenario_id]) == 0:
+                # 初回メッセージの場合
+                prompt = f"""\
+最初の声掛けとして、{scenario_data["character_setting"]["initial_approach"]}という設定で
+話しかけてください。感情や表情も自然に含めて表現してください。
 """
-        
-        # システムプロンプトを最初に追加
-        if len(session["scenario_history"][scenario_id]) == 0:
-            memory.save_context(
-                {"input": "シナリオ設定"},
-                {"output": system_prompt}
-            )
+                messages.append(HumanMessage(content=prompt))
+            else:
+                # 通常の会話の場合
+                messages.append(HumanMessage(content=user_message))
 
-        # 過去の会話履歴を読み込み
-        for entry in session["scenario_history"][scenario_id]:
-            memory.save_context(
-                {"input": entry["human"]},
-                {"output": entry["ai"]}
-            )
+            # レスポンスの生成と処理
+            try:
+                ai_message = llm.invoke(messages)
+                if isinstance(ai_message, AIMessage):
+                    response = ai_message.content
+                elif isinstance(ai_message, str):
+                    response = ai_message  # 文字列の場合はそのまま使用
+                else:
+                    response = "不明な応答形式です。"
+            except Exception as e:
+                print(f"Response processing error: {str(e)}")
+                response = "申し訳ありません。応答の処理中にエラーが発生しました。"
 
-        # ConversationChain構築
-        chain = ConversationChain(
-            llm=llm_instance,
-            memory=memory,
-            verbose=True
-        )
-
-        # 最初のメッセージの場合
-        if len(session["scenario_history"][scenario_id]) == 0:
-            init_prompt = f"""\
-{memory.load_memory_variables({"input": "シナリオ設定"})["output"]}
-
-あなたは{scenario_data["character_setting"]["initial_approach"]}という設定で
-最初の声掛けをしてください。
-感情や表情も自然に含めて表現してください。
-"""
-            first_response = chain.predict(input=init_prompt)
+            # セッションに履歴を保存
             session["scenario_history"][scenario_id].append({
-                "human": "[シナリオ開始]",
-                "ai": first_response,
+                "human": user_message if user_message else "[シナリオ開始]",
+                "ai": response,
                 "timestamp": datetime.now().isoformat()
             })
             session.modified = True
-            return jsonify({"response": first_response})
 
-        # ユーザーの発言に対する応答を生成
-        context_prompt = f"""\
-前の会話を踏まえて、{scenario_data["role_info"].split("、")[0].replace("AIは", "")}として
-以下のユーザーの発言に自然に応答してください：
+            return jsonify({"response": response})
 
-{user_message}
-
-## 注意点
-- 感情や表情も含めて表現する
-- 設定された話し方を守る
-- 適切な長さで返答する
-- 職場の上下関係や距離感を意識する
-"""
-        response = chain.predict(input=context_prompt)
-
-        # セッションに履歴を保存
-        session["scenario_history"][scenario_id].append({
-            "human": user_message,
-            "ai": response,
-            "timestamp": datetime.now().isoformat()
-        })
-        session.modified = True
-
-        return jsonify({"response": response})
+        except Exception as e:
+            print(f"Conversation error: {str(e)}")
+            return jsonify({"error": f"会話処理中にエラーが発生しました: {str(e)}"}), 500
 
     except Exception as e:
-        print(f"Error in scenario_chat: {str(e)}")
-        return jsonify({"error": "チャット処理中にエラーが発生しました"}), 500
+        print(f"General error: {str(e)}")
+        return jsonify({"error": f"予期せぬエラーが発生しました: {str(e)}"}), 500
 
 @app.route("/api/scenario_clear", methods=["POST"])
 def scenario_clear():
@@ -505,15 +579,16 @@ def get_scenario_feedback():
 
     # フィードバック生成用のプロンプト
     feedback_prompt = f"""\
-あなたは職場コミュニケーションの専門家として、以下のロールプレイでのユーザーの対応について評価してください。
+# フィードバック生成の指示
+あなたは職場コミュニケーションの専門家として、以下のロールプレイでのユーザーの対応を評価し、具体的で実践的なフィードバックを提供してください。
 
-## シナリオ設定
+## シナリオ概要
 {scenario_data["description"]}
 
 ## ユーザーの立場
-{scenario_data["role_info"].split("、")[1]}  # "AIは上司役、あなたは新入社員" の後半部分を取得
+{scenario_data["role_info"].split("、")[1]}
 
-## ユーザーの発言履歴
+## 会話履歴の分析
 {format_conversation_history(history)}
 
 ## 評価の観点
@@ -522,20 +597,29 @@ def get_scenario_feedback():
 ## 学習目標
 {', '.join(scenario_data["learning_points"])}
 
-以下の形式で、ユーザーの対応についてフィードバックを提供してください：
+# フィードバック形式
 
-# 良かった点（強み）
-- ユーザーの発言から見られた効果的なコミュニケーションポイント
+## 1. 全体評価（100点満点）
+- 点数と、その理由を簡潔に説明
+
+## 2. 良かった点（具体例を含めて）
+- コミュニケーションの効果的だった部分
 - 特に評価できる対応や姿勢
+- なぜそれが良かったのかの説明
 
-# 改善のヒント
-- より効果的なコミュニケーションのためのアドバイス
-- 具体的な言い回しの提案
+## 3. 改善のヒント
+- より効果的な表現方法の具体例
+- 状況に応じた対応の選択肢
+- 実際の言い回しの例示
 
-# 実践アドバイス
-1. すぐに試せる具体的な練習方法
+## 4. 実践アドバイス
+1. 明日から使える具体的なテクニック
 2. 類似シーンでの応用ポイント
 3. 次回のロールプレイでの注目ポイント
+
+## 5. モチベーション向上のメッセージ
+- 成長が見られた点への励まし
+- 次のステップへの期待
 """
 
     # OpenAI APIでフィードバックを生成
