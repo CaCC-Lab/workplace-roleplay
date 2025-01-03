@@ -196,6 +196,10 @@ def clear_history():
     """
     会話履歴をクリアするAPI
     """
+    # request.jsonがNoneの場合のチェック
+    if request.json is None:
+        return jsonify({"status": "error", "message": "Invalid JSON"}), 400
+
     selected_model = request.json.get("model", "llama2")
     
     if "conversation_history" in session and selected_model in session["conversation_history"]:

@@ -1,98 +1,84 @@
-# Ollama Chat Web App
+# ロールプレイチャットボット
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![Flask](https://img.shields.io/badge/Flask-3.1.0-green)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+FlaskベースのWebアプリケーションで、ローカルLLM（Ollama）とOpenAIのモデルを切り替えて使用できるチャットボットです。
 
-Ollamaを使用したシンプルなWebチャットアプリケーション。ローカルで動作するLLMモデルとチャットができます。
+## 機能
 
-<img width="800" alt="app_screenshot" src="docs/images/screenshot.png">
+- ローカルLLM（Ollama）とOpenAIのモデルを切り替え可能
+- 会話履歴の保持と管理
+- 会話履歴のクリア機能
+- モデル一覧の動的取得
+- シンプルなWebインターフェース
 
-## ✨ 機能
-
-- 🤖 複数のOllamaモデルに対応（llama2, codellama, mistral など）
-- 🌐 シンプルで使いやすいWebインターフェース
-- 💬 スムーズなチャット体験
-- 📝 会話履歴の保持
-- 🔄 モデルの動的切り替え
-
-## 🔧 必要条件
+## 必要条件
 
 - Python 3.8以上
-- [Ollama](https://ollama.ai/)（ローカルにインストール済みであること）
-- 推奨: 8GB以上のRAM
+- Ollama（ローカルLLM用）
+- OpenAI API Key（OpenAIモデル用）
 
-## 🚀 セットアップ
+## セットアップ
 
-1. リポジトリをクローン
+1. リポジトリのクローン
 ```bash
-git clone https://github.com/CaCC-Lab/ollama-chatbot-webapp.git
-cd ollama-chatbot-webapp
+git clone https://github.com/your-username/roleplay-chatbot-webapp.git
+cd roleplay-chatbot-webapp
 ```
 
-2. 必要なパッケージをインストール
+2. 仮想環境の作成と有効化
+```bash
+# 仮想環境の作成
+python -m venv venv
+
+# 仮想環境の有効化
+# Windowsの場合
+.\venv\Scripts\activate
+# Linux/Macの場合
+source venv/bin/activate
+```
+
+3. 依存パッケージのインストール
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Ollamaが起動していることを確認
+4. 環境変数の設定
+`.env`ファイルをプロジェクトのルートディレクトリに作成し、以下の内容を追加：
+```
+OPENAI_API_KEY=your-api-key-here
+```
+
+## 実行方法
+
+1. Ollamaサーバーの起動（別ターミナルで）
 ```bash
 ollama serve
 ```
 
-4. アプリケーションを起動
+2. アプリケーションの起動
 ```bash
-python chat-app-main.py
+python roleplay-chatbot-wepapp-main.py
 ```
 
-5. ブラウザで以下のURLにアクセス
+3. ブラウザで以下のURLにアクセス
 ```
 http://localhost:5000
 ```
 
-## 💡 使用方法
+## 開発環境のセットアップ
 
-1. プルダウンメニューから使用したいモデルを選択
-   - 事前にOllamaでモデルをダウンロードしておく必要があります
-   - 例: `ollama pull llama2`
-2. チャットボックスにメッセージを入力
-3. 送信ボタンをクリックまたはEnterキーを押して送信
-
-## 📦 依存パッケージ
-
-```text
-flask==3.1.0
-langchain==0.1.0
-langchain-community==0.0.10
-requests==2.31.0
+開発用の追加パッケージをインストール：
+```bash
+pip install -r requirements-dev.txt
 ```
 
-## 📁 プロジェクト構造
+## 注意事項
 
-```
-ollama-chatbot-webapp/
-├── README.md
-├── requirements.txt
-├── .gitignore
-├── chat-app-main.py
-└── templates/
-    └── index.html
-```
+- 本番環境での使用時は、適切なセキュリティ対策を実施してください
+- OpenAIのAPIキーは安全に管理してください
+- 会話履歴はセッションに保存されます
+- デフォルトではローカルホストでの実行のみ想定しています
 
-## 🤝 コントリビューション
+## ライセンス
 
-1. このリポジトリをフォーク
-2. 新しいブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. プルリクエストを作成
+[MITライセンス](LICENSE)
 
-## 📝 ライセンス
-
-MITライセンスの下で公開されています。詳細は [LICENSE](LICENSE) をご覧ください。
-
-## 📧 連絡先
-
-あなたのGitHubプロフィール: [@CaCC-Lab](https://github.com/CaCC-Lab)
-
-プロジェクトリンク: [https://github.com/CaCC-Lab/ollama-chatbot-webapp](https://github.com/CaCC-Lab/ollama-chatbot-webapp)
