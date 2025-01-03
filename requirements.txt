@@ -1,0 +1,12 @@
+Flask==2.0.1
+Werkzeug==2.0.3
+Flask-Session==0.4.0
+requests>=2.32.3
+openai>=1.0.0
+langchain>=0.3.13
+langchain-community>=0.3.13
+langchain-core>=0.3.26
+langchain-text-splitters>=0.3.4
+python-dotenv>=1.0.1
+charset-normalizer>=3.4.0
+gunicorn==21.2.0

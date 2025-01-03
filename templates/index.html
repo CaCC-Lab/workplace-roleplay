@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>チャットボット (LLM切り替え版)</title>
+    <style>
+        /* 必要に応じて外部CSSやframeworkを導入してもよい */
+        #chat-container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        #chat-messages {
+            height: 400px;
+            border: 1px solid #ccc;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+        #input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+        }
+        #model-select {
+            padding: 10px;
+            min-width: 130px;
+        }
+        #send-button, #clear-button {
+            padding: 10px 20px;
+        }
+        p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <h1>チャットボット (LLM切り替え版)</h1>
+        <div id="chat-messages"></div>
+        <div id="input-container">
+            <!-- サーバから渡された "models" を使用 -->
+            <select id="model-select">
+                {% for model in models %}
+                    <option value="{{ model }}">{{ model }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" id="message-input" placeholder="メッセージを入力...">
+            <button id="send-button">送信</button>
+            <button id="clear-button">履歴をクリア</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const sendButton = document.getElementById('send-button');
+        const clearButton = document.getElementById('clear-button');
+        const messageInput = document.getElementById('message-input');
+        const modelSelect = document.getElementById('model-select');
+
+        sendButton.addEventListener('click', sendMessage);
+        clearButton.addEventListener('click', clearChat);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            const selectedModel = modelSelect.value;
+
+            if (!message) return;
+
+            displayMessage('ユーザー: ' + message);
+
+            // /api/chat にPOST
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    model: selectedModel
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                displayMessage('ボット: ' + data.response);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                displayMessage('エラーが発生しました');
+            });
+
+            messageInput.value = '';
+        }
+
+        function displayMessage(text) {
+            const messageElem = document.createElement('p');
+            messageElem.textContent = text;
+            chatMessages.appendChild(messageElem);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function clearChat() {
+            const selectedModel = modelSelect.value;
+
+            // /api/clear_history にPOST
+            fetch('/api/clear_history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: selectedModel
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    chatMessages.innerHTML = '';
+                    displayMessage('会話履歴がクリアされました');
+                } else {
+                    displayMessage('エラー: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                displayMessage('エラーが発生しました');
+            });
+        }
+    </script>
+</body>
+</html>
