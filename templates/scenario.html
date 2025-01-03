@@ -7,39 +7,45 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <h1>{{ scenario_title }}</h1>
-    
-    <!-- シナリオの説明を詳しく表示 -->
-    <div class="scenario-info">
-        <h2>シナリオ概要</h2>
-        <p>{{ scenario_desc }}</p>
-        <div class="learning-points">
-            <h3>学習ポイント</h3>
-            <ul>
-                {% for point in scenario.learning_points %}
-                    <li>{{ point }}</li>
-                {% endfor %}
-            </ul>
+    <div id="chat-container">
+        <h1>{{ scenario_title }}</h1>
+        
+        <!-- シナリオの説明を詳しく表示 -->
+        <div class="scenario-info">
+            <h2>シナリオ概要</h2>
+            <p>{{ scenario_desc }}</p>
+            <div class="learning-points">
+                <h3>学習ポイント</h3>
+                <ul>
+                    {% for point in scenario.learning_points %}
+                        <li>{{ point }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- チャット部分 -->
+        <div id="chat-messages"></div>
+        <div id="input-container">
+            <input type="text" id="message-input" placeholder="メッセージを入力...">
+            <button id="send-button">送信</button>
+            <button id="clear-button">シナリオをリセット</button>
+        </div>
+
+        <!-- フィードバック部分 -->
+        <div id="feedback-section">
+            <h2>フィードバック</h2>
+            <p class="feedback-hint">ロールプレイが終わったら、以下のボタンでフィードバックを取得できます。</p>
+            <button id="get-feedback-button" class="primary-button">
+                <span class="icon">📝</span> フィードバックを取得
+            </button>
+            <div id="feedback-content"></div>
         </div>
     </div>
-    <hr>
 
-    <!-- チャット部分 -->
-    <div id="chat-messages"></div>
-    <div class="input-area">
-        <input type="text" id="message-input" placeholder="メッセージを入力...">
-        <button id="send-button">送信</button>
-        <button id="clear-button">シナリオをリセット</button>
-    </div>
-
-    <!-- フィードバック部分をより目立つように -->
-    <div id="feedback-section" class="feedback-section">
-        <h2>フィードバック</h2>
-        <p class="feedback-hint">ロールプレイが終わったら、以下のボタンでフィードバックを取得できます。</p>
-        <button id="get-feedback-button" class="primary-button">
-            <span class="icon">📝</span> フィードバックを取得
-        </button>
-        <div id="feedback-content"></div>
+    <div class="navigation">
+        <a href="{{ url_for('list_scenarios') }}" class="nav-button">シナリオ一覧に戻る</a>
+        <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
     </div>
 
     <script>

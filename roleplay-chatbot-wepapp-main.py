@@ -168,13 +168,17 @@ scenarios = {
 def index():
     """
     トップページ
-    - ローカルLLMモデル一覧取得
-    - OpenAIモデル一覧を動的に取得
-    - index.html を返す
+    """
+    return render_template("index.html")
+
+@app.route("/chat")
+def chat():
+    """
+    自由会話ページ
     """
     local_models = get_available_local_models()
     openai_models = [f"openai/{model}" for model in get_available_openai_models()]
-    return render_template("index.html", models=local_models + openai_models)
+    return render_template("chat.html", models=local_models + openai_models)
 
 @app.route("/api/chat", methods=["POST"])
 def api_chat():

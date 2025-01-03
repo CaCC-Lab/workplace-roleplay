@@ -6,18 +6,26 @@
     <link rel="stylesheet" href="../static/style.css">
 </head>
 <body>
-    <h1>職場のあなた再現シート ロールプレイ一覧</h1>
-    <p>下記のシナリオから選択してロールプレイを体験してください。</p>
-    <ul>
-        {% for scenario_id, scenario_info in scenarios.items() %}
-            <li>
-                <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}">
-                    {{ scenario_info.title }}
-                </a>
-            </li>
-        {% endfor %}
-    </ul>
-    <hr>
-    <p><a href="{{ url_for('index') }}">自由チャットに戻る</a></p>
+    <div id="chat-container">
+        <h1>職場のあなた再現シート ロールプレイ一覧</h1>
+        <div class="content-section">
+            <p>下記のシナリオから選択してロールプレイを体験してください。</p>
+            <div class="scenarios-list">
+                {% for scenario_id, scenario_info in scenarios.items() %}
+                    <div class="scenario-card">
+                        <h3>{{ scenario_info.title }}</h3>
+                        <p>{{ scenario_info.description }}</p>
+                        <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" 
+                           class="primary-button">
+                            開始する
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="navigation">
+        <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+    </div>
 </body>
 </html>

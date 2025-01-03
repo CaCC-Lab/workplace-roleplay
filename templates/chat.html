@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チャットボット (LLM切り替え版)</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div id="chat-container">
+        <h1>チャットボット (LLM切り替え版)</h1>
+        <div id="chat-messages"></div>
+        <div id="input-container">
+            <select id="model-select">
+                {% for model in models %}
+                    <option value="{{ model }}">{{ model }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" id="message-input" placeholder="メッセージを入力...">
+            <button id="send-button">送信</button>
+            <button id="clear-button">履歴をクリア</button>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+    </div>
+
+    <script>
+        // 既存のJavaScriptコード...
+    </script>
+</body>
+</html> 

@@ -3,105 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>チャットボット (LLM切り替え版)</title>
+    <title>職場コミュニケーション練習アプリ</title>
     <link rel="stylesheet" href="../static/style.css">
 </head>
 <body>
     <div id="chat-container">
-        <h1>チャットボット (LLM切り替え版)</h1>
-        <div id="chat-messages"></div>
-        <div id="input-container">
-            <select id="model-select">
-                {% for model in models %}
-                    <option value="{{ model }}">{{ model }}</option>
-                {% endfor %}
-            </select>
-            <input type="text" id="message-input" placeholder="メッセージを入力...">
-            <button id="send-button">送信</button>
-            <button id="clear-button">履歴をクリア</button>
+        <h1>職場コミュニケーション練習アプリ</h1>
+        
+        <div class="content-section">
+            <div class="welcome-section">
+                <h2>🎯 アプリの目的</h2>
+                <p>このアプリは、職場でのコミュニケーションスキルを安全に練習できる環境を提供します。
+                   実際の場面を想定したロールプレイを通じて、自己理解を深め、
+                   コミュニケーション能力の向上を支援します。</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>🎭 シナリオロールプレイ</h3>
+                    <p>実際の職場で起こりうる場面を再現し、AIと対話形式で練習できます。</p>
+                    <a href="{{ url_for('list_scenarios') }}" class="primary-button">シナリオを選ぶ</a>
+                </div>
+
+                <div class="feature-card">
+                    <h3>💭 自由会話練習</h3>
+                    <p>特定のシナリオにとらわれず、自由なテーマでAIと会話練習ができます。</p>
+                    <a href="{{ url_for('chat') }}" class="primary-button">会話を始める</a>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>💡 使い方</h2>
+                <ol>
+                    <li>「シナリオを選ぶ」から練習したい場面を選択</li>
+                    <li>AIとロールプレイを実施</li>
+                    <li>会話終了後にフィードバックを取得</li>
+                    <li>振り返りと改善点の確認</li>
+                </ol>
+            </div>
         </div>
     </div>
-
-    <script>
-        const chatMessages = document.getElementById('chat-messages');
-        const sendButton = document.getElementById('send-button');
-        const clearButton = document.getElementById('clear-button');
-        const messageInput = document.getElementById('message-input');
-        const modelSelect = document.getElementById('model-select');
-
-        sendButton.addEventListener('click', sendMessage);
-        clearButton.addEventListener('click', clearChat);
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            const selectedModel = modelSelect.value;
-
-            if (!message) return;
-
-            displayMessage('ユーザー: ' + message, 'user-message');
-
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: message,
-                    model: selectedModel
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                displayMessage('ボット: ' + data.response, 'bot-message');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                displayMessage('エラーが発生しました', 'bot-message');
-            });
-
-            messageInput.value = '';
-        }
-
-        function displayMessage(text, className) {
-            const messageElem = document.createElement('div');
-            messageElem.textContent = text;
-            messageElem.className = `message ${className}`;
-            chatMessages.appendChild(messageElem);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function clearChat() {
-            const selectedModel = modelSelect.value;
-
-            fetch('/api/clear_history', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    model: selectedModel
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    chatMessages.innerHTML = '';
-                    displayMessage('会話履歴がクリアされました', 'bot-message');
-                } else {
-                    displayMessage('エラー: ' + data.message, 'bot-message');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                displayMessage('エラーが発生しました', 'bot-message');
-            });
-        }
-    </script>
 </body>
 </html>
 
