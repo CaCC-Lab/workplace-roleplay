@@ -16,6 +16,22 @@ venv.bak/
 # VSCode関連
 .vscode/
 
+# Flask関連
+flask_session/
+instance/
+*.sqlite
+*.db
+
 # その他
 *.log
-*.sqlite3 
+*.sqlite3
+.DS_Store
+Thumbs.db
+
+# 一時ファイル
+*.swp
+*.swo
+*~
+.pytest_cache/
+.coverage
+htmlcov/ 
