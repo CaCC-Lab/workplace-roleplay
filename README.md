@@ -44,26 +44,9 @@ pip install -r requirements.txt
 ```
 
 4. 環境変数の設定
-`.env`ファイルを作成し、以下の内容を設定：
+- `.env`ファイルを作成し、OpenAI APIキーを設定します。
 ```
-OPENAI_API_KEY=your-api-key-here
-```
-
-## 使用方法
-
-1. Ollamaサーバーの起動（別ターミナルで）
-```bash
-ollama serve
-```
-
-2. アプリケーションの起動
-```bash
-python roleplay-chatbot-wepapp-main.py
-```
-
-3. ブラウザでアクセス
-```
-http://localhost:5000
+OPENAI_API_KEY=your_openai_api_key
 ```
 
 ## 機能の使い方
