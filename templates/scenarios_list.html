@@ -2,30 +2,88 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>シナリオ一覧</title>
+    <title>シナリオ一覧 - 職場のあなた再現シート</title>
     <link rel="stylesheet" href="../static/style.css">
 </head>
 <body>
     <div id="chat-container">
         <h1>職場のあなた再現シート ロールプレイ一覧</h1>
         <div class="content-section">
-            <p>下記のシナリオから選択してロールプレイを体験してください。</p>
+            <div class="intro-section">
+                <p>このアプリは、職場でのコミュニケーションスキルを安全に練習できる場所です。</p>
+                <p>以下のような方におすすめです：</p>
+                <ul>
+                    <li>職場での対人関係に不安がある方</li>
+                    <li>断ることや意見表明が苦手な方</li>
+                    <li>コミュニケーションスキルを向上させたい方</li>
+                </ul>
+            </div>
+
             <div class="scenarios-list">
+                <h2>シナリオを選んでロールプレイを始めましょう</h2>
                 {% for scenario_id, scenario_info in scenarios.items() %}
                     <div class="scenario-card">
-                        <h3>{{ scenario_info.title }}</h3>
-                        <p>{{ scenario_info.description }}</p>
-                        <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" 
-                           class="primary-button">
-                            開始する
-                        </a>
+                        <div class="scenario-header">
+                            <h3>{{ scenario_info.title }}</h3>
+                            <span class="difficulty-badge">難易度: {{ scenario_info.difficulty }}</span>
+                        </div>
+                        <p class="scenario-description">{{ scenario_info.description }}</p>
+                        <div class="scenario-tags">
+                            {% for tag in scenario_info.tags %}
+                                <span class="tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="scenario-actions">
+                            <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" 
+                               class="primary-button">
+                                このシナリオを始める
+                            </a>
+                            {% if scenario_info.tips %}
+                                <button class="tips-button" onclick="showTips('{{ scenario_id }}')">
+                                    学習のポイント
+                                </button>
+                            {% endif %}
+                        </div>
                     </div>
                 {% endfor %}
             </div>
         </div>
     </div>
+
     <div class="navigation">
         <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+        <a href="{{ url_for('view_journal') }}" class="nav-button">学習履歴を見る</a>
     </div>
+
+    <!-- Tips Modal -->
+    <div id="tipsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>学習のポイント</h2>
+            <div id="tipsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // モーダル関連の機能
+        const modal = document.getElementById('tipsModal');
+        const span = document.getElementsByClassName('close')[0];
+        
+        function showTips(scenarioId) {
+            modal.style.display = "block";
+            // ここでシナリオIDに応じたtipsを表示
+            // 実際の実装では、scenariosからtipsを取得して表示
+        }
+
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
 </body>
 </html>

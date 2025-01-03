@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>学習履歴 - 職場のあなた再現シート</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div id="chat-container">
+        <h1>学習履歴</h1>
+        <div class="content-section">
+            {% if entries %}
+                {% for entry in entries %}
+                    <div class="journal-card">
+                        <h2>{{ entry.scenario_title }}</h2>
+                        <div class="practice-summary">
+                            <p>最終練習日時: {{ entry.last_practice|datetime }}</p>
+                            <p>練習回数: {{ entry.conversations|length }}</p>
+                        </div>
+                        <div class="journal-actions">
+                            <a href="{{ url_for('show_scenario', scenario_id=entry.scenario_id) }}" 
+                               class="primary-button">
+                                再度練習する
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p>まだ練習履歴がありません。</p>
+                    <p>シナリオを選んで練習を始めましょう！</p>
+                    <a href="{{ url_for('list_scenarios') }}" class="primary-button">
+                        シナリオ一覧へ
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="navigation">
+        <a href="{{ url_for('list_scenarios') }}" class="nav-button">シナリオ一覧に戻る</a>
+        <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+    </div>
+</body>
+</html> 

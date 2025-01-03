@@ -29,7 +29,15 @@
         <div id="input-container">
             <select id="model-select">
                 {% for model in models %}
-                    <option value="{{ model }}">{{ model }}</option>
+                    {% if model.startswith('openai/') %}
+                        <option value="{{ model }}">
+                            {{ model.replace('openai/', 'OpenAI: ') }}
+                        </option>
+                    {% else %}
+                        <option value="{{ model }}" {% if model == '4o-mini' %}selected{% endif %}>
+                            Ollama: {{ model }}
+                        </option>
+                    {% endif %}
                 {% endfor %}
             </select>
             <input type="text" id="message-input" placeholder="メッセージを入力...">

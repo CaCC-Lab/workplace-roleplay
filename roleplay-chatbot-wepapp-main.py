@@ -14,16 +14,18 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
 import requests
 import os
-from typing import Optional
+from typing import Optional, Dict
+from datetime import datetime
 
 # LangChain関連
-from langchain_community.llms import Ollama
 from langchain_community.chat_models import ChatOpenAI
+from langchain_community.llms.ollama import Ollama  # 修正：正しいインポートパス
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
 from openai import OpenAI as OpenAIClient  # OpenAIクライアントを追加
+from langchain_core.runnables import RunnableWithMessageHistory  # 新しい会話チェーン
 
 # 環境変数の読み込み
 from dotenv import load_dotenv
@@ -54,23 +56,34 @@ if not OPENAI_API_KEY:
 # LLMの温度やその他パラメータは必要に応じて調整
 DEFAULT_TEMPERATURE = 0.7
 
+# デフォルトモデルの設定
+DEFAULT_MODEL = "openai/gpt-4o-mini"
+
 def get_available_openai_models():
     """
     OpenAI APIから利用可能なモデル一覧を取得
-    エラー時は空リストを返す
+    エラー時は基本モデルのリストを返す
     """
     try:
         client = OpenAIClient(api_key=OPENAI_API_KEY)
         models = client.models.list()
+        
         # ChatモデルとGPTモデルのみをフィルタリング
-        chat_models = [
-            model.id for model in models 
-            if model.id.startswith(("gpt-4", "gpt-3.5"))
-        ]
+        chat_models = []
+        for model in models:
+            if model.id.startswith(("gpt-4", "gpt-3.5")):
+                # モデル名の先頭に"openai/"を付加
+                chat_models.append(f"openai/{model.id}")
+        
         return sorted(chat_models)  # モデル名でソート
     except Exception as e:
         print(f"OpenAI models fetch error: {e}")
-        return []
+        # エラー時は基本的なモデルのリストを返す
+        return [
+            "openai/gpt-4",
+            "openai/gpt-4-turbo-preview",
+            "openai/gpt-3.5-turbo"
+        ]
 
 # ========== モデル取得 (ローカル) ==========
 def get_available_local_models():
@@ -90,12 +103,10 @@ def get_available_local_models():
 # ========== LLM生成ユーティリティ ==========
 def create_ollama_llm(model_name: str):
     """
-    LangChainのOllama LLMインスタンス生成
+    LangChainのOllama LLMインスタンス生成（新しいクライアントを使用）
     """
-    callbacks = [StreamingStdOutCallbackHandler()]
     return Ollama(
         model=model_name,
-        callbacks=callbacks,
         temperature=DEFAULT_TEMPERATURE,
     )
 
@@ -166,9 +177,7 @@ scenarios = {
 # ========== Flaskルート ==========
 @app.route("/")
 def index():
-    """
-    トップページ
-    """
+    """トップページ"""
     return render_template("index.html")
 
 @app.route("/chat")
@@ -176,60 +185,81 @@ def chat():
     """
     自由会話ページ
     """
+    # 利用可能なモデルを取得
+    openai_models = get_available_openai_models()
     local_models = get_available_local_models()
-    openai_models = [f"openai/{model}" for model in get_available_openai_models()]
-    return render_template("chat.html", models=local_models + openai_models)
-
-@app.route("/api/chat", methods=["POST"])
-def api_chat():
-    """
-    チャットAPI
-    """
-    data = request.json
-    if data is None:  # request.jsonがNoneの場合のチェック
-        return jsonify({"error": "Invalid JSON"}), 400
-        
-    user_message = data.get("message", "")
-    selected_model = data.get("model", "llama2")
-
-    # OpenAIモデルかどうかをプレフィックスで判断
-    if selected_model.startswith("openai/"):
-        openai_model_name = selected_model.split("/")[1]  # プレフィックスを除去
-        llm_instance = create_openai_llm(model_name=openai_model_name)
-    else:
-        llm_instance = create_ollama_llm(selected_model)
-
-    # 会話履歴をセッションに保存
-    if "conversation_history" not in session:
-        session["conversation_history"] = {}
     
-    if selected_model not in session["conversation_history"]:
-        session["conversation_history"][selected_model] = []
+    # OpenAIモデルとローカルモデルを結合
+    available_models = openai_models + local_models
     
-    history = session["conversation_history"][selected_model]
-
-    # 会話履歴を使って新しいメモリを作成
-    memory = ConversationBufferMemory()
-    for entry in history:
-        memory.save_context({"input": entry["human"]}, {"output": entry["ai"]})
-
-    chain = ConversationChain(
-        llm=llm_instance,
-        memory=memory,
-        verbose=True
+    return render_template(
+        "chat.html",
+        models=available_models
     )
 
-    # 応答を生成
-    response = chain.predict(input=user_message)
+@app.route("/api/chat", methods=["POST"])
+def chat_message():
+    """
+    チャットAPIエンドポイント
+    """
+    try:
+        data = request.json
+        if data is None:
+            return jsonify({"error": "Invalid JSON"}), 400
 
-    # 会話履歴を更新
-    history.append({
-        "human": user_message,
-        "ai": response
-    })
-    session.modified = True
+        user_message = data.get("message", "")
+        selected_model = data.get("model", DEFAULT_MODEL)
 
-    return jsonify({"response": response})
+        # モデルの選択と初期化
+        if selected_model.startswith("openai/"):
+            openai_model_name = selected_model.split("/")[1]
+            llm_instance = create_openai_llm(model_name=openai_model_name)
+        else:
+            # Ollamaモデルの場合、存在確認
+            if selected_model not in get_available_local_models():
+                return jsonify({
+                    "error": f"モデル '{selected_model}' が見つかりません。"
+                           f"ollama pull {selected_model} を実行してください。"
+                }), 404
+            llm_instance = create_ollama_llm(selected_model)
+
+        # 会話履歴の初期化
+        if "chat_history" not in session:
+            session["chat_history"] = []
+
+        # メモリの初期化
+        memory = ConversationBufferMemory()
+        
+        # 過去の会話履歴を読み込み
+        for entry in session["chat_history"]:
+            memory.save_context(
+                {"input": entry["human"]},
+                {"output": entry["ai"]}
+            )
+
+        # ConversationChain構築
+        chain = ConversationChain(
+            llm=llm_instance,
+            memory=memory,
+            verbose=True
+        )
+
+        # 応答を生成
+        response = chain.predict(input=user_message)
+
+        # セッションに履歴を保存
+        session["chat_history"].append({
+            "human": user_message,
+            "ai": response,
+            "timestamp": datetime.now().isoformat()
+        })
+        session.modified = True
+
+        return jsonify({"response": response})
+
+    except Exception as e:
+        print(f"Error in chat: {str(e)}")
+        return jsonify({"error": "チャット処理中にエラーが発生しました"}), 500
 
 @app.route("/api/models", methods=["GET"])
 def api_models():
@@ -263,140 +293,175 @@ def clear_history():
 # シナリオ一覧を表示するページ
 @app.route("/scenarios")
 def list_scenarios():
-    """
-    シナリオのタイトル一覧を表示
-    """
-    return render_template("scenarios_list.html", scenarios=scenarios)
+    """シナリオ一覧ページ"""
+    # 利用可能なモデルを取得
+    openai_models = get_available_openai_models()
+    local_models = get_available_local_models()
+    
+    # OpenAIモデルとローカルモデルを結合
+    available_models = openai_models + local_models
+    
+    return render_template(
+        "scenarios_list.html",
+        scenarios=scenarios,
+        models=available_models
+    )
 
 # シナリオを選択してロールプレイ画面へ
 @app.route("/scenario/<scenario_id>")
 def show_scenario(scenario_id):
-    """
-    選択されたシナリオの概要を表示し、ロールプレイ画面 (scenario.html) をレンダリング
-    """
+    """個別のシナリオページ"""
     if scenario_id not in scenarios:
-        return "シナリオが見つかりません。", 404
-
-    # 利用可能なモデル一覧を取得
+        return "シナリオが見つかりません", 404
+    
+    # 利用可能なモデルを取得
+    openai_models = get_available_openai_models()
     local_models = get_available_local_models()
-    openai_models = [f"openai/{model}" for model in get_available_openai_models()]
-    all_models = local_models + openai_models
-
-    scenario_data = scenarios[scenario_id]
-    return render_template("scenario.html", 
-                         scenario_id=scenario_id,
-                         scenario_title=scenario_data["title"],
-                         scenario_desc=scenario_data["description"],
-                         scenario=scenario_data,
-                         models=all_models)  # モデル一覧を追加
+    
+    # OpenAIモデルとローカルモデルを結合
+    available_models = openai_models + local_models
+    
+    return render_template(
+        "scenario.html",
+        scenario_id=scenario_id,
+        scenario=scenarios[scenario_id],
+        scenario_title=scenarios[scenario_id]["title"],
+        scenario_desc=scenarios[scenario_id]["description"],
+        models=available_models
+    )
 
 @app.route("/api/scenario_chat", methods=["POST"])
 def scenario_chat():
     """
     ロールプレイモード専用のチャットAPI
     """
-    data = request.json
-    if data is None:
-        return jsonify({"error": "Invalid JSON"}), 400
+    try:
+        data = request.json
+        if data is None:
+            return jsonify({"error": "Invalid JSON"}), 400
 
-    user_message = data.get("message", "")
-    scenario_id = data.get("scenario_id", "")
-    selected_model = data.get("model", "gpt-3.5-turbo")  # デフォルトモデルを設定
-    
-    if not scenario_id or scenario_id not in scenarios:
-        return jsonify({"error": "無効なシナリオIDです"}), 400
+        user_message = data.get("message", "")
+        scenario_id = data.get("scenario_id", "")
+        selected_model = data.get("model", DEFAULT_MODEL)
+        
+        if not scenario_id or scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
 
-    # モデルの選択
-    if selected_model.startswith("openai/"):
-        openai_model_name = selected_model.split("/")[1]
-        llm_instance = create_openai_llm(model_name=openai_model_name)
-    else:
-        llm_instance = create_ollama_llm(selected_model)
+        # シナリオ情報を取得
+        scenario_data = scenarios[scenario_id]
+        
+        # シナリオ専用の会話履歴をセッションに保存
+        if "scenario_history" not in session:
+            session["scenario_history"] = {}
 
-    # シナリオ情報を取得
-    scenario_data = scenarios[scenario_id]
-    
-    # プロンプトを構築
-    system_prompt = f"""\
-# ロールプレイ設定
-あなたは{scenario_data["role_info"]}として振る舞ってください。
+        if scenario_id not in session["scenario_history"]:
+            session["scenario_history"][scenario_id] = []
+
+        # モデルの選択と初期化
+        if selected_model.startswith("openai/"):
+            openai_model_name = selected_model.split("/")[1]
+            llm_instance = create_openai_llm(model_name=openai_model_name)
+        else:
+            # Ollamaモデルの場合、存在確認
+            if selected_model not in get_available_local_models():
+                return jsonify({
+                    "error": f"モデル '{selected_model}' が見つかりません。"
+                           f"ollama pull {selected_model} を実行してください。"
+                }), 404
+            llm_instance = create_ollama_llm(selected_model)
+
+        # 会話履歴を使ってメモリを初期化
+        memory = ConversationBufferMemory()
+        
+        # システムプロンプトを構築
+        system_prompt = f"""\
+# ロールプレイの設定
+あなたは{scenario_data["role_info"].split("、")[0].replace("AIは", "")}です。
 
 ## キャラクター設定
-- 性格: {scenario_data["character_setting"]["personality"]}
-- 話し方: {scenario_data["character_setting"]["speaking_style"]}
-- 状況: {scenario_data["character_setting"]["situation"]}
+性格: {scenario_data["character_setting"]["personality"]}
+話し方: {scenario_data["character_setting"]["speaking_style"]}
+状況: {scenario_data["character_setting"]["situation"]}
 
 ## 演技の注意点
-1. 常に設定された役柄を演じ切ってください
-2. 指定された話し方を一貫して使用してください
-3. 感情や表情も適切に言葉で表現してください
-4. 相手の発言に自然に反応してください
+1. 常に設定された役柄を一貫して演じ続けてください
+2. 指定された話し方を厳密に守ってください
+3. 感情や表情も自然に表現してください（例：「少し困ったような表情で」「申し訳なさそうに」など）
+4. 相手の発言に対して適切な反応を示してください
 5. 職場での適切な距離感を保ちつつ、リアルな会話を心がけてください
+6. 一度に長すぎる発言は避け、自然な会話の長さを保ってください
 
-## シナリオ背景
+## 現在の状況
 {scenario_data["description"]}
 """
+        
+        # システムプロンプトを最初に追加
+        if len(session["scenario_history"][scenario_id]) == 0:
+            memory.save_context(
+                {"input": "シナリオ設定"},
+                {"output": system_prompt}
+            )
 
-    # シナリオ専用の会話履歴をセッションに保存
-    # 例: session["scenario_history"][シナリオID] = [...]
-    if "scenario_history" not in session:
-        session["scenario_history"] = {}
+        # 過去の会話履歴を読み込み
+        for entry in session["scenario_history"][scenario_id]:
+            memory.save_context(
+                {"input": entry["human"]},
+                {"output": entry["ai"]}
+            )
 
-    if scenario_id not in session["scenario_history"]:
-        # シナリオごとに会話履歴のリストを持つ
-        session["scenario_history"][scenario_id] = []
+        # ConversationChain構築
+        chain = ConversationChain(
+            llm=llm_instance,
+            memory=memory,
+            verbose=True
+        )
 
-    scenario_history = session["scenario_history"][scenario_id]
+        # 最初のメッセージの場合
+        if len(session["scenario_history"][scenario_id]) == 0:
+            init_prompt = f"""\
+{memory.load_memory_variables({"input": "シナリオ設定"})["output"]}
 
-    # LLMを生成 (ここではOllamaまたはOpenAIの既定モデルを仮利用)
-    # 必要ならUIでモデルを切り替え可能にしてもOK
-    # ここではデモなので "gpt-3.5-turbo" を固定例とします。
-    llm_instance = create_openai_llm("gpt-3.5-turbo")
-    # ※ ローカルLLMでやりたい場合は create_ollama_llm("llama2") 等に切り替え
-
-    # ConversationBufferMemoryを再現
-    memory = ConversationBufferMemory()
-
-    # 過去のシナリオ会話を読み込み
-    for entry in scenario_history:
-        memory.save_context({"input": entry["human"]}, {"output": entry["ai"]})
-
-    # ConversationChain構築
-    chain = ConversationChain(
-        llm=llm_instance,
-        memory=memory,
-        verbose=True
-    )
-
-    # ---- シナリオの前提をプロンプトに組み込む ----
-    # 最初にシナリオが開始された時点で、AIに「ロール」を割り当てたい。
-    # もし最初のユーザメッセージなら、シナリオ背景とロール情報をAIに伝える。
-    if len(scenario_history) == 0:
-        init_prompt = f"""\
-{system_prompt}
-
-最初の声掛けとして、以下の設定で話しかけてください：
-{scenario_data["character_setting"]["initial_approach"]}
+あなたは{scenario_data["character_setting"]["initial_approach"]}という設定で
+最初の声掛けをしてください。
+感情や表情も自然に含めて表現してください。
 """
-        first_response = chain.predict(input=init_prompt)
-        scenario_history.append({
-            "human": "[シナリオ開始]",
-            "ai": first_response
+            first_response = chain.predict(input=init_prompt)
+            session["scenario_history"][scenario_id].append({
+                "human": "[シナリオ開始]",
+                "ai": first_response,
+                "timestamp": datetime.now().isoformat()
+            })
+            session.modified = True
+            return jsonify({"response": first_response})
+
+        # ユーザーの発言に対する応答を生成
+        context_prompt = f"""\
+前の会話を踏まえて、{scenario_data["role_info"].split("、")[0].replace("AIは", "")}として
+以下のユーザーの発言に自然に応答してください：
+
+{user_message}
+
+## 注意点
+- 感情や表情も含めて表現する
+- 設定された話し方を守る
+- 適切な長さで返答する
+- 職場の上下関係や距離感を意識する
+"""
+        response = chain.predict(input=context_prompt)
+
+        # セッションに履歴を保存
+        session["scenario_history"][scenario_id].append({
+            "human": user_message,
+            "ai": response,
+            "timestamp": datetime.now().isoformat()
         })
         session.modified = True
-        return jsonify({"response": first_response})
 
-    # ---- 次のユーザメッセージに対するAIの応答を取得 ----
-    response = chain.predict(input=user_message)
+        return jsonify({"response": response})
 
-    # セッションに履歴を保存
-    scenario_history.append({
-        "human": user_message,
-        "ai": response
-    })
-    session.modified = True
-
-    return jsonify({"response": response})
+    except Exception as e:
+        print(f"Error in scenario_chat: {str(e)}")
+        return jsonify({"error": "チャット処理中にエラーが発生しました"}), 500
 
 @app.route("/api/scenario_clear", methods=["POST"])
 def scenario_clear():
@@ -493,6 +558,38 @@ def format_conversation_history(history):
         if entry.get("human"):
             formatted.append(f"ユーザー: {entry['human']}")
     return "\n".join(formatted)
+
+@app.route("/journal")
+def view_journal():
+    """
+    学習履歴を表示するページ
+    """
+    # セッションから会話履歴を取得
+    scenario_history = session.get("scenario_history", {})
+    
+    # 履歴データを整形
+    journal_entries = []
+    for scenario_id, history in scenario_history.items():
+        if scenario_id in scenarios:
+            entry = {
+                "scenario_title": scenarios[scenario_id]["title"],
+                "scenario_id": scenario_id,
+                "conversations": history,
+                "last_practice": history[-1]["timestamp"] if history else None
+            }
+            journal_entries.append(entry)
+    
+    return render_template("journal.html", 
+                         entries=journal_entries,
+                         scenarios=scenarios)
+
+@app.template_filter('datetime')
+def format_datetime(value):
+    """ISOフォーマットの日時文字列を読みやすい形式に変換"""
+    if not value:
+        return "未実施"
+    dt = datetime.fromisoformat(value)
+    return dt.strftime('%Y年%m月%d日 %H:%M')
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":
