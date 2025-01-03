@@ -16,16 +16,17 @@ import requests
 import os
 from typing import Optional, Dict, List
 from datetime import datetime
+from pydantic import SecretStr  # 追加
 
 # LangChain関連
-from langchain_community.chat_models import ChatOpenAI
-from langchain_community.llms.ollama import Ollama  # 修正：正しいインポートパス
+from langchain_openai import ChatOpenAI  # OpenAI用
+from langchain_community.llms.ollama import Ollama  # Ollama用
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
-from openai import OpenAI as OpenAIClient  # OpenAIクライアントを追加
-from langchain_core.runnables import RunnableWithMessageHistory  # 新しい会話チェーン
+from openai import OpenAI as OpenAIClient
+from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
@@ -115,12 +116,18 @@ def create_ollama_llm(model_name: str):
 
 def create_openai_llm(model_name: str = "gpt-3.5-turbo") -> ChatOpenAI:
     """
-    LangChainのOpenAI Chat modelインスタンス生成
+    LangChainのOpenAI Chat modelインスタンス生成（更新版）
     """
+    # モデル名からopenai/プレフィックスを削除
+    if model_name.startswith("openai/"):
+        model_name = model_name.replace("openai/", "")
+    
+    # APIキーをSecretStr型に変換
+    api_key = SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None
+        
     return ChatOpenAI(
         temperature=DEFAULT_TEMPERATURE,
-        api_key=OPENAI_API_KEY,
-        max_tokens=1500,
+        api_key=api_key,  # SecretStr型で渡す
         model=model_name,
     )
 
@@ -248,13 +255,6 @@ scenarios = {
 @app.route("/")
 def index():
     """トップページ"""
-    return render_template("index.html")
-
-@app.route("/chat")
-def chat():
-    """
-    自由会話ページ
-    """
     # 利用可能なモデルを取得
     openai_models = get_available_openai_models()
     local_models = get_available_local_models()
@@ -262,74 +262,55 @@ def chat():
     # OpenAIモデルとローカルモデルを結合
     available_models = openai_models + local_models
     
-    return render_template(
-        "chat.html",
-        models=available_models
-    )
+    return render_template("index.html", models=available_models)
+
+@app.route("/chat")
+def chat():
+    """
+    自由会話ページ
+    """
+    # モデル一覧の取得を削除
+    return render_template("chat.html")
 
 @app.route("/api/chat", methods=["POST"])
-def chat_message():
+def handle_chat():
     """
-    チャットAPIエンドポイント
+    チャットメッセージの処理
     """
+    data = request.get_json()
+    message = data.get("message", "")
+    model_name = data.get("model", DEFAULT_MODEL)
+
     try:
-        data = request.json
-        if data is None:
-            return jsonify({"error": "Invalid JSON"}), 400
-
-        user_message = data.get("message", "")
-        selected_model = data.get("model", DEFAULT_MODEL)
-
-        # モデルの選択と初期化
-        if selected_model.startswith("openai/"):
-            openai_model_name = selected_model.split("/")[1]
-            llm_instance = create_openai_llm(model_name=openai_model_name)
-        else:
-            # Ollamaモデルの場合、存在確認
-            if selected_model not in get_available_local_models():
-                return jsonify({
-                    "error": f"モデル '{selected_model}' が見つかりません。"
-                           f"ollama pull {selected_model} を実行してください。"
-                }), 404
-            llm_instance = create_ollama_llm(selected_model)
-
-        # 会話履歴の初期化
+        # 会話履歴の取得（セッションから）
         if "chat_history" not in session:
             session["chat_history"] = []
-
-        # メモリの初期化
-        memory = ConversationBufferMemory()
         
-        # 過去の会話履歴を読み込み
-        for entry in session["chat_history"]:
-            memory.save_context(
-                {"input": entry["human"]},
-                {"output": entry["ai"]}
-            )
-
-        # ConversationChain構築
-        chain = ConversationChain(
-            llm=llm_instance,
-            memory=memory,
-            verbose=True
-        )
-
-        # 応答を生成
-        response = chain.predict(input=user_message)
-
-        # セッションに履歴を保存
+        # モデルの作成
+        if model_name.startswith("openai/"):
+            llm = create_openai_llm(model_name)
+        else:
+            llm = create_ollama_llm(model_name)
+        
+        # 会話チェーンの作成
+        memory = ConversationBufferMemory()
+        chain = ConversationChain(llm=llm, memory=memory)
+        
+        # 応答の生成
+        response = chain.predict(input=message)
+        
+        # 会話履歴の更新
         session["chat_history"].append({
-            "human": user_message,
+            "human": message,
             "ai": response,
             "timestamp": datetime.now().isoformat()
         })
-        session.modified = True
-
+        
         return jsonify({"response": response})
-
+        
     except Exception as e:
-        print(f"Error in chat: {str(e)}")
-        return jsonify({"error": "チャット処理中にエラーが発生しました"}), 500
+        print(f"Error in chat: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/models", methods=["GET"])
 def api_models():

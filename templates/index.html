@@ -10,6 +10,33 @@
     <div id="chat-container">
         <h1>職場コミュニケーション練習アプリ</h1>
         
+        <div class="model-selection">
+            <h2>🤖 AIモデルを選択</h2>
+            <p>会話に使用するAIモデルを選択してください。OpenAIのモデルは高精度ですが、ローカルモデル（Ollama）はプライバシーを重視する場合に適しています。</p>
+            <div class="model-select-container">
+                <select id="model-select" class="enhanced-select">
+                    <optgroup label="OpenAI Models">
+                        {% for model in models %}
+                            {% if model.startswith('openai/') %}
+                                <option value="{{ model }}">
+                                    {{ model.replace('openai/', '') }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup label="Local Models (Ollama)">
+                        {% for model in models %}
+                            {% if not model.startswith('openai/') %}
+                                <option value="{{ model }}">
+                                    {{ model }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </optgroup>
+                </select>
+            </div>
+        </div>
+
         <div class="content-section">
             <div class="welcome-section">
                 <h2>🎯 アプリの目的</h2>
@@ -43,6 +70,22 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // ページ読み込み時に最初のモデルを保存
+        window.addEventListener('load', function() {
+            const modelSelect = document.getElementById('model-select');
+            if (modelSelect && modelSelect.value) {
+                localStorage.setItem('selectedModel', modelSelect.value);
+            }
+        });
+
+        // モデル選択時の保存
+        document.getElementById('model-select').addEventListener('change', function() {
+            const selectedModel = this.value;
+            localStorage.setItem('selectedModel', selectedModel);
+        });
+    </script>
 </body>
 </html>
 

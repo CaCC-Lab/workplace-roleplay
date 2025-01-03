@@ -12,17 +12,6 @@
         <!-- チャット部分 -->
         <div id="chat-messages"></div>
         <div id="input-container">
-            <select id="model-select">
-                {% for model in models %}
-                    {% if model.startswith('openai/') %}
-                        <option value="{{ model }}" {% if model == 'openai/gpt-3.5-turbo' %}selected{% endif %}>
-                            {{ model.replace('openai/', 'OpenAI: ') }}
-                        </option>
-                    {% else %}
-                        <option value="{{ model }}">Ollama: {{ model }}</option>
-                    {% endif %}
-                {% endfor %}
-            </select>
             <input type="text" id="message-input" placeholder="メッセージを入力...">
             <button id="send-button">送信</button>
         </div>
@@ -36,64 +25,63 @@
         const chatMessages = document.getElementById('chat-messages');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
-        const modelSelect = document.getElementById('model-select');
 
         async function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
+            const msg = messageInput.value.trim();
+            if (!msg) return;
 
-            // メッセージ送信
+            const selectedModel = localStorage.getItem('selectedModel');
+            if (!selectedModel) {
+                displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
+                return;
+            }
+
+            displayMessage("あなた: " + msg, "user-message");
+            messageInput.value = "";
+
             try {
                 const response = await fetch("/api/chat", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: {"Content-Type": "application/json"},
                     body: JSON.stringify({
-                        message: message,
-                        model: modelSelect.value
-                    }),
+                        message: msg,
+                        model: selectedModel
+                    })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
-                
                 if (data.error) {
                     throw new Error(data.error);
                 }
 
-                // メッセージを表示
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message user-message';
-                messageDiv.textContent = message;
-                chatMessages.appendChild(messageDiv);
-
-                // AIの応答を表示
-                const aiDiv = document.createElement('div');
-                aiDiv.className = 'message ai-message';
-                aiDiv.textContent = data.response;
-                chatMessages.appendChild(aiDiv);
-
-                // 入力欄をクリア
-                messageInput.value = '';
-                
-                // 最新のメッセージまでスクロール
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('エラーが発生しました: ' + error.message);
+                if (data.response) {
+                    displayMessage("AI: " + data.response, "bot-message");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                displayMessage("エラーが発生しました: " + err.message, "error-message");
             }
         }
 
-        // 送信ボタンのクリックイベント
+        // イベントリスナーの設定
         sendButton.addEventListener('click', sendMessage);
-
-        // Enterキーでの送信
-        messageInput.addEventListener('keypress', (e) => {
+        messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
+
+        function displayMessage(text, className) {
+            const div = document.createElement("div");
+            div.className = "message " + className;
+            div.textContent = text;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     </script>
 </body>
 </html> 

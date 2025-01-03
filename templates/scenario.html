@@ -27,19 +27,6 @@
         <!-- チャット部分 -->
         <div id="chat-messages"></div>
         <div id="input-container">
-            <select id="model-select">
-                {% for model in models %}
-                    {% if model.startswith('openai/') %}
-                        <option value="{{ model }}">
-                            {{ model.replace('openai/', 'OpenAI: ') }}
-                        </option>
-                    {% else %}
-                        <option value="{{ model }}" {% if model == '4o-mini' %}selected{% endif %}>
-                            Ollama: {{ model }}
-                        </option>
-                    {% endif %}
-                {% endfor %}
-            </select>
             <input type="text" id="message-input" placeholder="メッセージを入力...">
             <button id="send-button">送信</button>
             <button id="clear-button">シナリオをリセット</button>
@@ -62,59 +49,24 @@
     </div>
 
     <script>
-        const scenarioId = "{{ scenario_id }}";  // テンプレートからシナリオIDを取得
+        const scenarioId = "{{ scenario_id }}";
         const chatMessages = document.getElementById('chat-messages');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
         const clearButton = document.getElementById('clear-button');
 
-        // ページ読み込み時に最初のメッセージを取得
-        window.addEventListener('load', async () => {
-            try {
-                const selectedModel = document.getElementById('model-select').value;
-                // シナリオ開始（最初のメッセージを取得）
-                const response = await fetch("/api/scenario_chat", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        message: "",  // 空メッセージで最初の挨拶を要求
-                        scenario_id: scenarioId,
-                        model: selectedModel  // モデルの選択を追加
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                if (data.response) {
-                    displayMessage("相手役: " + data.response, "bot-message");
-                }
-            } catch (err) {
-                console.error("Error:", err);
-                displayMessage("エラーが発生しました: " + err.message, "error-message");
-            }
-        });
-
-        sendButton.addEventListener('click', sendMessage);
-        clearButton.addEventListener('click', clearScenarioHistory);
-        messageInput.addEventListener('keypress', function(e){
-            if(e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
         async function sendMessage() {
             const msg = messageInput.value.trim();
-            if(!msg) return;
+            if (!msg) return;
 
-            const selectedModel = document.getElementById('model-select').value;
+            const selectedModel = localStorage.getItem('selectedModel');
+            if (!selectedModel) {
+                displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
+                return;
+            }
+
             displayMessage("あなた: " + msg, "user-message");
+            messageInput.value = "";  // 入力欄をクリア
 
             try {
                 const response = await fetch("/api/scenario_chat", {
@@ -143,9 +95,53 @@
                 console.error("Error:", err);
                 displayMessage("エラーが発生しました: " + err.message, "error-message");
             }
-
-            messageInput.value = "";
         }
+
+        // イベントリスナーの設定
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 初期メッセージの取得
+        window.addEventListener('load', async () => {
+            try {
+                const selectedModel = localStorage.getItem('selectedModel');
+                if (!selectedModel) {
+                    throw new Error("モデルが選択されていません。トップページでモデルを選択してください。");
+                }
+                
+                const response = await fetch("/api/scenario_chat", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        message: "",
+                        scenario_id: scenarioId,
+                        model: selectedModel
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (data.response) {
+                    displayMessage("相手役: " + data.response, "bot-message");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                displayMessage("エラーが発生しました: " + err.message, "error-message");
+            }
+        });
+
+        clearButton.addEventListener('click', clearScenarioHistory);
 
         function displayMessage(text, className) {
             const div = document.createElement("div");

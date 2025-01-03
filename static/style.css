@@ -619,3 +619,91 @@ button {
     margin-top: 1.5rem;
 }
 
+/* モデル選択セクションのスタイル */
+.model-selection {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    margin: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.model-selection h2 {
+    color: #2c3e50;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+}
+
+.model-selection p {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.model-select-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+#model-select {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    background-color: white;
+    color: #333;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+    padding-right: 2.5rem;
+}
+
+#model-select:hover {
+    border-color: var(--primary-color);
+}
+
+#model-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.model-type {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-right: 0.5rem;
+}
+
+.model-type.openai {
+    background-color: #e7f5ff;
+    color: #1c7ed6;
+}
+
+.model-type.ollama {
+    background-color: #fff3bf;
+    color: #e67700;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .model-selection {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+
+    .model-select-container {
+        flex-direction: column;
+    }
+
+    #model-select {
+        width: 100%;
+    }
+}
+
