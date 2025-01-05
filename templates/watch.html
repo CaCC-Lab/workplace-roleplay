@@ -2,141 +2,297 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM観戦モード - ロールプレイチャットボット</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>LLM観戦モード - 職場コミュニケーション練習アプリ</title>
+    <link rel="stylesheet" href="../static/style.css">
 </head>
 <body>
     <div id="chat-container">
-        <h1>LLM観戦モード</h1>
-        <div class="content-section">
-            <div class="intro-section">
-                <p>2つのAIを選んで会話を観戦できます。</p>
-                <p>以下のような用途におすすめです：</p>
-                <ul>
-                    <li>異なるAIの特徴を比較したい方</li>
-                    <li>AIの会話の流れを観察したい方</li>
-                    <li>シナリオの動作確認をしたい方</li>
-                </ul>
-            </div>
-        
-            <div class="settings-section">
-                <h2>シナリオ設定</h2>
+        <header class="chat-header">
+            <h1>👀 LLM観戦モード</h1>
+            <p class="mode-description">
+                2つのAIが会話する様子を観察できます。
+                ビジネスシーンでの自然な会話の進め方を学びましょう。
+            </p>
+        </header>
+
+        <!-- 設定セクション -->
+        <div class="settings-section">
+            <h2>🎯 観戦設定</h2>
+            <div class="settings-grid">
                 <div class="setting-group">
-                    <select id="scenario">
-                        {% for id, scenario in scenarios.items() %}
-                        <option value="{{ id }}">{{ scenario.title }}</option>
-                        {% endfor %}
+                    <h3>👥 相手設定</h3>
+                    <select id="partner-type">
+                        <option value="colleague">同僚（同年代）</option>
+                        <option value="senior">先輩社員</option>
+                        <option value="junior">後輩社員</option>
+                        <option value="boss">上司</option>
+                        <option value="client">取引先担当者</option>
                     </select>
                 </div>
+                
                 <div class="setting-group">
-                    <h3>会話ターン数</h3>
-                    <select id="max-turns">
-                        <option value="3">3ターン</option>
-                        <option value="5" selected>5ターン</option>
-                        <option value="7">7ターン</option>
-                        <option value="10">10ターン</option>
+                    <h3>🌟 シチュエーション</h3>
+                    <select id="situation">
+                        <option value="lunch">ランチ休憩中</option>
+                        <option value="break">休憩時間</option>
+                        <option value="morning">始業前</option>
+                        <option value="evening">退社時</option>
+                        <option value="party">社内イベント</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <h3>💭 話題</h3>
+                    <select id="topic">
+                        <option value="general">一般的な話題（天気、週末の予定など）</option>
+                        <option value="hobby">趣味・娯楽</option>
+                        <option value="news">ニュース・時事問題</option>
+                        <option value="food">食事・グルメ</option>
+                        <option value="work">仕事（一般的な内容）</option>
                     </select>
                 </div>
             </div>
-        
-            <div class="action-section">
-                <button onclick="startConversation()" class="primary-button">会話を開始</button>
-            </div>
-        
-            <div class="loading" id="loading">
-                <p>会話を生成中...</p>
-            </div>
-        
-            <div class="chat-messages" id="conversation">
-                <!-- 会話がここに表示されます -->
+
+            <div class="action-buttons">
+                <button id="start-watch" class="primary-button">
+                    <span class="icon">▶️</span>観戦を始める
+                </button>
+                <button id="next-message" class="secondary-button" disabled>
+                    <span class="icon">⏭️</span>次の発言を見る
+                </button>
+                <button id="clear-history" class="secondary-button">
+                    <span class="icon">🔄</span>履歴をクリア
+                </button>
             </div>
         </div>
-        
-        <div class="navigation">
-            <a href="{{ url_for('list_scenarios') }}" class="nav-button">シナリオ一覧に戻る</a>
-            <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+
+        <!-- ローディング表示 -->
+        <div id="loading" class="loading" style="display: none;">
+            <span class="loading-icon">⌛</span>
+            <span class="loading-text">AIが考え中...</span>
+        </div>
+
+        <!-- チャットエリア -->
+        <div class="chat-area">
+            <div id="chat-messages"></div>
         </div>
     </div>
 
+    <div class="navigation">
+        <a href="{{ url_for('index') }}" class="nav-button">
+            <span class="icon">🏠</span>トップページに戻る
+        </a>
+    </div>
+
     <script>
-        async function startConversation() {
-            const scenarioId = document.getElementById('scenario').value;
-            const maxTurns = document.getElementById('max-turns').value;
-            
-            const loading = document.getElementById('loading');
-            const conversation = document.getElementById('conversation');
-            
-            loading.style.display = 'block';
-            conversation.innerHTML = '';
-            conversation.scrollTop = 0;
-            
-            try {
-                const response = await fetch('/api/watch_conversation', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        scenario_id: scenarioId,
-                        max_turns: maxTurns
-                    }),
-                });
-                
-                const eventSource = new EventSource(`/api/watch_conversation/stream?scenario_id=${scenarioId}&max_turns=${maxTurns}`);
-                
-                eventSource.onmessage = function(event) {
-                    const data = JSON.parse(event.data);
-                    
+        const chatMessages = document.getElementById('chat-messages');
+        const startButton = document.getElementById('start-watch');
+        const nextButton = document.getElementById('next-message');
+        const clearButton = document.getElementById('clear-history');
+        const loadingDiv = document.getElementById('loading');
+
+        let conversationStarted = false;
+        let waitingForNext = false;
+
+        startButton.addEventListener('click', async function() {
+            if (!conversationStarted) {
+                const selectedModel = localStorage.getItem('selectedModel');
+                if (!selectedModel) {
+                    displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
+                    return;
+                }
+
+                const partnerType = document.getElementById('partner-type').value;
+                const situation = document.getElementById('situation').value;
+                const topic = document.getElementById('topic').value;
+
+                loadingDiv.style.display = 'block';
+                startButton.disabled = true;
+
+                try {
+                    const response = await fetch("/api/watch/start", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({
+                            model_a: selectedModel,
+                            model_b: selectedModel,
+                            partner_type: partnerType,
+                            situation: situation,
+                            topic: topic
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
                     if (data.error) {
                         throw new Error(data.error);
                     }
-                    
-                    if (data.type === "message") {
-                        displayMessage(data.data);
-                        conversation.scrollTop = conversation.scrollHeight;
-                    } else if (data.type === "complete") {
-                        eventSource.close();
-                        loading.style.display = 'none';
+
+                    if (data.message) {
+                        displayMessage(data.message, "bot-message");
+                        nextButton.disabled = false;
+                        conversationStarted = true;
+                        waitingForNext = true;
                     }
-                };
-                
-                eventSource.onerror = function(error) {
-                    console.error('EventSource failed:', error);
-                    eventSource.close();
-                    loading.style.display = 'none';
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'message error-message';
-                    errorDiv.textContent = 'エラーが発生しました';
-                    conversation.appendChild(errorDiv);
-                };
-                
-            } catch (error) {
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'message error-message';
-                errorDiv.textContent = 'エラーが発生しました: ' + error.message;
-                conversation.appendChild(errorDiv);
-                loading.style.display = 'none';
+                } catch (err) {
+                    console.error("Error:", err);
+                    displayMessage("エラーが発生しました: " + err.message, "error-message");
+                } finally {
+                    loadingDiv.style.display = 'none';
+                }
             }
-        }
-        
-        function displayMessage(message) {
-            const container = document.getElementById('conversation');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${message.speaker}-message`;
-            
-            const metaDiv = document.createElement('div');
-            metaDiv.className = 'message-meta';
-            metaDiv.textContent = `${message.model} - ${new Date(message.timestamp).toLocaleString()}`;
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.textContent = message.message;
-            
-            messageDiv.appendChild(metaDiv);
-            messageDiv.appendChild(contentDiv);
-            container.appendChild(messageDiv);
+        });
+
+        nextButton.addEventListener('click', async function() {
+            if (waitingForNext) {
+                loadingDiv.style.display = 'block';
+                nextButton.disabled = true;
+
+                try {
+                    const response = await fetch("/api/watch/next", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"}
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+
+                    if (data.message) {
+                        displayMessage(data.message, "bot-message");
+                        nextButton.disabled = false;
+                        waitingForNext = true;
+                    }
+                } catch (err) {
+                    console.error("Error:", err);
+                    displayMessage("エラーが発生しました: " + err.message, "error-message");
+                } finally {
+                    loadingDiv.style.display = 'none';
+                }
+            }
+        });
+
+        clearButton.addEventListener('click', async function() {
+            try {
+                const response = await fetch("/api/clear_history", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        mode: "watch"
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // UI状態のリセット
+                chatMessages.innerHTML = '';
+                nextButton.disabled = true;
+                startButton.disabled = false;
+                conversationStarted = false;
+                waitingForNext = false;
+                displayMessage("会話履歴がクリアされました", "system-message");
+            } catch (err) {
+                console.error("Error:", err);
+                displayMessage("エラーが発生しました: " + err.message, "error-message");
+            }
+        });
+
+        function displayMessage(text, className) {
+            const div = document.createElement("div");
+            div.className = "message " + className;
+            div.textContent = text;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     </script>
+
+    <style>
+        /* 既存のスタイルを継承しつつ、必要な追加スタイルを定義 */
+        .chat-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .mode-description {
+            color: #666;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .setting-group {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .setting-group h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .setting-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        .chat-area {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 1.5rem 0;
+            padding: 1rem;
+        }
+
+        #next-message {
+            background-color: #28a745;
+        }
+
+        #next-message:hover {
+            background-color: #218838;
+        }
+
+        #next-message:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
 </body>
 </html> 

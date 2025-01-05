@@ -63,14 +63,7 @@
 
                 <div class="feature-card">
                     <h3>💭 雑談練習</h3>
-                    <p>ビジネスシーンでの雑談力を向上させるための練習ができます。
-                       相手や状況に応じた適切な会話を学べます。</p>
-                    <ul class="feature-list">
-                        <li>相手設定（同僚、上司、取引先など）</li>
-                        <li>シチュエーション選択</li>
-                        <li>話題設定</li>
-                        <li>詳細なフィードバック</li>
-                    </ul>
+                    <p>ビジネスシーンでの雑談力を向上させるための練習ができます。</p>
                     <a href="{{ url_for('chat') }}" class="primary-button">雑談練習を始める</a>
                 </div>
 
@@ -108,8 +101,6 @@
             localStorage.setItem('selectedModel', selectedModel);
         });
     </script>
-
-    <li><a href="{{ url_for('watch_mode') }}">LLM観戦モード</a></li>
 </body>
 </html>
 

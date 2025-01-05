@@ -1041,7 +1041,7 @@ def create_system_prompt(scenario_data: Dict[str, Any], role: str) -> str:
 {scenario_data["description"]}
 
 ## 応答形式
-- 感情や仕草を（）内に記述
+- 感情や仕草は（）内に記述
 - 台詞は「」で囲む
 - 1回の応答は3行程度まで
 """
@@ -1326,6 +1326,171 @@ def get_chat_feedback():
         import traceback
         traceback.print_exc()  # スタックトレースを出力
         return jsonify({"error": str(e)}), 500
+
+def generate_initial_message(llm, partner_type, situation, topic):
+    """観戦モードの最初のメッセージを生成"""
+    system_prompt = f"""あなたは職場での自然な会話を行うAIです。
+以下の点に注意して会話を始めてください：
+
+設定：
+- 相手: {get_partner_description(partner_type)}
+- 状況: {get_situation_description(situation)}
+- 話題: {get_topic_description(topic)}
+
+会話の注意点：
+1. 設定された相手や状況に応じた適切な話し方をする
+2. 自然な会話の流れを作る
+3. 相手が話しやすい雰囲気を作る
+4. 職場での適切な距離感を保つ
+
+応答の制約：
+- 感情や仕草は（）内に記述
+- 発言は「」で囲む
+- 1回の応答は3行程度まで
+- 必ず日本語のみを使用する
+- ローマ字や英語は使用しない
+
+最初の声掛けをしてください。
+"""
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content="会話を始めてください。")
+    ]
+    response = llm.invoke(messages)
+    return extract_content(response)
+
+@app.route("/api/watch/start", methods=["POST"])
+def start_watch():
+    """LLM観戦モードの開始"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request"}), 400
+
+        model_a = data.get("model_a")
+        model_b = data.get("model_b")
+        partner_type = data.get("partner_type")
+        situation = data.get("situation")
+        topic = data.get("topic")
+
+        # セッションの初期化
+        session["watch_settings"] = {
+            "model_a": model_a,
+            "model_b": model_b,
+            "partner_type": partner_type,
+            "situation": situation,
+            "topic": topic,
+            "current_speaker": "A"
+        }
+        session["watch_history"] = []
+        session.modified = True
+
+        try:
+            llm = create_llm(model_a)
+            initial_message = generate_initial_message(
+                llm, 
+                partner_type,
+                situation,
+                topic
+            )
+            
+            # 履歴に保存
+            session["watch_history"].append({
+                "speaker": "A",
+                "message": initial_message,
+                "timestamp": datetime.now().isoformat()
+            })
+            session.modified = True
+
+            return jsonify({"message": f"モデルA: {initial_message}"})
+
+        except Exception as e:
+            print(f"Error in watch initialization: {str(e)}")
+            return jsonify({"error": f"観戦の初期化に失敗しました: {str(e)}"}), 500
+
+    except Exception as e:
+        print(f"Error in start_watch: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/watch/next", methods=["POST"])
+def next_watch_message():
+    """次の発言を生成"""
+    try:
+        if "watch_settings" not in session:
+            return jsonify({"error": "観戦セッションが初期化されていません"}), 400
+
+        settings = session["watch_settings"]
+        history = session["watch_history"]
+
+        # 次の話者を決定
+        current_speaker = settings["current_speaker"]
+        next_speaker = "B" if current_speaker == "A" else "A"
+        model = settings["model_b"] if next_speaker == "B" else settings["model_a"]
+
+        try:
+            llm = create_llm(model)
+            next_message = generate_next_message(llm, history)
+            
+            # 履歴に保存
+            history.append({
+                "speaker": next_speaker,
+                "message": next_message,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # 話者を更新
+            settings["current_speaker"] = next_speaker
+            session.modified = True
+
+            return jsonify({"message": f"モデル{next_speaker}: {next_message}"})
+
+        except Exception as e:
+            print(f"Error generating next message: {str(e)}")
+            return jsonify({"error": f"メッセージの生成に失敗しました: {str(e)}"}), 500
+
+    except Exception as e:
+        print(f"Error in next_watch_message: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+def create_llm(model_name):
+    """モデル名に基づいて適切なLLMインスタンスを作成"""
+    if model_name.startswith('openai/'):
+        return create_openai_llm(model_name.replace('openai/', ''))
+    elif model_name.startswith('gemini/'):
+        return create_gemini_llm(model_name.replace('gemini/', ''))
+    else:
+        return create_ollama_llm(model_name)
+
+def generate_next_message(llm, history):
+    """観戦モードの次のメッセージを生成"""
+    # 会話履歴をフォーマット
+    formatted_history = []
+    for entry in history:
+        formatted_history.append(f"モデル{entry['speaker']}: {entry['message']}")
+    
+    system_prompt = """あなたは職場での自然な会話を行うAIです。
+以下の点に注意して会話を続けてください：
+
+1. 前の発言に適切に応答する
+2. 職場での適切な距離感を保つ
+3. 自然な会話の流れを維持する
+4. 話題を適度に展開する
+
+応答の制約：
+- 感情や仕草は（）内に記述
+- 発言は「」で囲む
+- 1回の応答は3行程度まで
+- 必ず日本語のみを使用する
+- ローマ字や英語は使用しない
+"""
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content="以下の会話履歴に基づいて、次の発言をしてください：\n\n" + "\n".join(formatted_history))
+    ]
+    
+    response = llm.invoke(messages)
+    return extract_content(response)
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":
