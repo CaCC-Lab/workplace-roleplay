@@ -66,6 +66,12 @@
                     <p>特定のシナリオにとらわれず、自由なテーマでAIと会話練習ができます。</p>
                     <a href="{{ url_for('chat') }}" class="primary-button">会話を始める</a>
                 </div>
+
+                <div class="feature-card">
+                    <h3>👥 LLM観戦モード</h3>
+                    <p>2つのAIモデルが会話する様子をリアルタイムで観戦できます。</p>
+                    <a href="{{ url_for('watch_mode') }}" class="primary-button">観戦する</a>
+                </div>
             </div>
 
             <div class="info-section">
@@ -95,6 +101,8 @@
             localStorage.setItem('selectedModel', selectedModel);
         });
     </script>
+
+    <li><a href="{{ url_for('watch_mode') }}">LLM観戦モード</a></li>
 </body>
 </html>
 

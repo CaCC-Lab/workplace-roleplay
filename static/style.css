@@ -707,3 +707,52 @@ button {
     }
 }
 
+/* 設定セクション用のスタイル */
+.settings-section {
+    background-color: var(--secondary-color);
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border-radius: var(--border-radius);
+}
+
+.settings-section h2 {
+    color: var(--text-color);
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.2em;
+}
+
+.setting-group {
+    margin-bottom: 1rem;
+}
+
+.setting-group h3 {
+    color: var(--text-color);
+    margin: 0.5rem 0;
+    font-size: 1em;
+}
+
+.setting-group select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+}
+
+/* アクションセクション用のスタイル */
+.action-section {
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+/* ローディング表示用のスタイル */
+.loading {
+    display: none;
+    text-align: center;
+    padding: 1rem;
+    background-color: #fff3cd;
+    border-radius: var(--border-radius);
+    margin: 1rem 0;
+}
+

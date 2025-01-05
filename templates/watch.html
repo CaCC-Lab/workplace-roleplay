@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM観戦モード - ロールプレイチャットボット</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div id="chat-container">
+        <h1>LLM観戦モード</h1>
+        <div class="content-section">
+            <div class="intro-section">
+                <p>2つのAIを選んで会話を観戦できます。</p>
+                <p>以下のような用途におすすめです：</p>
+                <ul>
+                    <li>異なるAIの特徴を比較したい方</li>
+                    <li>AIの会話の流れを観察したい方</li>
+                    <li>シナリオの動作確認をしたい方</li>
+                </ul>
+            </div>
+        
+            <div class="settings-section">
+                <h2>シナリオ設定</h2>
+                <div class="setting-group">
+                    <select id="scenario">
+                        {% for id, scenario in scenarios.items() %}
+                        <option value="{{ id }}">{{ scenario.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <h3>会話ターン数</h3>
+                    <select id="max-turns">
+                        <option value="3">3ターン</option>
+                        <option value="5" selected>5ターン</option>
+                        <option value="7">7ターン</option>
+                        <option value="10">10ターン</option>
+                    </select>
+                </div>
+            </div>
+        
+            <div class="action-section">
+                <button onclick="startConversation()" class="primary-button">会話を開始</button>
+            </div>
+        
+            <div class="loading" id="loading">
+                <p>会話を生成中...</p>
+            </div>
+        
+            <div class="chat-messages" id="conversation">
+                <!-- 会話がここに表示されます -->
+            </div>
+        </div>
+        
+        <div class="navigation">
+            <a href="{{ url_for('list_scenarios') }}" class="nav-button">シナリオ一覧に戻る</a>
+            <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+        </div>
+    </div>
+
+    <script>
+        async function startConversation() {
+            const scenarioId = document.getElementById('scenario').value;
+            const maxTurns = document.getElementById('max-turns').value;
+            
+            const loading = document.getElementById('loading');
+            const conversation = document.getElementById('conversation');
+            
+            loading.style.display = 'block';
+            conversation.innerHTML = '';
+            conversation.scrollTop = 0;
+            
+            try {
+                const response = await fetch('/api/watch_conversation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        scenario_id: scenarioId,
+                        max_turns: maxTurns
+                    }),
+                });
+                
+                const eventSource = new EventSource(`/api/watch_conversation/stream?scenario_id=${scenarioId}&max_turns=${maxTurns}`);
+                
+                eventSource.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    if (data.type === "message") {
+                        displayMessage(data.data);
+                        conversation.scrollTop = conversation.scrollHeight;
+                    } else if (data.type === "complete") {
+                        eventSource.close();
+                        loading.style.display = 'none';
+                    }
+                };
+                
+                eventSource.onerror = function(error) {
+                    console.error('EventSource failed:', error);
+                    eventSource.close();
+                    loading.style.display = 'none';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'message error-message';
+                    errorDiv.textContent = 'エラーが発生しました';
+                    conversation.appendChild(errorDiv);
+                };
+                
+            } catch (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message error-message';
+                errorDiv.textContent = 'エラーが発生しました: ' + error.message;
+                conversation.appendChild(errorDiv);
+                loading.style.display = 'none';
+            }
+        }
+        
+        function displayMessage(message) {
+            const container = document.getElementById('conversation');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.speaker}-message`;
+            
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'message-meta';
+            metaDiv.textContent = `${message.model} - ${new Date(message.timestamp).toLocaleString()}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = message.message;
+            
+            messageDiv.appendChild(metaDiv);
+            messageDiv.appendChild(contentDiv);
+            container.appendChild(messageDiv);
+        }
+    </script>
+</body>
+</html> 
