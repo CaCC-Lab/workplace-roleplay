@@ -11,13 +11,17 @@
 pip install -r requirements.txt
 """
 
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, stream_with_context
 from flask_session import Session
 import requests
 import os
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple, Any
 from datetime import datetime
 from pydantic import SecretStr  # 追加
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import json
+import time
 
 # LangChain関連
 from langchain_openai import ChatOpenAI  # OpenAI用
@@ -815,6 +819,293 @@ def format_datetime(value):
         return "未実施"
     dt = datetime.fromisoformat(value)
     return dt.strftime('%Y年%m月%d日 %H:%M')
+
+# 新しいルートを追加
+@app.route("/watch")
+def watch_mode():
+    """
+    LLM同士の観戦モードページ
+    """
+    # 利用可能なモデルを取得
+    openai_models = get_available_openai_models()
+    local_models = get_available_local_models()
+    available_models = openai_models + local_models
+    
+    return render_template(
+        "watch.html", 
+        models=available_models,
+        scenarios=scenarios
+    )
+
+@app.route("/api/watch_conversation", methods=["POST"])
+def watch_conversation():
+    """従来のPOSTリクエスト用のエンドポイント（互換性のため残す）"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid request"}), 400
+    
+    return jsonify({"message": "Please use the streaming endpoint"}), 200
+
+@app.route("/api/watch_conversation/stream")
+def watch_conversation_stream():
+    """2つのLLM間の会話を生成するAPI"""
+    # クエリパラメータから値を取得
+    scenario_id = request.args.get("scenario_id")
+    max_turns = min(int(request.args.get("max_turns", 5)), 10)
+
+    def generate():
+        try:
+            if not scenario_id:
+                yield "data: " + json.dumps({"error": "必要なパラメータが不足しています"}) + "\n\n"
+                return
+
+            if scenario_id not in scenarios:
+                yield "data: " + json.dumps({"error": "無効なシナリオIDです"}) + "\n\n"
+                return
+
+            current_model = session.get("selected_model", DEFAULT_MODEL)
+            
+            try:
+                llm1 = initialize_llm(current_model)
+                llm2 = initialize_llm(current_model)
+            except Exception as e:
+                yield "data: " + json.dumps({"error": f"LLMの初期化に失敗しました: {str(e)}"}) + "\n\n"
+                return
+
+            scenario_data = scenarios[scenario_id]
+            system_prompt1 = create_system_prompt(scenario_data, "role1")
+            system_prompt2 = create_system_prompt(scenario_data, "role2")
+            conversation = []
+
+            # 最初の発言を生成
+            try:
+                initial_message = generate_response(llm1, system_prompt1, [], scenario_data["character_setting"]["initial_approach"])
+                if initial_message:
+                    message = {
+                        "speaker": "llm1",
+                        "model": current_model,
+                        "message": initial_message,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    conversation.append(message)
+                    yield "data: " + json.dumps({"type": "message", "data": message}) + "\n\n"
+                    time.sleep(1)  # 自然な間を作る
+            except Exception as e:
+                yield "data: " + json.dumps({"error": f"初期メッセージの生成に失敗: {str(e)}"}) + "\n\n"
+                return
+
+            # 交互に会話を生成
+            for turn in range(max_turns - 1):
+                try:
+                    # LLM2の応答
+                    llm2_response = generate_response(llm2, system_prompt2, conversation, None)
+                    if llm2_response:
+                        message = {
+                            "speaker": "llm2",
+                            "model": current_model,
+                            "message": llm2_response,
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        conversation.append(message)
+                        yield "data: " + json.dumps({"type": "message", "data": message}) + "\n\n"
+                        time.sleep(1)  # 自然な間を作る
+
+                    # LLM1の応答
+                    llm1_response = generate_response(llm1, system_prompt1, conversation, None)
+                    if llm1_response:
+                        message = {
+                            "speaker": "llm1",
+                            "model": current_model,
+                            "message": llm1_response,
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        conversation.append(message)
+                        yield "data: " + json.dumps({"type": "message", "data": message}) + "\n\n"
+                        time.sleep(1)  # 自然な間を作る
+
+                except Exception as e:
+                    print(f"Error in conversation turn {turn}: {str(e)}")
+                    break
+
+            # 会話終了を通知
+            yield "data: " + json.dumps({"type": "complete"}) + "\n\n"
+
+        except Exception as e:
+            print(f"Error in watch_conversation: {str(e)}")
+            yield "data: " + json.dumps({"error": str(e)}) + "\n\n"
+
+    return app.response_class(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'
+        }
+    )
+
+def initialize_llm(model_name: str):
+    """モデル名に基づいて適切なLLMを初期化"""
+    if model_name.startswith("openai/"):
+        return create_openai_llm(model_name)
+    elif model_name.startswith("gemini/"):
+        return create_gemini_llm(model_name)
+    else:
+        return create_ollama_llm(model_name)
+
+def create_system_prompt(scenario_data: Dict[str, Any], role: str) -> str:
+    """役割に応じたシステムプロンプトを生成"""
+    base_prompt = f"""\
+# ロールプレイの基本設定
+あなたは{'上司' if role == 'role1' else '部下'}として振る舞います。
+以下の設定に従って、一貫した役割を演じてください。
+
+## キャラクター詳細
+- 性格: {scenario_data["character_setting"]["personality"]}
+- 話し方: {scenario_data["character_setting"]["speaking_style"]}
+- 現在の状況: {scenario_data["character_setting"]["situation"]}
+
+## 演技の指針
+1. 一貫性：設定された役柄を終始一貫して演じ続けること
+2. 自然さ：指定された話し方を守りながら、不自然にならないよう注意
+3. 感情表現：表情や態度も含めて表現すること
+4. 会話の自然な展開を心がけること
+
+## 重要な制約事項
+1. 必ず1回の応答で完結した返答をすること
+2. メタ的な説明や解説は行わないこと
+3. システムエラーについて言及しないこと
+4. 空の応答を返さないこと
+5. 自分の発言を訂正したり、謝罪したりしないこと
+6. 同じ応答を繰り返さないこと
+7. 相手の発言内容に対して具体的に応答すること
+8. 相手の発言を注意深く聞き、適切に応答すること
+
+## {'部下' if role == 'role2' else '上司'}としての応答指針
+{'''
+1. 指示内容を具体的に復唱して確認する
+2. 不明点があれば具体的に質問する
+3. 実行可能な時間を明確に伝える
+4. 必要な情報を漏れなく確認する
+5. 理解したことを明確に伝える
+6. 相手が情報を提供したら、その情報を活用して応答する
+7. 相手がイライラしている場合は、落ち着いて対応する
+8. 同じ質問を繰り返さない
+''' if role == 'role2' else '''
+1. 部下に対して明確な指示を出す
+2. 質問には具体的に答える
+3. 締め切りを明確に伝える
+4. 必要な情報を提供する
+5. 部下の理解度を確認する
+'''}
+
+## 応答例
+上司:「この資料、コピーしておいて」
+部下:（資料を確認しながら）「はい、承知いたしました。何部必要でしょうか？また、両面印刷でよろしいでしょうか？」
+上司:「20部必要で、両面でお願い」
+部下:（メモを取りながら）「承知いたしました。20部、両面印刷で準備いたします。締め切りはいつまでにしましょうか？」
+
+## 現在の文脈
+{scenario_data["description"]}
+
+## 応答形式
+- 感情や仕草を（）内に記述
+- 台詞は「」で囲む
+- 1回の応答は3行程度まで
+"""
+    return base_prompt
+
+def extract_content(resp: Any) -> str:
+    """様々な形式のレスポンスから内容を抽出"""
+    if isinstance(resp, AIMessage):
+        return str(resp.content)
+    elif isinstance(resp, str):
+        return resp
+    elif isinstance(resp, list):
+        if not resp:  # 空リストの場合
+            return "応答が空でした。"
+        # リストの最後のメッセージを処理
+        last_msg = resp[-1]
+        return extract_content(last_msg)  # 再帰的に処理
+    elif isinstance(resp, dict):
+        # 辞書の場合、contentキーを探す
+        if "content" in resp:
+            return str(resp["content"])
+        # その他の既知のキーを確認
+        for key in ["text", "message", "response"]:
+            if key in resp:
+                return str(resp[key])
+    # 上記以外の場合は文字列に変換して返す
+    try:
+        return str(resp)
+    except Exception:
+        return "応答を文字列に変換できませんでした。"
+
+def generate_response(llm, system_prompt: str, conversation: List[Dict], initial_message: Optional[str] = None) -> str:
+    """会話履歴を考慮してレスポンスを生成"""
+    try:
+        # メッセージリストの作成（1回だけ）
+        messages: List[BaseMessage] = []
+        messages.append(SystemMessage(content=system_prompt))
+        
+        # 直近2つの会話のみを使用（履歴を減らしてトークン数を削減）
+        recent_conversations = conversation[-2:] if len(conversation) > 2 else conversation
+        
+        # 会話履歴を追加
+        for entry in recent_conversations:
+            content = entry["message"]
+            if entry["speaker"] == "llm2":
+                messages.append(HumanMessage(content=content))
+            else:
+                messages.append(AIMessage(content=content))
+        
+        if initial_message:
+            messages.append(HumanMessage(content=f"以下の言葉で会話を開始してください：{initial_message}"))
+        
+        # リトライ回数を2回に制限
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                # リトライ間隔を設定（429エラー対策）
+                if attempt > 0:
+                    time.sleep(2)  # 2秒待機
+                
+                # LLMに応答を生成させる
+                raw_response = llm.invoke(messages)
+                content = extract_content(raw_response)
+                
+                # 応答の検証
+                if content and len(content.strip()) > 0:
+                    if ('（' in content and '）' in content) and ('「' in content and '」' in content):
+                        return content
+                
+                # 無効な応答の場合、プロンプトを簡潔に強化
+                if attempt < max_retries - 1:
+                    messages[0] = SystemMessage(content=system_prompt + "\n\n重要: 感情表現（）と発言「」を含めてください。")
+                    
+            except Exception as retry_error:
+                print(f"Retry error (attempt {attempt + 1}): {str(retry_error)}")
+                if "429" in str(retry_error):
+                    # クォータ制限に達した場合は長めに待機
+                    time.sleep(5)
+                continue
+        
+        # 最後の試行でも失敗した場合は、最小限のメッセージで1回だけ試行
+        try:
+            minimal_messages = [
+                SystemMessage(content="あなたは会話の参加者です。感情表現（）と発言「」を含めて応答してください。"),
+                HumanMessage(content="会話を続けてください。")
+            ]
+            return extract_content(llm.invoke(minimal_messages))
+            
+        except Exception as final_error:
+            print(f"Final attempt error: {str(final_error)}")
+            # 最後の手段として、基本的な応答を返す
+            return "（考えながら）「申し訳ありません、少々お待ちください。」"
+        
+    except Exception as e:
+        print(f"Error generating response: {str(e)}")
+        return "（困惑した様子で）「少々お待ちください。」"
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":
