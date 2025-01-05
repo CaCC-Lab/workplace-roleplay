@@ -368,55 +368,70 @@ def handle_chat():
     """
     チャットメッセージの処理
     """
-    data = request.get_json()
-    message = data.get("message", "")
-    model_name = data.get("model", DEFAULT_MODEL)
-
     try:
-        if "chat_history" not in session:
-            session["chat_history"] = []
-        
-        # モデルの作成
+        data = request.get_json()
+        if data is None:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        message = data.get("message", "")
+        model_name = data.get("model", DEFAULT_MODEL)
+
+        # chat_settingsの取得
+        chat_settings = session.get("chat_settings", {})
+        system_prompt = chat_settings.get("system_prompt", "")
+
+        if not system_prompt:
+            return jsonify({"error": "チャットセッションが初期化されていません"}), 400
+
         try:
-            if model_name.startswith("openai/"):
+            # モデルの初期化
+            if model_name.startswith('openai/'):
                 llm = create_openai_llm(model_name)
-            elif model_name.startswith("gemini/"):
-                print(f"Creating Gemini model with name: {model_name}")  # デバッグログ
+            elif model_name.startswith('gemini/'):
                 llm = create_gemini_llm(model_name)
-                print("Gemini model created successfully")  # デバッグログ
             else:
                 llm = create_ollama_llm(model_name)
-        except Exception as model_error:
-            print(f"Model creation error: {str(model_error)}")  # 詳細なエラーログ
-            raise
 
-        try:
-            # 会話チェーンの作成
-            memory = ConversationBufferMemory()
-            chain = ConversationChain(llm=llm, memory=memory)
-            
+            # 会話履歴の取得と更新
+            if "chat_history" not in session:
+                session["chat_history"] = []
+
+            # メッセージリストの作成（型を明示的に指定）
+            messages: List[BaseMessage] = []
+            messages.append(SystemMessage(content=system_prompt))
+
+            # 直近の会話履歴を追加（トークン数削減のため最新5件のみ）
+            recent_history = session["chat_history"][-5:] if session["chat_history"] else []
+            for entry in recent_history:
+                if entry.get("human"):
+                    messages.append(HumanMessage(content=entry["human"]))
+                if entry.get("ai"):
+                    messages.append(AIMessage(content=entry["ai"]))
+
+            # 新しいメッセージを追加
+            messages.append(HumanMessage(content=message))
+
             # 応答の生成
-            print(f"Generating response for message: {message}")  # デバッグログ
-            response = chain.predict(input=message)
-            print(f"Response generated: {response}")  # デバッグログ
-        except Exception as chain_error:
-            print(f"Chain execution error: {str(chain_error)}")  # 詳細なエラーログ
-            raise
-        
-        # 会話履歴の更新
-        session["chat_history"].append({
-            "human": message,
-            "ai": response,
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        return jsonify({"response": response})
-        
+            response = llm.invoke(messages)
+            ai_message = extract_content(response)
+
+            # 会話履歴の更新
+            session["chat_history"].append({
+                "human": message,
+                "ai": ai_message,
+                "timestamp": datetime.now().isoformat()
+            })
+            session.modified = True
+
+            return jsonify({"response": ai_message})
+
+        except Exception as e:
+            print(f"Error in chat: {str(e)}")
+            return jsonify({"error": f"エラーが発生しました: {str(e)}"}), 500
+
     except Exception as e:
-        print(f"Error in chat: {str(e)}")  # 詳細なエラーログ
-        import traceback
-        traceback.print_exc()  # スタックトレースを出力
-        return jsonify({"error": f"エラーが発生しました: {str(e)}"}), 500
+        print(f"Error in handle_chat: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/models", methods=["GET"])
 def api_models():
@@ -777,12 +792,9 @@ def get_scenario_feedback():
         }), 500
 
 def format_conversation_history(history):
-    """会話履歴を読みやすい形式にフォーマット"""
+    """会話履歴を読みやすい形式にフォーマット（ユーザーの発言のみ）"""
     formatted = []
     for entry in history:
-        # シナリオ開始マーカーはスキップ
-        if entry.get("human") == "[シナリオ開始]":
-            continue
         # ユーザーの発言のみを含める
         if entry.get("human"):
             formatted.append(f"ユーザー: {entry['human']}")
@@ -1106,6 +1118,179 @@ def generate_response(llm, system_prompt: str, conversation: List[Dict], initial
     except Exception as e:
         print(f"Error generating response: {str(e)}")
         return "（困惑した様子で）「少々お待ちください。」"
+
+# 雑談練習用のヘルパー関数
+def get_partner_description(partner_type: str) -> str:
+    """相手の説明を取得"""
+    descriptions = {
+        "colleague": "同年代の同僚",
+        "senior": "入社5年目程度の先輩社員",
+        "junior": "入社2年目の後輩社員",
+        "boss": "40代の課長",
+        "client": "取引先の担当者（30代後半）"
+    }
+    return descriptions.get(partner_type, "同僚")
+
+def get_situation_description(situation: str) -> str:
+    """状況の説明を取得"""
+    descriptions = {
+        "lunch": "ランチ休憩中のカフェテリアで",
+        "break": "午後の休憩時間、休憩スペースで",
+        "morning": "朝、オフィスに到着して席に着く前",
+        "evening": "終業後、退社準備をしている時間",
+        "party": "部署の懇親会で"
+    }
+    return descriptions.get(situation, "オフィスで")
+
+def get_topic_description(topic: str) -> str:
+    """話題の説明を取得"""
+    descriptions = {
+        "general": "天気や週末の予定など、一般的な話題",
+        "hobby": "趣味や休日の過ごし方について",
+        "news": "最近のニュースや時事問題について",
+        "food": "ランチや食事、おすすめのお店について",
+        "work": "仕事に関する一般的な内容（機密情報は避ける）"
+    }
+    return descriptions.get(topic, "一般的な話題")
+
+@app.route("/api/start_chat", methods=["POST"])
+def start_chat():
+    """雑談練習の開始"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request"}), 400
+
+        partner_type = data.get("partner_type")
+        situation = data.get("situation")
+        topic = data.get("topic")
+        selected_model = data.get("model")
+
+        # システムプロンプトの構築
+        system_prompt = f"""あなたは{get_partner_description(partner_type)}として振る舞います。
+現在の状況: {get_situation_description(situation)}
+話題: {get_topic_description(topic)}
+
+以下の点に注意して会話を進めてください：
+1. 指定された立場や状況に応じた適切な話し方を心がける
+2. 相手の発言に興味を示し、話を広げる質問をする
+3. 適度に自分の経験や意見も交える
+4. 会話の自然な流れを維持する
+5. 職場での適切な距離感を保つ
+
+応答の制約：
+- 感情や仕草は（）内に記述
+- 発言は「」で囲む
+- 1回の応答は3行程度まで
+"""
+
+        try:
+            # モデルの初期化
+            if selected_model.startswith('openai/'):
+                llm = create_openai_llm(selected_model)
+            elif selected_model.startswith('gemini/'):
+                llm = create_gemini_llm(selected_model)
+            else:
+                llm = create_ollama_llm(selected_model)
+
+            # 初期メッセージの生成
+            messages = [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content="雑談を始めてください。最初の声掛けをお願いします。")
+            ]
+            
+            response = llm.invoke(messages)
+            initial_message = extract_content(response)
+
+            # セッションに会話設定を保存
+            session["chat_settings"] = {
+                "partner_type": partner_type,
+                "situation": situation,
+                "topic": topic,
+                "system_prompt": system_prompt
+            }
+
+            return jsonify({"response": initial_message})
+
+        except Exception as e:
+            print(f"Error in chat initialization: {str(e)}")
+            return jsonify({"error": f"チャットの初期化に失敗しました: {str(e)}"}), 500
+
+    except Exception as e:
+        print(f"Error in start_chat: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/chat_feedback", methods=["POST"])
+def get_chat_feedback():
+    """雑談練習のフィードバックを生成（ユーザーの発言に焦点を当てる）"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request"}), 400
+
+        # 会話履歴の取得
+        if "chat_history" not in session:
+            return jsonify({"error": "会話履歴が見つかりません"}), 404
+
+        # フィードバック生成用のプロンプト
+        feedback_prompt = f"""# フィードバック生成の指示
+あなたは雑談スキル向上のための専門コーチです。以下のユーザーの発言を分析し、具体的で実践的なフィードバックを提供してください。
+
+## 会話の設定
+- 相手: {get_partner_description(data.get("partner_type"))}
+- 状況: {get_situation_description(data.get("situation"))}
+- 話題: {get_topic_description(data.get("topic"))}
+
+## ユーザーの発言履歴
+{format_conversation_history(session["chat_history"])}
+
+# フィードバック形式
+
+## 1. 全体評価（100点満点）
+- 雑談スキルの点数
+- 評価理由（特に良かった点、改善点を簡潔に）
+
+## 2. 発言の分析
+- 適切な言葉遣いができている部分
+- 相手との関係性に配慮できている表現
+- 会話の流れを作れている箇所
+
+## 3. 改善のヒント
+- より自然な表現例
+- 話題の広げ方の具体例
+- 相手の興味を引き出す質問の仕方
+
+## 4. 実践アドバイス
+1. 即実践できる会話テクニック
+2. 状況に応じた話題選びのコツ
+3. 適切な距離感の保ち方
+
+## 5. 今後のステップアップ
+- 次回挑戦してほしい会話スキル
+- 伸ばせそうな強みとその活かし方
+
+注意点：
+- ユーザーの発言のみに焦点を当てて評価してください
+- 具体的な改善案を示してください
+- 励ましの要素を含めてください
+- 相手や状況に応じた適切なコミュニケーションの視点で評価してください
+"""
+
+        try:
+            # フィードバック用のモデルを選択（Geminiを優先）
+            llm = create_gemini_llm("gemini-pro")
+        except Exception:
+            llm = create_openai_llm("gpt-3.5-turbo")
+
+        feedback = llm.invoke(feedback_prompt)
+        
+        return jsonify({
+            "feedback": extract_content(feedback)
+        })
+
+    except Exception as e:
+        print(f"Error in chat_feedback: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":
