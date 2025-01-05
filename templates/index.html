@@ -15,6 +15,15 @@
             <p>会話に使用するAIモデルを選択してください。OpenAIのモデルは高精度ですが、ローカルモデル（Ollama）はプライバシーを重視する場合に適しています。</p>
             <div class="model-select-container">
                 <select id="model-select" class="enhanced-select">
+                    <optgroup label="Google Gemini Models">
+                        {% for model in models %}
+                            {% if model.startswith('gemini/') %}
+                                <option value="{{ model }}">
+                                    {{ model.replace('gemini/', '') }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </optgroup>
                     <optgroup label="OpenAI Models">
                         {% for model in models %}
                             {% if model.startswith('openai/') %}
@@ -26,7 +35,7 @@
                     </optgroup>
                     <optgroup label="Local Models (Ollama)">
                         {% for model in models %}
-                            {% if not model.startswith('openai/') %}
+                            {% if not model.startswith('openai/') and not model.startswith('gemini/') %}
                                 <option value="{{ model }}">
                                     {{ model }}
                                 </option>

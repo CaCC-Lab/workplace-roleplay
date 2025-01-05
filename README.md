@@ -43,10 +43,15 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+注意: Google Gemini APIを使用する場合は、以下のパッケージが正しくインストールされていることを確認してください：
+- google-generativeai
+- langchain-google-genai
+
 4. 環境変数の設定
-- `.env`ファイルを作成し、OpenAI APIキーを設定します。
+- `.env`ファイルを作成し、必要なAPIキーを設定します。
 ```
 OPENAI_API_KEY=your_openai_api_key
+GOOGLE_API_KEY=your_google_api_key  # Gemini API用
 ```
 
 ## 機能の使い方
@@ -78,6 +83,7 @@ pip install -r requirements-dev.txt
 - Flask: Webアプリケーションフレームワーク
 - LangChain: LLMとの対話管理
 - OpenAI API: GPTモデルの利用
+- Google Gemini API: Geminiモデルの利用
 - Ollama: ローカルLLMの実行
 
 ## ライセンス
@@ -89,4 +95,12 @@ pip install -r requirements-dev.txt
 - このアプリケーションは学習・練習用です
 - 実際の職場での判断は、状況に応じて適切に行ってください
 - APIキーは適切に管理し、公開しないようご注意ください
+
+## Google Gemini APIの設定
+
+1. [Google AI Studio](https://makersuite.google.com/app/apikey)にアクセス
+2. APIキーを生成
+3. `.env`ファイルに`GOOGLE_API_KEY=your_key_here`として設定
+
+注意: Gemini APIキーは「AI」で始まる必要があります。
 

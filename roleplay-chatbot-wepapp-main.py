@@ -5,6 +5,7 @@
 - requests
 - langchain
 - langchain-community
+- google-generativeai>=0.3.0
 
 インストール方法:
 pip install -r requirements.txt
@@ -30,6 +31,8 @@ from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
+import google.generativeai as genai
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 # 環境変数の読み込み
 from dotenv import load_dotenv
@@ -57,11 +60,97 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 
+# Gemini APIキー (環境変数から取得)
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    print("Warning: GOOGLE_API_KEY is not set")
+
 # LLMの温度やその他パラメータは必要に応じて調整
 DEFAULT_TEMPERATURE = 0.7
 
 # デフォルトモデルの設定
 DEFAULT_MODEL = "openai/gpt-4o-mini"
+
+# Gemini APIの初期化
+try:
+    genai.configure(api_key=GOOGLE_API_KEY)
+except Exception as e:
+    print(f"Gemini API initialization error: {e}")
+
+def get_available_gemini_models():
+    """
+    利用可能なGeminiモデルのリストを返す
+    """
+    try:
+        # Gemini APIの設定を確認
+        if not GOOGLE_API_KEY:
+            print("Warning: GOOGLE_API_KEY is not set")
+            return []
+            
+        # 利用可能なモデルを取得
+        models = genai.list_models()
+        
+        # Geminiモデルをフィルタリング
+        gemini_models = []
+        for model in models:
+            if "gemini" in model.name.lower():
+                # モデル名を整形（gemini/プレフィックスを追加）
+                model_name = f"gemini/{model.name.split('/')[-1]}"
+                gemini_models.append(model_name)
+        
+        print(f"Available Gemini models: {gemini_models}")
+        return gemini_models
+        
+    except Exception as e:
+        print(f"Error fetching Gemini models: {str(e)}")
+        # エラー時はデフォルトのモデルリストを返す
+        return [
+            "gemini/gemini-pro",
+            "gemini/gemini-pro-vision"
+        ]
+
+def create_gemini_llm(model_name: str = "gemini-pro"):
+    """
+    LangChainのGemini Chat modelインスタンス生成
+    """
+    try:
+        # モデル名からgemini/プレフィックスを削除
+        if model_name.startswith("gemini/"):
+            model_name = model_name.replace("gemini/", "")
+        
+        print(f"Initializing Gemini with model: {model_name}")
+        
+        if not GOOGLE_API_KEY:
+            raise ValueError("GOOGLE_API_KEY is not set")
+            
+        # APIキーの形式を検証
+        if not GOOGLE_API_KEY.startswith("AI"):
+            raise ValueError("Invalid Google API key format. Key should start with 'AI'")
+        
+        # APIキーをSecretStr型に変換
+        api_key = SecretStr(GOOGLE_API_KEY)
+        
+        # Gemini APIの設定を初期化
+        genai.configure(api_key=GOOGLE_API_KEY)
+        
+        llm = ChatGoogleGenerativeAI(
+            model=model_name,
+            temperature=DEFAULT_TEMPERATURE,
+            api_key=api_key,
+            convert_system_message_to_human=True,  # システムメッセージの互換性対応
+        )
+        
+        # テスト呼び出しで接続確認
+        test_response = llm.invoke("test")
+        if not test_response:
+            raise ValueError("Failed to get response from Gemini API")
+            
+        print("Gemini model initialized successfully")
+        return llm
+        
+    except Exception as e:
+        print(f"Error creating Gemini model: {str(e)}")
+        raise
 
 def get_available_openai_models():
     """
@@ -72,22 +161,20 @@ def get_available_openai_models():
         client = OpenAIClient(api_key=OPENAI_API_KEY)
         models = client.models.list()
         
-        # ChatモデルとGPTモデルのみをフィルタリング
         chat_models = []
         for model in models:
             if model.id.startswith(("gpt-4", "gpt-3.5")):
-                # モデル名の先頭に"openai/"を付加
                 chat_models.append(f"openai/{model.id}")
         
-        return sorted(chat_models)  # モデル名でソート
+        return sorted(chat_models) + get_available_gemini_models()  # Geminiモデルも追加
     except Exception as e:
         print(f"OpenAI models fetch error: {e}")
-        # エラー時は基本的なモデルのリストを返す
         return [
+            "openai/gpt-4o-mini",
             "openai/gpt-4",
             "openai/gpt-4-turbo-preview",
             "openai/gpt-3.5-turbo"
-        ]
+        ] + get_available_gemini_models()  # Geminiモデルも追加
 
 # ========== モデル取得 (ローカル) ==========
 def get_available_local_models():
@@ -282,22 +369,35 @@ def handle_chat():
     model_name = data.get("model", DEFAULT_MODEL)
 
     try:
-        # 会話履歴の取得（セッションから）
         if "chat_history" not in session:
             session["chat_history"] = []
         
         # モデルの作成
-        if model_name.startswith("openai/"):
-            llm = create_openai_llm(model_name)
-        else:
-            llm = create_ollama_llm(model_name)
-        
-        # 会話チェーンの作成
-        memory = ConversationBufferMemory()
-        chain = ConversationChain(llm=llm, memory=memory)
-        
-        # 応答の生成
-        response = chain.predict(input=message)
+        try:
+            if model_name.startswith("openai/"):
+                llm = create_openai_llm(model_name)
+            elif model_name.startswith("gemini/"):
+                print(f"Creating Gemini model with name: {model_name}")  # デバッグログ
+                llm = create_gemini_llm(model_name)
+                print("Gemini model created successfully")  # デバッグログ
+            else:
+                llm = create_ollama_llm(model_name)
+        except Exception as model_error:
+            print(f"Model creation error: {str(model_error)}")  # 詳細なエラーログ
+            raise
+
+        try:
+            # 会話チェーンの作成
+            memory = ConversationBufferMemory()
+            chain = ConversationChain(llm=llm, memory=memory)
+            
+            # 応答の生成
+            print(f"Generating response for message: {message}")  # デバッグログ
+            response = chain.predict(input=message)
+            print(f"Response generated: {response}")  # デバッグログ
+        except Exception as chain_error:
+            print(f"Chain execution error: {str(chain_error)}")  # 詳細なエラーログ
+            raise
         
         # 会話履歴の更新
         session["chat_history"].append({
@@ -309,19 +409,47 @@ def handle_chat():
         return jsonify({"response": response})
         
     except Exception as e:
-        print(f"Error in chat: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"Error in chat: {str(e)}")  # 詳細なエラーログ
+        import traceback
+        traceback.print_exc()  # スタックトレースを出力
+        return jsonify({"error": f"エラーが発生しました: {str(e)}"}), 500
 
 @app.route("/api/models", methods=["GET"])
 def api_models():
     """
-    ローカルLLM (ollama) のモデル一覧を返す
-    + OpenAIモデル一覧も動的に取得して返す
+    利用可能なすべてのモデル一覧を返す
+    - ローカルLLM (Ollama)
+    - OpenAI
+    - Google Gemini
     """
-    local_models = get_available_local_models()
-    openai_models = [f"openai/{model}" for model in get_available_openai_models()]
-    all_models = local_models + openai_models
-    return jsonify({"models": all_models})
+    try:
+        # ローカルモデル取得
+        local_models = get_available_local_models()
+        
+        # OpenAIモデル取得
+        openai_models = get_available_openai_models()
+        
+        # Geminiモデル取得
+        gemini_models = get_available_gemini_models()
+        
+        # すべてのモデルを結合
+        all_models = (
+            openai_models +  # OpenAIモデル（"openai/"プレフィックス付き）
+            gemini_models +  # Geminiモデル（"gemini/"プレフィックス付き）
+            local_models     # ローカルモデル（プレフィックスなし）
+        )
+        
+        return jsonify({
+            "models": all_models,
+            "categories": {
+                "openai": openai_models,
+                "gemini": gemini_models,
+                "local": local_models
+            }
+        })
+    except Exception as e:
+        print(f"Error fetching models: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/clear_history", methods=["POST"])
 def clear_history():
@@ -452,6 +580,9 @@ def scenario_chat():
             if selected_model.startswith('openai/'):
                 openai_model_name = selected_model.split("/")[1]
                 llm = create_openai_llm(model_name=openai_model_name)
+            elif selected_model.startswith('gemini/'):
+                openai_model_name = selected_model.split("/")[1]
+                llm = create_gemini_llm(model_name=openai_model_name)
             else:
                 available_models = get_available_local_models()
                 if selected_model not in available_models:
@@ -603,14 +734,36 @@ def get_scenario_feedback():
 - 次のステップへの期待
 """
 
-    # OpenAI APIでフィードバックを生成
-    llm = create_openai_llm()
-    feedback = llm.predict(feedback_prompt)
+    try:
+        # フィードバック用のモデルを選択（Geminiを優先）
+        try:
+            llm = create_gemini_llm("gemini-pro")  # Geminiモデルを使用
+            print("Using Gemini model for feedback")
+        except Exception as gemini_error:
+            print(f"Gemini model error: {str(gemini_error)}, falling back to OpenAI")
+            llm = create_openai_llm("gpt-3.5-turbo")  # フォールバック
 
-    return jsonify({
-        "feedback": feedback,
-        "scenario": scenario_data["title"]
-    })
+        # フィードバックの生成
+        feedback = llm.invoke(feedback_prompt)
+        
+        # レスポンスの処理
+        if isinstance(feedback, (str, AIMessage)):
+            feedback_content = feedback.content if isinstance(feedback, AIMessage) else feedback
+        else:
+            raise ValueError("Unexpected feedback format")
+
+        return jsonify({
+            "feedback": feedback_content,
+            "scenario": scenario_data["title"]
+        })
+
+    except Exception as e:
+        print(f"Feedback generation error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": f"フィードバックの生成中にエラーが発生しました: {str(e)}"
+        }), 500
 
 def format_conversation_history(history):
     """会話履歴を読みやすい形式にフォーマット"""
