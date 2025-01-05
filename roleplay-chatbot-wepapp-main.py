@@ -475,18 +475,38 @@ def clear_history():
     """
     会話履歴をクリアするAPI
     """
-    # request.jsonがNoneの場合のチェック
-    if request.json is None:
-        return jsonify({"status": "error", "message": "Invalid JSON"}), 400
+    try:
+        if request.json is None:
+            return jsonify({"status": "error", "message": "Invalid JSON"}), 400
 
-    selected_model = request.json.get("model", "llama2")
-    
-    if "conversation_history" in session and selected_model in session["conversation_history"]:
-        session["conversation_history"][selected_model] = []
-        session.modified = True
-        return jsonify({"status": "success", "message": "会話履歴がクリアされました"})
-    else:
-        return jsonify({"status": "error", "message": "会話履歴が見つかりません"}), 404
+        mode = request.json.get("mode", "scenario")  # デフォルトはシナリオモード
+        
+        if mode == "chat":
+            # 雑談モードの履歴クリア
+            if "chat_history" in session:
+                session["chat_history"] = []
+                session.modified = True
+            if "chat_settings" in session:
+                session.pop("chat_settings", None)
+                session.modified = True
+        else:
+            # シナリオモードの履歴クリア
+            selected_model = request.json.get("model", "llama2")
+            if "conversation_history" in session and selected_model in session["conversation_history"]:
+                session["conversation_history"][selected_model] = []
+                session.modified = True
+
+        return jsonify({
+            "status": "success", 
+            "message": "会話履歴がクリアされました"
+        })
+
+    except Exception as e:
+        print(f"Error in clear_history: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": f"履歴のクリアに失敗しました: {str(e)}"
+        }), 500
 
 # シナリオ一覧を表示するページ
 @app.route("/scenarios")
@@ -1177,11 +1197,16 @@ def start_chat():
 3. 適度に自分の経験や意見も交える
 4. 会話の自然な流れを維持する
 5. 職場での適切な距離感を保つ
+6. 必ず日本語のみで応答する（英語は使用しない）
+7. 相手の発言の内容に合わせて自然に会話を展開する
+8. 感情表現は日本語で行う（例：「（笑顔で）」「（驚いた様子で）」）
 
 応答の制約：
 - 感情や仕草は（）内に記述
 - 発言は「」で囲む
 - 1回の応答は3行程度まで
+- 必ず日本語のみを使用する
+- ローマ字や英語は使用しない
 """
 
         try:
@@ -1232,6 +1257,10 @@ def get_chat_feedback():
         if "chat_history" not in session:
             return jsonify({"error": "会話履歴が見つかりません"}), 404
 
+        # フバッグ用ログ出力
+        print("Chat history:", session["chat_history"])
+        print("Formatted history:", format_conversation_history(session["chat_history"]))
+
         # フィードバック生成用のプロンプト
         feedback_prompt = f"""# フィードバック生成の指示
 あなたは雑談スキル向上のための専門コーチです。以下のユーザーの発言を分析し、具体的で実践的なフィードバックを提供してください。
@@ -1245,7 +1274,6 @@ def get_chat_feedback():
 {format_conversation_history(session["chat_history"])}
 
 # フィードバック形式
-
 ## 1. 全体評価（100点満点）
 - 雑談スキルの点数
 - 評価理由（特に良かった点、改善点を簡潔に）
@@ -1268,28 +1296,35 @@ def get_chat_feedback():
 ## 5. 今後のステップアップ
 - 次回挑戦してほしい会話スキル
 - 伸ばせそうな強みとその活かし方
-
-注意点：
-- ユーザーの発言のみに焦点を当てて評価してください
-- 具体的な改善案を示してください
-- 励ましの要素を含めてください
-- 相手や状況に応じた適切なコミュニケーションの視点で評価してください
 """
 
         try:
             # フィードバック用のモデルを選択（Geminiを優先）
             llm = create_gemini_llm("gemini-pro")
-        except Exception:
+            print("Using Gemini for feedback generation")
+        except Exception as e:
+            print(f"Gemini error: {str(e)}, falling back to OpenAI")
             llm = create_openai_llm("gpt-3.5-turbo")
 
-        feedback = llm.invoke(feedback_prompt)
+        # フィードバック生成
+        response = llm.invoke(feedback_prompt)
+        feedback_content = extract_content(response)
         
+        # デバッグ用ログ出力
+        print("Generated feedback:", feedback_content)
+
+        if not feedback_content:
+            raise ValueError("フィードバックの生成に失敗しました")
+
         return jsonify({
-            "feedback": extract_content(feedback)
+            "feedback": feedback_content,
+            "status": "success"
         })
 
     except Exception as e:
         print(f"Error in chat_feedback: {str(e)}")
+        import traceback
+        traceback.print_exc()  # スタックトレースを出力
         return jsonify({"error": str(e)}), 500
 
 # ========== メイン起動 ==========
