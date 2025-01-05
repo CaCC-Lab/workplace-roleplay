@@ -13,6 +13,11 @@
 - 🔄 複数のAIモデル対応
   - OpenAI GPTシリーズ
   - ローカルLLM（Ollama経由）
+- Google Gemini
+- 👀 LLM観戦モード
+  - AIモデル同士の会話を観戦
+  - シナリオごとの動作確認
+  - リアルタイムな会話表示
 - 📊 学習履歴の記録と振り返り
 
 ## 必要条件
@@ -20,6 +25,7 @@
 - Python 3.8以上
 - Ollama（ローカルLLM実行用）
 - OpenAI APIキー（OpenAIモデル使用時）
+- Google APIキー（Geminiモデル使用時）
 
 ## インストール方法
 
@@ -43,9 +49,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-注意: Google Gemini APIを使用する場合は、以下のパッケージが正しくインストールされていることを確認してください：
-- google-generativeai
-- langchain-google-genai
+必要なパッケージ：
+- Flask関連: flask, flask-session
+- LLM関連: langchain, openai, google-generativeai
+- その他: python-dotenv, requests
 
 4. 環境変数の設定
 - `.env`ファイルを作成し、必要なAPIキーを設定します。
@@ -67,6 +74,11 @@ GOOGLE_API_KEY=your_google_api_key  # Gemini API用
 2. 使用するAIモデルを選択
 3. 自由にAIと会話練習
 
+### LLM観戦モード
+1. トップページから「LLM観戦」をクリック
+2. シナリオと会話ターン数を選択
+3. AIモデル同士の会話をリアルタイムで観戦
+
 ### 学習履歴
 - 「学習履歴を見る」から過去の練習内容を確認可能
 - フィードバック内容の振り返りが可能
@@ -85,6 +97,7 @@ pip install -r requirements-dev.txt
 - OpenAI API: GPTモデルの利用
 - Google Gemini API: Geminiモデルの利用
 - Ollama: ローカルLLMの実行
+- Server-Sent Events: リアルタイム通信
 
 ## ライセンス
 
