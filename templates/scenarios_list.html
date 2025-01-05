@@ -34,10 +34,14 @@
                             {% endfor %}
                         </div>
                         <div class="scenario-actions">
-                            <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" 
-                               class="primary-button">
-                                このシナリオを始める
-                            </a>
+                            <button onclick="startNewScenario('{{ scenario_id }}')" class="primary-button">
+                                新規開始
+                            </button>
+                            {% if scenario_id in session.get('scenario_history', {}) and session['scenario_history'][scenario_id] %}
+                                <button onclick="continuePreviousScenario('{{ scenario_id }}')" class="secondary-button">
+                                    続きから
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}
@@ -79,6 +83,61 @@
                 modal.style.display = "none";
             }
         }
+
+        function startNewScenario(scenarioId) {
+            // 履歴をクリアしてから開始
+            fetch("/api/scenario_clear", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ scenario_id: scenarioId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    window.location.href = `/scenario/${scenarioId}`;
+                }
+            });
+        }
+
+        function continuePreviousScenario(scenarioId) {
+            window.location.href = `/scenario/${scenarioId}`;
+        }
     </script>
+
+    <style>
+        .scenario-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .primary-button {
+            background-color: #007bff;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .primary-button:hover {
+            background-color: #0056b3;
+        }
+
+        .secondary-button {
+            background-color: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .secondary-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
 </body>
 </html>

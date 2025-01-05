@@ -489,24 +489,20 @@ def list_scenarios():
 # シナリオを選択してロールプレイ画面へ
 @app.route("/scenario/<scenario_id>")
 def show_scenario(scenario_id):
-    """個別のシナリオページ"""
+    """シナリオページの表示"""
     if scenario_id not in scenarios:
         return "シナリオが見つかりません", 404
     
-    # 利用可能なモデルを取得
-    openai_models = get_available_openai_models()
-    local_models = get_available_local_models()
-    
-    # OpenAIモデルとローカルモデルを結合
-    available_models = openai_models + local_models
+    # シナリオ履歴の初期化（履歴クリアは削除）
+    if "scenario_history" not in session:
+        session["scenario_history"] = {}
     
     return render_template(
         "scenario.html",
         scenario_id=scenario_id,
-        scenario=scenarios[scenario_id],
         scenario_title=scenarios[scenario_id]["title"],
         scenario_desc=scenarios[scenario_id]["description"],
-        models=available_models
+        scenario=scenarios[scenario_id]
     )
 
 @app.route("/api/scenario_chat", methods=["POST"])
@@ -650,26 +646,37 @@ def scenario_chat():
         return jsonify({"error": f"予期せぬエラーが発生しました: {str(e)}"}), 500
 
 @app.route("/api/scenario_clear", methods=["POST"])
-def scenario_clear():
+def clear_scenario_history():
     """
-    指定されたシナリオの会話履歴をクリア
+    特定のシナリオの履歴をクリアする
     """
-    # request.jsonがNoneの場合のチェック
-    if request.json is None:
-        return jsonify({"status": "error", "message": "Invalid JSON"}), 400
+    try:
+        data = request.json
+        if not data or "scenario_id" not in data:
+            return jsonify({"error": "シナリオIDが必要です"}), 400
 
-    data = request.json
-    scenario_id = data.get("scenario_id", "")
-    
-    if not scenario_id:
-        return jsonify({"status": "error", "message": "シナリオIDが指定されていません"}), 400
+        scenario_id = data["scenario_id"]
+        if scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
 
-    if "scenario_history" in session and scenario_id in session["scenario_history"]:
+        # シナリオ履歴の初期化
+        if "scenario_history" not in session:
+            session["scenario_history"] = {}
+
+        # このシナリオの履歴をクリア
         session["scenario_history"][scenario_id] = []
         session.modified = True
-        return jsonify({"status": "success", "message": "シナリオの履歴をクリアしました。"})
-    else:
-        return jsonify({"status": "error", "message": "指定シナリオの履歴が見つかりません。"}), 404
+
+        return jsonify({
+            "status": "success",
+            "message": "シナリオ履歴がクリアされました"
+        })
+
+    except Exception as e:
+        print(f"Error clearing scenario history: {str(e)}")
+        return jsonify({
+            "error": f"履歴のクリアに失敗しました: {str(e)}"
+        }), 500
 
 @app.route("/api/scenario_feedback", methods=["POST"])
 def get_scenario_feedback():
