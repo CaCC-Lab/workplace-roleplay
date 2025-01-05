@@ -31,7 +31,7 @@
 
 1. リポジトリのクローン
 ```bash
-git clone https://github.com/yourusername/roleplay-chatbot-webapp.git
+git clone https://github.com/CaCC-Lab/roleplay-chatbot-webapp.git
 cd roleplay-chatbot-webapp
 ```
 
