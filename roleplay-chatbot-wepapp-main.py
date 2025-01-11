@@ -1,16 +1,3 @@
-"""
-依存パッケージ:
-- Flask
-- Flask-Session
-- requests
-- langchain
-- langchain-community
-- google-generativeai>=0.3.0
-
-インストール方法:
-pip install -r requirements.txt
-"""
-
 from flask import Flask, render_template, request, jsonify, session, stream_with_context
 from flask_session import Session
 import requests
