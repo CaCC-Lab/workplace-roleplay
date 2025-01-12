@@ -1366,6 +1366,45 @@ def generate_next_message(llm, history):
     response = llm.invoke(messages)
     return extract_content(response)
 
+@app.route("/api/get_assist", methods=["POST"])
+def get_assist():
+    """AIアシストの提案を取得するエンドポイント"""
+    try:
+        data = request.get_json()
+        scenario_id = data.get("scenario_id")
+        current_context = data.get("current_context", "")
+
+        if not scenario_id:
+            return jsonify({"error": "シナリオIDが必要です"}), 400
+
+        # シナリオ情報を取得
+        scenario = scenarios.get(scenario_id)
+        if not scenario:
+            return jsonify({"error": "シナリオが見つかりません"}), 404
+
+        # AIアシストのプロンプトを作成
+        assist_prompt = f"""
+現在のシナリオ: {scenario['title']}
+状況: {scenario['description']}
+学習ポイント: {', '.join(scenario['learning_points'])}
+
+現在の会話:
+{current_context}
+
+上記の状況で、適切な返答のヒントを1-2文で簡潔に提案してください。
+"""
+
+        # 選択されているモデルでアシスト生成
+        model = create_llm(session.get("selected_model", DEFAULT_MODEL))
+        response = model.invoke(assist_prompt)
+        suggestion = extract_content(response)
+
+        return jsonify({"suggestion": suggestion})
+
+    except Exception as e:
+        print(f"AIアシストエラー: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 # ========== メイン起動 ==========
 if __name__ == "__main__":
     # 本番運用時はgunicornなどを使う想定

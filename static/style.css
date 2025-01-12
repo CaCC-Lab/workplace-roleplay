@@ -756,3 +756,62 @@ button {
     margin: 1rem 0;
 }
 
+/* AIアシストボタンのスタイル */
+#ai-assist-button {
+    background-color: #34c759;  /* アップルグリーン */
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    margin: 10px;
+}
+
+#ai-assist-button:hover {
+    background-color: #2fb350;
+    transform: translateY(-1px);
+}
+
+#ai-assist-button:active {
+    transform: translateY(0);
+}
+
+#ai-assist-button .icon {
+    font-size: 18px;
+}
+
+/* AIアシストのポップアップ */
+.ai-assist-popup {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 300px;
+    z-index: 1000;
+    display: none;
+}
+
+.ai-assist-popup.active {
+    display: block;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+

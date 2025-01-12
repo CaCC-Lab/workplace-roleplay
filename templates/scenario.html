@@ -27,9 +27,19 @@
         <!-- チャット部分 -->
         <div id="chat-messages"></div>
         <div id="input-container">
+            <button id="ai-assist-button">
+                <span class="icon">💡</span>
+                AIアシスト
+            </button>
             <input type="text" id="message-input" placeholder="メッセージを入力...">
             <button id="send-button">送信</button>
             <button id="clear-button">シナリオをリセット</button>
+        </div>
+
+        <!-- AIアシストのポップアップ -->
+        <div class="ai-assist-popup" id="ai-assist-popup">
+            <h3>返答のヒント</h3>
+            <p id="ai-assist-content"></p>
         </div>
 
         <!-- フィードバック部分 -->
@@ -202,6 +212,48 @@
                 // ボタンを元に戻す
                 button.disabled = false;
                 button.innerHTML = '<span class="icon">📝</span> フィードバックを取得';
+            }
+        });
+
+        const aiAssistButton = document.getElementById('ai-assist-button');
+        const aiAssistPopup = document.getElementById('ai-assist-popup');
+
+        aiAssistButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch("/api/get_assist", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        scenario_id: scenarioId,
+                        current_context: getCurrentContext()
+                    })
+                });
+
+                const data = await response.json();
+                if (data.suggestion) {
+                    document.getElementById('ai-assist-content').textContent = data.suggestion;
+                    aiAssistPopup.classList.add('active');
+                    
+                    // 5秒後に自動で閉じる
+                    setTimeout(() => {
+                        aiAssistPopup.classList.remove('active');
+                    }, 5000);
+                }
+            } catch (error) {
+                console.error("AIアシストエラー:", error);
+            }
+        });
+
+        // 現在のコンテキストを取得する関数
+        function getCurrentContext() {
+            const messages = document.querySelectorAll('.message');
+            return Array.from(messages).slice(-3).map(msg => msg.textContent).join('\n');
+        }
+
+        // ポップアップの外側をクリックしたら閉じる
+        document.addEventListener('click', (e) => {
+            if (!aiAssistPopup.contains(e.target) && e.target !== aiAssistButton) {
+                aiAssistPopup.classList.remove('active');
             }
         });
     </script>

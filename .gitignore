@@ -15,6 +15,7 @@ venv.bak/
 
 # VSCode関連
 .vscode/
+.cursorrules
 
 # Flask関連
 flask_session/
