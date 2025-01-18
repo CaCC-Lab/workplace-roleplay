@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>職場コミュニケーション練習アプリ</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div id="chat-container">
@@ -86,21 +86,7 @@
         </div>
     </div>
 
-    <script>
-        // ページ読み込み時に最初のモデルを保存
-        window.addEventListener('load', function() {
-            const modelSelect = document.getElementById('model-select');
-            if (modelSelect && modelSelect.value) {
-                localStorage.setItem('selectedModel', modelSelect.value);
-            }
-        });
-
-        // モデル選択時の保存
-        document.getElementById('model-select').addEventListener('change', function() {
-            const selectedModel = this.value;
-            localStorage.setItem('selectedModel', selectedModel);
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/model-selection.js') }}"></script>
 </body>
 </html>
 

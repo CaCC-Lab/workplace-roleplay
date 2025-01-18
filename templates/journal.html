@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>学習履歴 - 職場のあなた再現シート</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/journal.css') }}">
 </head>
 <body>
     <div id="chat-container">
@@ -59,58 +60,5 @@
             </div>
         </div>
     </div>
-
-    <style>
-    .progress-section {
-        margin: 2rem 0;
-        padding: 1.5rem;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .progress-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1rem;
-    }
-
-    .stat-card {
-        padding: 1rem;
-        background: #f8f9fa;
-        border-radius: 8px;
-        text-align: center;
-    }
-
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #007bff;
-        margin-top: 0.5rem;
-    }
-
-    .journal-card {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 1rem;
-        align-items: center;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .practice-summary {
-        display: grid;
-        gap: 0.5rem;
-    }
-
-    .journal-actions {
-        display: flex;
-        gap: 1rem;
-    }
-    </style>
 </body>
 </html> 

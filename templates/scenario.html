@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>シナリオ: {{ scenario_title }}</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/scenario.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div id="chat-container">
         <h1>{{ scenario_title }}</h1>
         
-        <!-- シナリオの説明を詳しく表示 -->
         <div class="scenario-info">
             <h2>シナリオ概要</h2>
             <p>{{ scenario_desc }}</p>
@@ -24,7 +24,6 @@
             </div>
         </div>
 
-        <!-- チャット部分 -->
         <div id="chat-messages"></div>
         <div id="input-container">
             <button id="ai-assist-button">
@@ -36,13 +35,11 @@
             <button id="clear-button">シナリオをリセット</button>
         </div>
 
-        <!-- AIアシストのポップアップ -->
         <div class="ai-assist-popup" id="ai-assist-popup">
             <h3>返答のヒント</h3>
             <p id="ai-assist-content"></p>
         </div>
 
-        <!-- フィードバック部分 -->
         <div id="feedback-section">
             <h2>フィードバック</h2>
             <p class="feedback-hint">ロールプレイが終わったら、以下のボタンでフィードバックを取得できます。</p>
@@ -58,229 +55,6 @@
         <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
     </div>
 
-    <script>
-        const scenarioId = "{{ scenario_id }}";
-        const chatMessages = document.getElementById('chat-messages');
-        const messageInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('send-button');
-        const clearButton = document.getElementById('clear-button');
-
-        async function sendMessage() {
-            const msg = messageInput.value.trim();
-            if (!msg) return;
-
-            const selectedModel = localStorage.getItem('selectedModel');
-            if (!selectedModel) {
-                displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
-                return;
-            }
-
-            displayMessage("あなた: " + msg, "user-message");
-            messageInput.value = "";  // 入力欄をクリア
-
-            try {
-                const response = await fetch("/api/scenario_chat", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        message: msg,
-                        scenario_id: scenarioId,
-                        model: selectedModel
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                if (data.response) {
-                    displayMessage("相手役: " + data.response, "bot-message");
-                }
-            } catch (err) {
-                console.error("Error:", err);
-                displayMessage("エラーが発生しました: " + err.message, "error-message");
-            }
-        }
-
-        // イベントリスナーの設定
-        sendButton.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        // 初期メッセージの取得
-        window.addEventListener('load', async () => {
-            try {
-                const selectedModel = localStorage.getItem('selectedModel');
-                if (!selectedModel) {
-                    throw new Error("モデルが選択されていません。トップページでモデルを選択してください。");
-                }
-                
-                const response = await fetch("/api/scenario_chat", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        message: "",
-                        scenario_id: scenarioId,
-                        model: selectedModel
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                if (data.response) {
-                    displayMessage("相手役: " + data.response, "bot-message");
-                }
-            } catch (err) {
-                console.error("Error:", err);
-                displayMessage("エラーが発生しました: " + err.message, "error-message");
-            }
-        });
-
-        clearButton.addEventListener('click', clearScenarioHistory);
-
-        function displayMessage(text, className) {
-            const div = document.createElement("div");
-            div.className = "message " + className;
-            div.textContent = text;
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function clearScenarioHistory(){
-            fetch("/api/scenario_clear", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ scenario_id: scenarioId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === "success"){
-                    chatMessages.innerHTML = "";
-                    displayMessage("シナリオ履歴がクリアされました", "bot-message");
-                } else {
-                    displayMessage("エラー: " + data.message, "bot-message");
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                displayMessage("エラーが発生しました", "bot-message");
-            });
-        }
-
-        document.getElementById('get-feedback-button').addEventListener('click', async () => {
-            try {
-                const button = document.getElementById('get-feedback-button');
-                const content = document.getElementById('feedback-content');
-                
-                // ボタンを無効化して処理中表示
-                button.disabled = true;
-                button.textContent = "フィードバック生成中...";
-                
-                const response = await fetch('/api/scenario_feedback', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        scenario_id: scenarioId
-                    })
-                });
-                const data = await response.json();
-                
-                if (data.feedback) {
-                    content.innerHTML = marked.parse(data.feedback);
-                    content.classList.add('active');
-                    document.getElementById('feedback-section').scrollIntoView({ behavior: 'smooth' });
-                }
-            } catch (error) {
-                console.error('フィードバック取得エラー:', error);
-                alert('フィードバックの取得に失敗しました');
-            } finally {
-                // ボタンを元に戻す
-                button.disabled = false;
-                button.innerHTML = '<span class="icon">📝</span> フィードバックを取得';
-            }
-        });
-
-        const aiAssistButton = document.getElementById('ai-assist-button');
-        const aiAssistPopup = document.getElementById('ai-assist-popup');
-
-        aiAssistButton.addEventListener('click', async () => {
-            try {
-                const response = await fetch("/api/get_assist", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        scenario_id: scenarioId,
-                        current_context: getCurrentContext()
-                    })
-                });
-
-                const data = await response.json();
-                if (data.suggestion) {
-                    document.getElementById('ai-assist-content').textContent = data.suggestion;
-                    aiAssistPopup.classList.add('active');
-                    
-                    // 5秒後に自動で閉じる
-                    setTimeout(() => {
-                        aiAssistPopup.classList.remove('active');
-                    }, 5000);
-                }
-            } catch (error) {
-                console.error("AIアシストエラー:", error);
-            }
-        });
-
-        // 現在のコンテキストを取得する関数
-        function getCurrentContext() {
-            const messages = document.querySelectorAll('.message');
-            return Array.from(messages).slice(-3).map(msg => msg.textContent).join('\n');
-        }
-
-        // ポップアップの外側をクリックしたら閉じる
-        document.addEventListener('click', (e) => {
-            if (!aiAssistPopup.contains(e.target) && e.target !== aiAssistButton) {
-                aiAssistPopup.classList.remove('active');
-            }
-        });
-    </script>
-
-    <style>
-        .error-message {
-            color: #721c24;
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-        }
-
-        .bot-message {
-            background-color: #e9ecef;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-        }
-
-        .user-message {
-            background-color: #d4edda;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-        }
-    </style>
+    <script src="{{ url_for('static', filename='js/scenario.js') }}" data-scenario-id="{{ scenario_id }}"></script>
 </body>
 </html>

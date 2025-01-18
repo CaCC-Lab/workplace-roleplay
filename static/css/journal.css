@@ -1,0 +1,50 @@
+.progress-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.stat-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-top: 0.5rem;
+}
+
+.journal-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.practice-summary {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.journal-actions {
+    display: flex;
+    gap: 1rem;
+} 

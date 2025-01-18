@@ -192,6 +192,8 @@ button {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    text-decoration: none;
+    transition: background-color 0.2s;
 }
 
 .primary-button:hover {
@@ -280,12 +282,15 @@ button {
     background: white;
     padding: 20px;
     border-radius: var(--border-radius);
+    border: 1px solid #ddd;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transition: transform 0.2s ease;
+    margin-bottom: 1.5rem;
 }
 
 .scenario-card:hover {
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .scenario-card h3 {
@@ -418,21 +423,6 @@ button {
     font-size: 1.4rem;
 }
 
-.scenario-card {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s ease;
-}
-
-.scenario-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
 .scenario-header {
     display: flex;
     justify-content: space-between;
@@ -479,19 +469,6 @@ button {
     gap: 1rem;
     align-items: center;
     margin-top: 1rem;
-}
-
-.primary-button {
-    background: #4CAF50;
-    color: white;
-    padding: 0.8rem 1.5rem;
-    border-radius: 4px;
-    text-decoration: none;
-    transition: background-color 0.2s;
-}
-
-.primary-button:hover {
-    background: #45a049;
 }
 
 .tips-button {
@@ -566,6 +543,20 @@ button {
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
+    #chat-container {
+        padding: 10px;
+        height: auto;
+        margin: 0;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .feature-card {
+        min-height: auto;
+    }
+    
     .scenario-header {
         flex-direction: column;
         align-items: flex-start;
@@ -582,6 +573,19 @@ button {
     .scenario-actions > * {
         width: 100%;
         text-align: center;
+    }
+    
+    .model-selection {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+
+    .model-select-container {
+        flex-direction: column;
+    }
+
+    #model-select {
+        width: 100%;
     }
 }
 
