@@ -14,35 +14,24 @@
             <h2>🤖 AIモデルを選択</h2>
             <p>会話に使用するAIモデルを選択してください。OpenAIのモデルは高精度ですが、ローカルモデル（Ollama）はプライバシーを重視する場合に適しています。</p>
             <div class="model-select-container">
-                <select id="model-select" class="enhanced-select">
-                    <optgroup label="Google Gemini Models">
-                        {% for model in models %}
-                            {% if model.startswith('gemini/') %}
-                                <option value="{{ model }}">
-                                    {{ model.replace('gemini/', '') }}
-                                </option>
-                            {% endif %}
-                        {% endfor %}
-                    </optgroup>
-                    <optgroup label="OpenAI Models">
-                        {% for model in models %}
-                            {% if model.startswith('openai/') %}
-                                <option value="{{ model }}">
-                                    {{ model.replace('openai/', '') }}
-                                </option>
-                            {% endif %}
-                        {% endfor %}
-                    </optgroup>
-                    <optgroup label="Local Models (Ollama)">
-                        {% for model in models %}
-                            {% if not model.startswith('openai/') and not model.startswith('gemini/') %}
-                                <option value="{{ model }}">
-                                    {{ model }}
-                                </option>
-                            {% endif %}
-                        {% endfor %}
-                    </optgroup>
-                </select>
+                <!-- プロバイダー選択 -->
+                <div class="provider-select">
+                    <label for="provider-select">プロバイダー:</label>
+                    <select id="provider-select" class="enhanced-select">
+                        <option value="">プロバイダーを選択してください</option>
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="local">Local Models (Ollama)</option>
+                    </select>
+                </div>
+                
+                <!-- モデル選択（初期状態は非表示） -->
+                <div class="model-select" style="display: none; margin-top: 10px;">
+                    <label for="model-select">モデル:</label>
+                    <select id="model-select" class="enhanced-select">
+                        <!-- モデルはJavaScriptで動的に追加 -->
+                    </select>
+                </div>
             </div>
         </div>
 
