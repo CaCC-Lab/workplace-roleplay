@@ -29,6 +29,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 load_dotenv()
 
+# 既存のimport文の下に追加
+from scenarios import load_scenarios
+
 """
 要件:
 1. ローカルLLM (Ollama) とクラウドLLM (OpenAI) を切り替えられる
@@ -211,123 +214,7 @@ def create_openai_llm(model_name: str = "gpt-3.5-turbo") -> ChatOpenAI:
 
 # ========== シナリオ（職場のあなた再現シートを想定したデータ） ==========
 # 実際にはデータベースや外部ファイルなどで管理するのがおすすめ
-scenarios = {
-    "scenario1": {
-        "title": "上司から曖昧な仕事を依頼された",
-        "description": "上司から「この書類、今度の会議で配布するから参加者分準備をしておいて」とだけ依頼される場面です。",
-        "difficulty": "初級",
-        "tags": ["指示の確認", "コミュニケーション基礎", "報告・連絡・相談"],
-        "role_info": "AIは上司役、あなたは新入社員",
-        "character_setting": {
-            "personality": "40代後半の男性課長。仕事はできるが部下の状況への配慮が少し足りない。基本的には良い上司だが、納期に追われると強引になることも。",
-            "speaking_style": "「〜かな」「〜だけど」など、やや砕けた話し方。ただし指示を出すときは「〜してもらえる？」「〜お願いできる？」とやや丁寧に。",
-            "situation": "重要な会議の準備で忙しく、部下への指示を手短に済ませたい状況。",
-            "initial_approach": "（資料を手に持ちながら）「あ、ちょっといい？この書類、今度の会議で配布するから参加者分準備をしておいて」"
-        },
-        "learning_points": [
-            "曖昧な指示を受けた際の確認の仕方",
-            "上司への質問の適切な方法",
-            "必要な情報の洗い出し方"
-        ],
-        "feedback_points": [
-            "質問の的確さ",
-            "コミュニケーションの明確さ",
-            "確認事項の網羅性"
-        ]
-    },
-    "scenario2": {
-        "title": "締切が迫っている仕事を抱えているときに、上司から別の仕事を頼まれた",
-        "description": "既存の締切間近の仕事がある中で、上司から「悪いけど大至急で見積書20社分作ってくれ！」と新しい仕事を依頼される場面です。",
-        "difficulty": "中級",
-        "tags": ["優先順位管理", "タスク調整", "状況説明"],
-        "role_info": "AIは上司役、あなたは中堅社員",
-        "character_setting": {
-            "personality": "50代前半の女性部長。仕事は非常に出来るが、複数のプロジェクトを同時に進行させているため、部下の状況を把握しきれていないことも。",
-            "speaking_style": "テキパキとした口調。「〜お願い」「〜してもらえる？」など、丁寧だが急いでいる様子が伝わる話し方。",
-            "situation": "取引先からの急な要請で、新しい見積書の作成が必要になった。",
-            "initial_approach": "（急ぎ足で近づいてきて）「悪いけど大至急で見積書20社分作ってくれる？今日中に必要なの！」"
-        },
-        "learning_points": [
-            "現在の業務状況の適切な説明方法",
-            "優先順位の確認と調整",
-            "建設的な代替案の提示"
-        ],
-        "feedback_points": [
-            "状況説明の明確さ",
-            "解決策の提案力",
-            "コミュニケーションの適切さ"
-        ]
-    },
-    "scenario3": {
-        "title": "先輩からの指示にミスがあった",
-        "description": "先輩から「印刷をしてほしい書類と印刷部数の書かれたメモ」を渡され、印刷するように頼まれた。しかし、メモに間違えを見つけた。",
-        "difficulty": "中級",
-        "tags": ["指示の確認", "ミスの指摘", "コミュニケーション"],
-        "role_info": "AIは先輩役、あなたは後輩社員",
-        "character_setting": {
-            "personality": "30代前半の女性社員。細かいことに気がつくが、時々ミスをすることもある。",
-            "speaking_style": "丁寧だが、時々早口になる。",
-            "situation": "急いでいるため、細かいミスに気づかずに指示を出してしまった。",
-            "initial_approach": "「この書類、印刷しておいてくれる？メモに部数を書いておいたから。」"
-        },
-        "learning_points": [
-            "ミスを見つけた際の指摘方法",
-            "指示内容の確認方法",
-            "適切なコミュニケーションの取り方"
-        ],
-        "feedback_points": [
-            "ミスの指摘の仕方",
-            "指示の確認の適切さ",
-            "コミュニケーションの明確さ"
-        ]
-    },
-    "scenario4": {
-        "title": "自分は帰ろうと思ったのに、先輩がまだ仕事中だった",
-        "description": "自分の仕事が終わり帰ろうとしたが、先輩がまだ仕事をしているのを見かけた場面です。",
-        "difficulty": "初級",
-        "tags": ["職場の雰囲気", "コミュニケーション", "気配り"],
-        "role_info": "AIは先輩役、あなたは後輩社員",
-        "character_setting": {
-            "personality": "40代の男性社員。仕事熱心で、後輩の面倒見が良い。",
-            "speaking_style": "落ち着いた口調で話す。",
-            "situation": "まだ仕事が残っており、後輩が帰るのを見て少し驚いている。",
-            "initial_approach": "「お疲れ様。もう帰るの？」"
-        },
-        "learning_points": [
-            "職場での気配りの仕方",
-            "先輩への声掛けの方法",
-            "職場の雰囲気を読む力"
-        ],
-        "feedback_points": [
-            "気配りの適切さ",
-            "コミュニケーションの円滑さ",
-            "職場の雰囲気を読む力"
-        ]
-    },
-    "scenario5": {
-        "title": "後輩のミスなのに自分が怒られた",
-        "description": "単なる先輩であり、後輩の上司ではないのにも関わらず、一緒に作業をしていたというだけで後輩がミスしたことを上司に怒られた。",
-        "difficulty": "上級",
-        "tags": ["責任の所在", "コミュニケーション", "問題解決"],
-        "role_info": "AIは上司役、あなたは先輩社員",
-        "character_setting": {
-            "personality": "50代の男性部長。厳しいが、公平な判断を心がけている。",
-            "speaking_style": "厳格な口調で話す。",
-            "situation": "後輩のミスについて、先輩としての責任を問うている。",
-            "initial_approach": "「後輩がミスしたと聞いた。一緒に作業していた君が先輩としてしっかりフォローしないとダメだろう。」"
-        },
-        "learning_points": [
-            "責任の所在を明確にする方法",
-            "上司への報告の仕方",
-            "問題解決のためのコミュニケーション"
-        ],
-        "feedback_points": [
-            "責任の所在の明確さ",
-            "報告の適切さ",
-            "問題解決のためのコミュニケーション"
-        ]
-    }
-}
+scenarios = load_scenarios()
 
 # ========== Flaskルート ==========
 @app.route("/")
@@ -1478,6 +1365,45 @@ def generate_next_message(llm, history):
     
     response = llm.invoke(messages)
     return extract_content(response)
+
+@app.route("/api/get_assist", methods=["POST"])
+def get_assist():
+    """AIアシストの提案を取得するエンドポイント"""
+    try:
+        data = request.get_json()
+        scenario_id = data.get("scenario_id")
+        current_context = data.get("current_context", "")
+
+        if not scenario_id:
+            return jsonify({"error": "シナリオIDが必要です"}), 400
+
+        # シナリオ情報を取得
+        scenario = scenarios.get(scenario_id)
+        if not scenario:
+            return jsonify({"error": "シナリオが見つかりません"}), 404
+
+        # AIアシストのプロンプトを作成
+        assist_prompt = f"""
+現在のシナリオ: {scenario['title']}
+状況: {scenario['description']}
+学習ポイント: {', '.join(scenario['learning_points'])}
+
+現在の会話:
+{current_context}
+
+上記の状況で、適切な返答のヒントを1-2文で簡潔に提案してください。
+"""
+
+        # 選択されているモデルでアシスト生成
+        model = create_llm(session.get("selected_model", DEFAULT_MODEL))
+        response = model.invoke(assist_prompt)
+        suggestion = extract_content(response)
+
+        return jsonify({"suggestion": suggestion})
+
+    except Exception as e:
+        print(f"AIアシストエラー: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":

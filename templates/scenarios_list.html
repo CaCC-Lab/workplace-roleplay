@@ -3,12 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <title>シナリオ一覧 - 職場のあなた再現シート</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div id="chat-container">
         <h1>職場のあなた再現シート ロールプレイ一覧</h1>
         <div class="content-section">
+            <div class="filter-section">
+                <h2>シナリオを絞り込む</h2>
+                <div class="filter-options">
+                    <div class="filter-group">
+                        <label for="difficulty-filter">難易度</label>
+                        <select id="difficulty-filter">
+                            <option value="">すべて</option>
+                            <option value="初級">初級</option>
+                            <option value="中級">中級</option>
+                            <option value="上級">上級</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="tag-filter">カテゴリー</label>
+                        <select id="tag-filter">
+                            <option value="">すべて</option>
+                            <option value="コミュニケーション基礎">コミュニケーション基礎</option>
+                            <option value="報告・連絡・相談">報告・連絡・相談</option>
+                            <option value="断り方・交渉術">断り方・交渉術</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="intro-section">
                 <p>このアプリは、職場でのコミュニケーションスキルを安全に練習できる場所です。</p>
                 <p>以下のような方におすすめです：</p>
@@ -63,81 +87,6 @@
         </div>
     </div>
 
-    <script>
-        // モーダル関連の機能
-        const modal = document.getElementById('tipsModal');
-        const span = document.getElementsByClassName('close')[0];
-        
-        function showTips(scenarioId) {
-            modal.style.display = "block";
-            // ここでシナリオIDに応じたtipsを表示
-            // 実際の実装では、scenariosからtipsを取得して表示
-        }
-
-        span.onclick = function() {
-            modal.style.display = "none";
-        }
-
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
-
-        function startNewScenario(scenarioId) {
-            // 履歴をクリアしてから開始
-            fetch("/api/scenario_clear", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ scenario_id: scenarioId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    window.location.href = `/scenario/${scenarioId}`;
-                }
-            });
-        }
-
-        function continuePreviousScenario(scenarioId) {
-            window.location.href = `/scenario/${scenarioId}`;
-        }
-    </script>
-
-    <style>
-        .scenario-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .primary-button {
-            background-color: #007bff;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .primary-button:hover {
-            background-color: #0056b3;
-        }
-
-        .secondary-button {
-            background-color: #6c757d;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .secondary-button:hover {
-            background-color: #5a6268;
-        }
-    </style>
+    <script src="{{ url_for('static', filename='js/scenarios_list.js') }}"></script>
 </body>
 </html>

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>学習履歴 - 職場のあなた再現シート</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/journal.css') }}">
 </head>
 <body>
     <div id="chat-container">
@@ -40,6 +41,24 @@
     <div class="navigation">
         <a href="{{ url_for('list_scenarios') }}" class="nav-button">シナリオ一覧に戻る</a>
         <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+    </div>
+
+    <div class="progress-section">
+        <h2>学習の進捗状況</h2>
+        <div class="progress-stats">
+            <div class="stat-card">
+                <h3>完了したシナリオ</h3>
+                <div class="stat-value">{{ completed_scenarios }}/10</div>
+            </div>
+            <div class="stat-card">
+                <h3>総練習時間</h3>
+                <div class="stat-value">{{ total_practice_time }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>最近の活動</h3>
+                <div class="stat-value">{{ last_activity|datetime }}</div>
+            </div>
+        </div>
     </div>
 </body>
 </html> 
