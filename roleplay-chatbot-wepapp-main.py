@@ -41,7 +41,8 @@ from scenarios import load_scenarios
 """
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key_here"  # セッション管理用のキー(本番は安全に管理を)
+# 環境変数からシークレットキーを取得、設定されていない場合はデフォルト値を使用
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "your_secret_key_here")  # セッション管理用のキー
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
@@ -1407,5 +1408,5 @@ def get_assist():
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":
-    # 本番運用時はgunicornなどを使う想定
+    # デバッグモードで実行（本番環境では debug=False にしてください）
     app.run(debug=True, host="0.0.0.0", port=5000)

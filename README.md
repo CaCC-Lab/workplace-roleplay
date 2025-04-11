@@ -27,7 +27,7 @@
 - **バックエンド**: Python, Flask
 - **フロントエンド**: HTML, CSS, JavaScript
 - **AI/LLM**:
-  - OpenAI GPT (GPT-3.5-turbo, GPT-4)
+  - OpenAI GPT (GPT-3.5-turbo, GPT-4, GPT-4o-mini)
   - Google Gemini Pro
   - Ollama（ローカルLLM）
 
@@ -90,6 +90,48 @@ python roleplay-chatbot-wepapp-main.py
    - 会話の分析
    - 具体的な改善点
    - 次回への実践アドバイス
+
+## 🛠 開発者向け情報
+
+### ディレクトリ構成
+```
+/
+├── static/                       # 静的ファイル
+│   ├── css/                      # CSSファイル
+│   └── js/                       # JavaScriptファイル
+├── templates/                    # Flaskテンプレート
+├── scenarios/                    # シナリオ関連
+│   ├── __init__.py               # シナリオロード処理
+│   └── data/                     # シナリオデータ
+├── roleplay-chatbot-wepapp-main.py # メインアプリケーション
+```
+
+### シナリオの追加方法
+1. `scenarios/data/` ディレクトリに新しいYAMLファイルを作成
+2. 既存のシナリオファイルを参考に、必要な情報を記述
+3. アプリケーション再起動時に自動的にロードされます
+
+### 開発用依存パッケージのインストール
+```bash
+pip install -r requirements-dev.txt
+```
+
+### ローカルLLM (Ollama) のセットアップ
+1. [Ollama](https://ollama.ai/)をインストール
+2. 以下のコマンドで必要なモデルをダウンロード:
+```bash
+ollama pull llama2
+```
+3. Ollamaサーバーを起動:
+```bash
+ollama serve
+```
+
+### デバッグモードでの実行
+```bash
+python roleplay-chatbot-wepapp-main.py
+```
+デフォルトでデバッグモードが有効になっており、コード変更時に自動で再起動します。
 
 ## 🔒 プライバシーとセキュリティ
 
