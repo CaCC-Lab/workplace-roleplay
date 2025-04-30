@@ -1002,12 +1002,34 @@ def watch_conversation_stream():
 
 def initialize_llm(model_name: str):
     """モデル名に基づいて適切なLLMを初期化"""
-    if model_name.startswith("openai/"):
-        return create_openai_llm(model_name)
-    elif model_name.startswith("gemini/"):
-        return create_gemini_llm(model_name)
-    else:
-        return create_ollama_llm(model_name)
+    try:
+        if model_name.startswith('openai/'):
+            try:
+                return create_openai_llm(model_name.replace('openai/', ''))
+            except Exception as openai_error:
+                # OpenAIのクォータ制限エラーをチェック
+                error_str = str(openai_error)
+                if "insufficient_quota" in error_str or "429" in error_str:
+                    print(f"OpenAI quota limit reached: {error_str}")
+                    print("Falling back to local model...")
+                    # ローカルモデルにフォールバック
+                    local_models = get_available_local_models()
+                    if local_models:
+                        fallback_model = local_models[0]
+                        print(f"Using fallback model: {fallback_model}")
+                        return create_ollama_llm(fallback_model)
+                    else:
+                        raise ValueError("OpenAIのクォータ制限に達し、利用可能なローカルモデルもありません")
+                else:
+                    # その他のエラーはそのまま再発生
+                    raise
+        elif model_name.startswith('gemini/'):
+            return create_gemini_llm(model_name.replace('gemini/', ''))
+        else:
+            return create_ollama_llm(model_name)
+    except Exception as e:
+        print(f"Error in initialize_llm: {str(e)}")
+        raise
 
 def create_system_prompt(scenario_data: Dict[str, Any], role: str) -> str:
     """役割に応じたシステムプロンプトを生成"""
@@ -1475,7 +1497,8 @@ def start_watch():
         session.modified = True
 
         try:
-            llm = create_llm(model_a)
+            # create_llmの代わりにinitialize_llmを使用
+            llm = initialize_llm(model_a)
             initial_message = generate_initial_message(
                 llm, 
                 partner_type,
@@ -1495,7 +1518,47 @@ def start_watch():
 
         except Exception as e:
             print(f"Error in watch initialization: {str(e)}")
-            return jsonify({"error": f"観戦の初期化に失敗しました: {str(e)}"}), 500
+            # OpenAIのクォータ制限エラーをチェック
+            error_str = str(e)
+            if "insufficient_quota" in error_str or "429" in error_str:
+                try:
+                    print("OpenAIのクォータ制限を検出。ローカルモデルにフォールバックします。")
+                    local_models = get_available_local_models()
+                    if local_models:
+                        fallback_model = local_models[0]  # 最初のローカルモデルを使用
+                        print(f"Using fallback model: {fallback_model}")
+                        fallback_llm = create_ollama_llm(fallback_model)
+                        initial_message = generate_initial_message(
+                            fallback_llm, 
+                            partner_type,
+                            situation,
+                            topic
+                        )
+                        
+                        # 履歴に保存（フォールバック）
+                        session["watch_history"].append({
+                            "speaker": "A",
+                            "message": initial_message,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        session.modified = True
+                        
+                        # フォールバックモデルを保存
+                        session["watch_settings"]["model_a"] = fallback_model
+                        session["watch_settings"]["model_b"] = fallback_model
+                        session.modified = True
+                        
+                        return jsonify({
+                            "message": f"モデルA(代替): {initial_message}", 
+                            "notice": "OpenAIのクォータ制限により、ローカルモデルを使用しています。"
+                        })
+                    else:
+                        return jsonify({"error": "OpenAIのクォータ制限に達し、利用可能なローカルモデルもありません。"}), 500
+                except Exception as fallback_error:
+                    print(f"Fallback model error: {str(fallback_error)}")
+                    return jsonify({"error": f"観戦の初期化に失敗しました: {str(fallback_error)}"}), 500
+            else:
+                return jsonify({"error": f"観戦の初期化に失敗しました: {str(e)}"}), 500
 
     except Exception as e:
         print(f"Error in start_watch: {str(e)}")
@@ -1517,7 +1580,8 @@ def next_watch_message():
         model = settings["model_b"] if next_speaker == "B" else settings["model_a"]
 
         try:
-            llm = create_llm(model)
+            # create_llmの代わりにinitialize_llmを使用
+            llm = initialize_llm(model)
             next_message = generate_next_message(llm, history)
             
             # 履歴に保存
@@ -1535,20 +1599,52 @@ def next_watch_message():
 
         except Exception as e:
             print(f"Error generating next message: {str(e)}")
-            return jsonify({"error": f"メッセージの生成に失敗しました: {str(e)}"}), 500
+            
+            # OpenAIのクォータ制限エラーをチェック
+            error_str = str(e)
+            if "insufficient_quota" in error_str or "429" in error_str:
+                try:
+                    print("OpenAIのクォータ制限を検出。ローカルモデルにフォールバックします。")
+                    local_models = get_available_local_models()
+                    if local_models:
+                        fallback_model = local_models[0]  # 最初のローカルモデルを使用
+                        print(f"Using fallback model: {fallback_model}")
+                        fallback_llm = create_ollama_llm(fallback_model)
+                        next_message = generate_next_message(fallback_llm, history)
+                        
+                        # 履歴に保存（フォールバック）
+                        history.append({
+                            "speaker": next_speaker,
+                            "message": next_message,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                        # 話者を更新
+                        settings["current_speaker"] = next_speaker
+                        
+                        # フォールバックモデルを保存（今後の会話用）
+                        if next_speaker == "B":
+                            settings["model_b"] = fallback_model
+                        else:
+                            settings["model_a"] = fallback_model
+                        
+                        session.modified = True
+                        
+                        return jsonify({
+                            "message": f"モデル{next_speaker}(代替): {next_message}", 
+                            "notice": "OpenAIのクォータ制限により、ローカルモデルを使用しています。"
+                        })
+                    else:
+                        return jsonify({"error": "OpenAIのクォータ制限に達し、利用可能なローカルモデルもありません。"}), 500
+                except Exception as fallback_error:
+                    print(f"Fallback model error: {str(fallback_error)}")
+                    return jsonify({"error": f"メッセージの生成に失敗しました: {str(fallback_error)}"}), 500
+            else:
+                return jsonify({"error": f"メッセージの生成に失敗しました: {str(e)}"}), 500
 
     except Exception as e:
         print(f"Error in next_watch_message: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
-def create_llm(model_name):
-    """モデル名に基づいて適切なLLMインスタンスを作成"""
-    if model_name.startswith('openai/'):
-        return create_openai_llm(model_name.replace('openai/', ''))
-    elif model_name.startswith('gemini/'):
-        return create_gemini_llm(model_name.replace('gemini/', ''))
-    else:
-        return create_ollama_llm(model_name)
 
 def generate_next_message(llm, history):
     """観戦モードの次のメッセージを生成"""
@@ -1614,7 +1710,7 @@ def get_assist():
         
         try:
             # まず選択されたモデルで試行
-            model = create_llm(selected_model)
+            model = initialize_llm(selected_model)
             response = model.invoke(assist_prompt)
             suggestion = extract_content(response)
             
