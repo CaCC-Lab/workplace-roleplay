@@ -537,7 +537,25 @@ def scenario_chat():
         try:
             if selected_model.startswith('openai/'):
                 openai_model_name = selected_model.split("/")[1]
-                llm = create_openai_llm(model_name=openai_model_name)
+                try:
+                    llm = create_openai_llm(model_name=openai_model_name)
+                except Exception as openai_error:
+                    # OpenAIのクォータ制限エラーをチェック
+                    error_str = str(openai_error)
+                    if "insufficient_quota" in error_str or "429" in error_str:
+                        print(f"OpenAI quota limit reached: {error_str}")
+                        print("Falling back to local model...")
+                        # ローカルモデルにフォールバック
+                        local_models = get_available_local_models()
+                        if local_models:
+                            fallback_model = local_models[0]
+                            print(f"Using fallback model: {fallback_model}")
+                            llm = create_ollama_llm(fallback_model)
+                        else:
+                            raise ValueError("OpenAIのクォータ制限に達し、利用可能なローカルモデルもありません")
+                    else:
+                        # その他のエラーはそのまま再発生
+                        raise
             elif selected_model.startswith('gemini/'):
                 openai_model_name = selected_model.split("/")[1]
                 llm = create_gemini_llm(model_name=openai_model_name)
@@ -587,7 +605,31 @@ def scenario_chat():
                     response = "不明な応答形式です。"
             except Exception as e:
                 print(f"Response processing error: {str(e)}")
-                response = "申し訳ありません。応答の処理中にエラーが発生しました。"
+                error_str = str(e)
+                
+                # クォータ制限エラーの場合、ローカルモデルにフォールバック
+                if "insufficient_quota" in error_str or "429" in error_str:
+                    try:
+                        print("OpenAIのクォータ制限を検出。ローカルモデルにフォールバックします。")
+                        local_models = get_available_local_models()
+                        if local_models:
+                            fallback_model = local_models[0]  # 最初のローカルモデルを使用
+                            print(f"Using fallback model: {fallback_model}")
+                            fallback_llm = create_ollama_llm(fallback_model)
+                            fallback_response = fallback_llm.invoke(messages)
+                            if isinstance(fallback_response, AIMessage):
+                                response = fallback_response.content
+                            elif isinstance(fallback_response, str):
+                                response = fallback_response
+                            else:
+                                response = f"（代替モデル {fallback_model} による応答）\n" + str(fallback_response)
+                        else:
+                            response = "申し訳ありません。OpenAIのクォータ制限に達し、代替モデルも見つかりませんでした。"
+                    except Exception as fallback_error:
+                        print(f"Fallback model error: {str(fallback_error)}")
+                        response = "申し訳ありません。応答の処理中にエラーが発生し、代替モデルも失敗しました。"
+                else:
+                    response = "申し訳ありません。応答の処理中にエラーが発生しました。"
 
             # セッションに履歴を保存
             session["scenario_history"][scenario_id].append({
