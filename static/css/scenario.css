@@ -1,10 +1,9 @@
 .error-message {
-    color: #721c24;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
+    color: #cc0000;
+    font-weight: bold;
     padding: 10px;
-    margin: 5px 0;
     border-radius: 4px;
+    background-color: rgba(255, 0, 0, 0.05);
 }
 
 .bot-message {
@@ -38,18 +37,27 @@
 }
 
 #feedback-section {
-    margin-top: 20px;
-    padding: 15px;
-    border-top: 1px solid #ddd;
+    margin-top: 2rem;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 1rem;
 }
 
 #feedback-content {
-    display: none;
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
     margin-top: 15px;
+    display: none;
 }
 
 #feedback-content.active {
     display: block;
+}
+
+#feedback-content.error {
+    background-color: #fff2f2;
+    border-color: #ffcccc;
 }
 
 /* シナリオ固有のスタイル */
@@ -68,4 +76,72 @@
     padding: 1rem;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* AIアシストポップアップのスタイル更新 */
+#ai-assist-popup {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    max-width: 300px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(20px);
+    visibility: hidden;
+    z-index: 1000;
+}
+
+#ai-assist-popup.active {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+}
+
+#ai-assist-popup.error {
+    background-color: #fff2f2;
+    border-color: #ffcccc;
+    color: #cc0000;
+}
+
+#ai-assist-content {
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+#ai-assist-button {
+    position: relative;
+}
+
+#ai-assist-button.loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.model-info {
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px dashed #ddd;
+    color: #666;
+    font-size: 12px;
+    text-align: right;
+    font-style: italic;
 } 

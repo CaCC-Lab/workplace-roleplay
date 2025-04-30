@@ -64,7 +64,7 @@ if not GOOGLE_API_KEY:
 DEFAULT_TEMPERATURE = 0.7
 
 # デフォルトモデルの設定
-DEFAULT_MODEL = "openai/gpt-4o-mini"
+DEFAULT_MODEL = "gemini/gemini-2.5-flash-preview-04-17"  # 最新のモデルに更新
 
 # Gemini APIの初期化
 try:
@@ -75,6 +75,7 @@ except Exception as e:
 def get_available_gemini_models():
     """
     利用可能なGeminiモデルのリストを返す
+    廃止されたモデルを除外し、代替モデルを提供する
     """
     try:
         # Gemini APIの設定を確認
@@ -85,33 +86,65 @@ def get_available_gemini_models():
         # 利用可能なモデルを取得
         models = genai.list_models()
         
+        # 廃止されたモデルと代替モデルのマッピング
+        deprecated_models = {
+            'gemini-1.0-pro-vision': 'gemini-1.5-flash',
+            'gemini-1.0-pro-vision-latest': 'gemini-1.5-flash-latest'
+        }
+        
         # Geminiモデルをフィルタリング
         gemini_models = []
         for model in models:
             if "gemini" in model.name.lower():
-                # モデル名を整形（gemini/プレフィックスを追加）
-                model_name = f"gemini/{model.name.split('/')[-1]}"
-                gemini_models.append(model_name)
+                # モデル名を取得
+                model_short_name = model.name.split('/')[-1]
+                
+                # 廃止されたモデルの場合は代替を使用
+                if model_short_name in deprecated_models:
+                    alternative = deprecated_models[model_short_name]
+                    print(f"Replacing deprecated model {model_short_name} with {alternative}")
+                    model_name = f"gemini/{alternative}"
+                    # 代替モデルを追加（重複を避けるため）
+                    if model_name not in gemini_models:
+                        gemini_models.append(model_name)
+                else:
+                    # モデル名を整形（gemini/プレフィックスを追加）
+                    model_name = f"gemini/{model_short_name}"
+                    gemini_models.append(model_name)
         
         print(f"Available Gemini models: {gemini_models}")
         return gemini_models
         
     except Exception as e:
         print(f"Error fetching Gemini models: {str(e)}")
-        # エラー時はデフォルトのモデルリストを返す
+        # エラー時は最新のモデルリストを返す（廃止されたモデルを除外）
         return [
-            "gemini/gemini-pro",
-            "gemini/gemini-pro-vision"
+            "gemini/gemini-1.5-pro",
+            "gemini/gemini-1.5-flash"
         ]
 
-def create_gemini_llm(model_name: str = "gemini-pro"):
+def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
     """
     LangChainのGemini Chat modelインスタンス生成
+    廃止されたモデルを自動的に代替モデルに置き換える
     """
     try:
+        # 廃止されたモデルと代替モデルのマッピング
+        deprecated_models = {
+            'gemini-pro-vision': 'gemini-1.5-flash',
+            'gemini-1.0-pro-vision': 'gemini-1.5-flash',
+            'gemini-1.0-pro-vision-latest': 'gemini-1.5-flash-latest'
+        }
+        
         # モデル名からgemini/プレフィックスを削除
         if model_name.startswith("gemini/"):
             model_name = model_name.replace("gemini/", "")
+        
+        # 廃止されたモデルの場合は代替モデルを使用
+        original_model = model_name
+        if model_name in deprecated_models:
+            model_name = deprecated_models[model_name]
+            print(f"Switching from deprecated model {original_model} to {model_name}")
         
         print(f"Initializing Gemini with model: {model_name}")
         
@@ -144,7 +177,22 @@ def create_gemini_llm(model_name: str = "gemini-pro"):
         return llm
         
     except Exception as e:
-        print(f"Error creating Gemini model: {str(e)}")
+        # 特定のエラーメッセージをチェック
+        error_msg = str(e)
+        if "404" in error_msg and "deprecated" in error_msg.lower():
+            # 廃止されたモデルによるエラーの場合、代替モデルで再試行
+            try:
+                print(f"Error with model {model_name}: {error_msg}")
+                fallback_model = "gemini-1.5-flash"
+                print(f"Falling back to {fallback_model} due to deprecated model error")
+                
+                # 再帰的に代替モデルで試行
+                return create_gemini_llm(fallback_model)
+            except Exception as fallback_error:
+                print(f"Fallback also failed: {str(fallback_error)}")
+                raise
+        
+        print(f"Error creating Gemini model: {error_msg}")
         raise
 
 def get_available_openai_models():
@@ -161,7 +209,7 @@ def get_available_openai_models():
             if model.id.startswith(("gpt-4", "gpt-3.5")):
                 chat_models.append(f"openai/{model.id}")
         
-        return sorted(chat_models) + get_available_gemini_models()  # Geminiモデルも追加
+        return sorted(chat_models)  # Geminiモデルは別途追加するため、ここでは追加しない
     except Exception as e:
         print(f"OpenAI models fetch error: {e}")
         return [
@@ -169,7 +217,7 @@ def get_available_openai_models():
             "openai/gpt-4",
             "openai/gpt-4-turbo-preview",
             "openai/gpt-3.5-turbo"
-        ] + get_available_gemini_models()  # Geminiモデルも追加
+        ]  # Geminiモデルは別途追加するため、ここでは追加しない
 
 # ========== モデル取得 (ローカル) ==========
 def get_available_local_models():
@@ -595,7 +643,7 @@ def clear_scenario_history():
 @app.route("/api/scenario_feedback", methods=["POST"])
 def get_scenario_feedback():
     """シナリオの会話履歴に基づくフィードバックを生成"""
-    data = request.json
+    data = request.get_json()
     if data is None:
         return jsonify({"error": "Invalid JSON"}), 400
 
@@ -656,26 +704,85 @@ def get_scenario_feedback():
 """
 
     try:
-        # フィードバック用のモデルを選択（Geminiを優先）
-        try:
-            llm = create_gemini_llm("gemini-pro")  # Geminiモデルを使用
-            print("Using Gemini model for feedback")
-        except Exception as gemini_error:
-            print(f"Gemini model error: {str(gemini_error)}, falling back to OpenAI")
-            llm = create_openai_llm("gpt-3.5-turbo")  # フォールバック
-
-        # フィードバックの生成
-        feedback = llm.invoke(feedback_prompt)
+        # 複数のモデルを試す
+        feedback_content = None
+        used_model = None
+        error_msg = None
         
-        # レスポンスの処理
-        if isinstance(feedback, (str, AIMessage)):
-            feedback_content = feedback.content if isinstance(feedback, AIMessage) else feedback
-        else:
-            raise ValueError("Unexpected feedback format")
+        # 1. まずGeminiを試行
+        try:
+            # 利用可能なGeminiモデルを確認
+            gemini_models = get_available_gemini_models()
+            if gemini_models:
+                # 最初に見つかったGeminiモデルを使用
+                model_name = gemini_models[0].replace("gemini/", "")
+                llm = create_gemini_llm(model_name)
+                print(f"Using Gemini model for feedback: {model_name}")
+                feedback = llm.invoke(feedback_prompt)
+                
+                if isinstance(feedback, (str, AIMessage)):
+                    feedback_content = feedback.content if isinstance(feedback, AIMessage) else feedback
+                    used_model = f"gemini/{model_name}"
+            else:
+                print("No Gemini models available")
+        except Exception as gemini_error:
+            print(f"Gemini model error: {str(gemini_error)}")
+            error_msg = str(gemini_error)
+        
+        # 2. Geminiが失敗したらOpenAIを試行
+        if not feedback_content:
+            try:
+                print("Falling back to OpenAI")
+                llm = create_openai_llm("gpt-3.5-turbo")
+                feedback = llm.invoke(feedback_prompt)
+                
+                if isinstance(feedback, (str, AIMessage)):
+                    feedback_content = feedback.content if isinstance(feedback, AIMessage) else feedback
+                    used_model = "openai/gpt-3.5-turbo" 
+            except Exception as openai_error:
+                print(f"OpenAI model error: {str(openai_error)}")
+                
+                # クォータ制限エラーをチェック
+                if "insufficient_quota" in str(openai_error) or "429" in str(openai_error):
+                    error_msg = f"APIクォータ制限: {str(openai_error)}"
+                else:
+                    error_msg = f"OpenAI Error: {str(openai_error)}"
+        
+        # 3. OpenAIも失敗した場合、ローカルモデルを試行
+        if not feedback_content:
+            try:
+                print("Falling back to local Ollama model")
+                local_models = get_available_local_models()
+                if local_models:
+                    fallback_model = local_models[0]
+                    llm = create_ollama_llm(fallback_model)
+                    feedback = llm.invoke(feedback_prompt)
+                    
+                    if isinstance(feedback, (str, AIMessage)):
+                        feedback_content = feedback.content if isinstance(feedback, AIMessage) else feedback
+                        used_model = fallback_model
+                else:
+                    raise ValueError("No local models available")
+            except Exception as local_error:
+                print(f"Local model error: {str(local_error)}")
+                
+                # すべてのモデルが失敗した場合
+                if not error_msg:
+                    error_msg = f"Local model error: {str(local_error)}"
+                
+                # 最終的にエラーを返す
+                return jsonify({
+                    "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                    "attempted_models": "Gemini, OpenAI, Local"
+                }), 500
+        
+        if not feedback_content:
+            raise ValueError("Feedback generation failed with all models")
 
         return jsonify({
             "feedback": feedback_content,
-            "scenario": scenario_data["title"]
+            "scenario": scenario_data["title"],
+            "model_used": used_model,
         })
 
     except Exception as e:
@@ -1132,7 +1239,7 @@ def get_chat_feedback():
         if "chat_history" not in session:
             return jsonify({"error": "会話履歴が見つかりません"}), 404
 
-        # フバッグ用ログ出力
+        # フィードバック用ログ出力
         print("Chat history:", session["chat_history"])
         print("Formatted history:", format_conversation_history(session["chat_history"]))
 
@@ -1173,26 +1280,88 @@ def get_chat_feedback():
 - 伸ばせそうな強みとその活かし方
 """
 
-        try:
-            # フィードバック用のモデルを選択（Geminiを優先）
-            llm = create_gemini_llm("gemini-pro")
-            print("Using Gemini for feedback generation")
-        except Exception as e:
-            print(f"Gemini error: {str(e)}, falling back to OpenAI")
-            llm = create_openai_llm("gpt-3.5-turbo")
-
-        # フィードバック生成
-        response = llm.invoke(feedback_prompt)
-        feedback_content = extract_content(response)
+        # 複数のモデルを試行する方法で、フィードバックを生成
+        feedback_content = None
+        used_model = None
+        error_msg = None
         
-        # デバッグ用ログ出力
-        print("Generated feedback:", feedback_content)
+        # 1. まずGeminiを試行
+        try:
+            # 利用可能なGeminiモデルを確認
+            gemini_models = get_available_gemini_models()
+            if gemini_models:
+                # 最初に見つかったGeminiモデルを使用
+                model_name = gemini_models[0].replace("gemini/", "")
+                print(f"Attempting to use Gemini model for feedback: {model_name}")
+                llm = create_gemini_llm(model_name)
+                feedback = llm.invoke(feedback_prompt)
+                
+                if isinstance(feedback, (str, AIMessage)):
+                    feedback_content = feedback.content if isinstance(feedback, AIMessage) else feedback
+                    used_model = f"gemini/{model_name}"
+                    print(f"Successfully generated feedback using {used_model}")
+            else:
+                print("No Gemini models available")
+        except Exception as gemini_error:
+            print(f"Gemini model error: {str(gemini_error)}")
+            error_msg = str(gemini_error)
+        
+        # 2. Geminiが失敗したらOpenAIを試行
+        if not feedback_content:
+            try:
+                print("Falling back to OpenAI")
+                llm = create_openai_llm("gpt-3.5-turbo")
+                feedback = llm.invoke(feedback_prompt)
+                
+                if isinstance(feedback, (str, AIMessage)):
+                    feedback_content = feedback.content if isinstance(feedback, AIMessage) else feedback
+                    used_model = "openai/gpt-3.5-turbo"
+                    print(f"Successfully generated feedback using {used_model}")
+            except Exception as openai_error:
+                print(f"OpenAI model error: {str(openai_error)}")
+                
+                # クォータ制限エラーをチェック
+                if "insufficient_quota" in str(openai_error) or "429" in str(openai_error):
+                    error_msg = f"APIクォータ制限: {str(openai_error)}"
+                else:
+                    error_msg = f"OpenAI Error: {str(openai_error)}"
+        
+        # 3. OpenAIも失敗した場合、ローカルモデルを試行
+        if not feedback_content:
+            try:
+                print("Falling back to local Ollama model")
+                local_models = get_available_local_models()
+                if local_models:
+                    fallback_model = local_models[0]
+                    llm = create_ollama_llm(fallback_model)
+                    feedback = llm.invoke(feedback_prompt)
+                    
+                    if isinstance(feedback, (str, AIMessage)):
+                        feedback_content = feedback.content if isinstance(feedback, AIMessage) else feedback
+                        used_model = fallback_model
+                        print(f"Successfully generated feedback using local model {used_model}")
+                else:
+                    raise ValueError("No local models available")
+            except Exception as local_error:
+                print(f"Local model error: {str(local_error)}")
+                
+                # すべてのモデルが失敗した場合
+                if not error_msg:
+                    error_msg = f"Local model error: {str(local_error)}"
+                
+                # 最終的に、すべてのモデルが失敗した場合のエラー返却
+                return jsonify({
+                    "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                    "attempted_models": "Gemini, OpenAI, Local",
+                    "status": "error"
+                }), 500
 
         if not feedback_content:
-            raise ValueError("フィードバックの生成に失敗しました")
+            raise ValueError("Feedback generation failed with all models")
 
         return jsonify({
             "feedback": feedback_content,
+            "model_used": used_model,
             "status": "success"
         })
 
@@ -1200,7 +1369,10 @@ def get_chat_feedback():
         print(f"Error in chat_feedback: {str(e)}")
         import traceback
         traceback.print_exc()  # スタックトレースを出力
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"フィードバックの生成中にエラーが発生しました: {str(e)}",
+            "status": "error"
+        }), 500
 
 def generate_initial_message(llm, partner_type, situation, topic):
     """観戦モードの最初のメッセージを生成"""
@@ -1395,10 +1567,39 @@ def get_assist():
 上記の状況で、適切な返答のヒントを1-2文で簡潔に提案してください。
 """
 
-        # 選択されているモデルでアシスト生成
-        model = create_llm(session.get("selected_model", DEFAULT_MODEL))
-        response = model.invoke(assist_prompt)
-        suggestion = extract_content(response)
+        # 選択されているモデルを取得
+        selected_model = session.get("selected_model", DEFAULT_MODEL)
+        
+        try:
+            # まず選択されたモデルで試行
+            model = create_llm(selected_model)
+            response = model.invoke(assist_prompt)
+            suggestion = extract_content(response)
+            
+        except Exception as primary_error:
+            print(f"Primary model error: {str(primary_error)}")
+            
+            # OpenAIのクォータ制限エラーをチェック
+            if "insufficient_quota" in str(primary_error) or "429" in str(primary_error):
+                try:
+                    # ローカルモデル（Ollama）にフォールバック
+                    print("Falling back to local Ollama model due to quota limits")
+                    local_models = get_available_local_models()
+                    if local_models:
+                        fallback_model = local_models[0]  # 最初のローカルモデルを使用
+                        model = create_ollama_llm(fallback_model)
+                        response = model.invoke(assist_prompt)
+                        suggestion = extract_content(response)
+                        return jsonify({"suggestion": suggestion, "fallback": True, "fallback_model": fallback_model})
+                    else:
+                        return jsonify({"error": "APIクォータ制限に達し、利用可能なローカルモデルもありません。後でもう一度お試しください。"}), 429
+                
+                except Exception as fallback_error:
+                    print(f"Fallback model error: {str(fallback_error)}")
+                    return jsonify({"error": "すべてのモデルでエラーが発生しました。後でもう一度お試しください。"}), 500
+            else:
+                # その他のエラー
+                return jsonify({"error": f"AIアシストの生成中にエラーが発生しました: {str(primary_error)}"}), 500
 
         return jsonify({"suggestion": suggestion})
 

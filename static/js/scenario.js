@@ -139,14 +139,29 @@ document.getElementById('get-feedback-button').addEventListener('click', async (
         });
         const data = await response.json();
         
-        if (data.feedback) {
-            content.innerHTML = marked.parse(data.feedback);
+        if (response.ok && data.feedback) {
+            // Markdown変換
+            let feedbackHtml = marked.parse(data.feedback);
+            
+            // モデル情報を追加（もし存在すれば）
+            if (data.model_used) {
+                feedbackHtml += `<div class="model-info">使用モデル: ${data.model_used}</div>`;
+            }
+            
+            content.innerHTML = feedbackHtml;
             content.classList.add('active');
             document.getElementById('feedback-section').scrollIntoView({ behavior: 'smooth' });
+        } else {
+            // エラーメッセージの表示
+            const errorMsg = data.error || 'フィードバックの取得に失敗しました';
+            content.innerHTML = `<div class="error-message">${errorMsg}</div>`;
+            content.classList.add('active', 'error');
         }
     } catch (error) {
         console.error('フィードバック取得エラー:', error);
-        alert('フィードバックの取得に失敗しました');
+        const content = document.getElementById('feedback-content');
+        content.innerHTML = '<div class="error-message">通信エラーが発生しました</div>';
+        content.classList.add('active', 'error');
     } finally {
         const button = document.getElementById('get-feedback-button');
         button.disabled = false;
@@ -160,6 +175,10 @@ const aiAssistPopup = document.getElementById('ai-assist-popup');
 
 aiAssistButton.addEventListener('click', async () => {
     try {
+        // ボタンを無効化してローディング表示
+        aiAssistButton.disabled = true;
+        aiAssistButton.classList.add('loading');
+        
         const response = await fetch("/api/get_assist", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
@@ -170,16 +189,40 @@ aiAssistButton.addEventListener('click', async () => {
         });
 
         const data = await response.json();
-        if (data.suggestion) {
-            document.getElementById('ai-assist-content').textContent = data.suggestion;
-            aiAssistPopup.classList.add('active');
+        
+        if (response.ok) {
+            if (data.suggestion) {
+                let content = data.suggestion;
+                
+                // フォールバックモデルが使用された場合はその情報を表示
+                if (data.fallback && data.fallback_model) {
+                    content += `\n\n(注: APIクォータ制限のため、${data.fallback_model}モデルを使用しました)`;
+                }
+                
+                document.getElementById('ai-assist-content').textContent = content;
+                aiAssistPopup.classList.add('active');
+                
+                setTimeout(() => {
+                    aiAssistPopup.classList.remove('active');
+                }, 7000); // 少し長めに表示
+            }
+        } else {
+            // エラーメッセージの表示
+            document.getElementById('ai-assist-content').textContent = data.error || "アシスト生成中にエラーが発生しました";
+            aiAssistPopup.classList.add('active', 'error');
             
             setTimeout(() => {
-                aiAssistPopup.classList.remove('active');
+                aiAssistPopup.classList.remove('active', 'error');
             }, 5000);
         }
     } catch (error) {
         console.error("AIアシストエラー:", error);
+        document.getElementById('ai-assist-content').textContent = "通信エラーが発生しました";
+        aiAssistPopup.classList.add('active', 'error');
+    } finally {
+        // ボタンを再度有効化
+        aiAssistButton.disabled = false;
+        aiAssistButton.classList.remove('loading');
     }
 });
 
