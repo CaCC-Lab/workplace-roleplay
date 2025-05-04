@@ -691,7 +691,7 @@ def clear_scenario_history():
 
 @app.route("/api/watch/start", methods=["POST"])
 def start_watch():
-    """LLM観戦モードの開始"""
+    """会話観戦モードの開始"""
     try:
         data = request.get_json()
         if not data:
@@ -716,53 +716,20 @@ def start_watch():
         session.modified = True
 
         try:
-            # generate_initial_messageに必要なパラメータ
-            initial_message_args = {
-                "partner_type": partner_type,
-                "situation": situation,
-                "topic": topic
-            }
+            # 観戦の初期メッセージを生成
+            llm = initialize_llm(model_a)
+            initial_message = generate_initial_message(
+                llm, partner_type, situation, topic
+            )
             
-            # 共通関数を使用して応答を生成
-            try:
-                # まずLLMを初期化
-                llm = initialize_llm(model_a)
-                # 初期メッセージを生成
-                initial_message = generate_initial_message(llm, **initial_message_args)
-            except Exception as e:
-                # エラーハンドリング共通関数を使用
-                error_msg, status_code, fallback_result, fallback_model = handle_llm_error(
-                    e,
-                    # フォールバック関数として、ローカルモデルでの初期メッセージ生成を指定
-                    lambda fallback_model, **kwargs: generate_initial_message(
-                        initialize_llm(fallback_model), **kwargs
-                    ),
-                    # 必要なパラメータを渡す
-                    initial_message_args
-                )
-                
-                if fallback_result:
-                    initial_message = fallback_result
-                    # フォールバックモデルを保存
-                    session["watch_settings"]["model_a"] = fallback_model
-                    session["watch_settings"]["model_b"] = fallback_model
-                    session.modified = True
-                    
-                    # 正常応答でフォールバック通知付き
-                    return jsonify({
-                        "message": f"モデルA(代替): {initial_message}", 
-                        "notice": "OpenAIのクォータ制限により、ローカルモデルを使用しています。"
-                    })
-                else:
-                    return jsonify({"error": error_msg}), status_code
+            # 履歴に保存
+            session["watch_history"] = [{
+                "speaker": "A", 
+                "message": initial_message,
+                "timestamp": datetime.now().isoformat()
+            }]
             
-            # 履歴に保存（共通関数使用）
-            add_to_session_history("watch_history", {
-                "speaker": "A",
-                "message": initial_message
-            })
-
-            return jsonify({"message": f"モデルA: {initial_message}"})
+            return jsonify({"message": f"話者A: {initial_message}"})
 
         except Exception as e:
             print(f"Error in watch initialization: {str(e)}")
@@ -815,7 +782,7 @@ def next_watch_message():
                     
                     # 正常応答でフォールバック通知付き
                     return jsonify({
-                        "message": f"モデル{next_speaker}(代替): {next_message}", 
+                        "message": f"話者{next_speaker}(代替): {next_message}", 
                         "notice": "OpenAIのクォータ制限により、ローカルモデルを使用しています。"
                     })
                 else:
@@ -832,7 +799,7 @@ def next_watch_message():
             settings["current_speaker"] = next_speaker
             session.modified = True
 
-            return jsonify({"message": f"モデル{next_speaker}: {next_message}"})
+            return jsonify({"message": f"話者{next_speaker}: {next_message}"})
 
         except Exception as e:
             print(f"Error generating next message: {str(e)}")
@@ -847,7 +814,7 @@ def generate_next_message(llm, history):
     # 会話履歴をフォーマット
     formatted_history = []
     for entry in history:
-        formatted_history.append(f"モデル{entry['speaker']}: {entry['message']}")
+        formatted_history.append(f"話者{entry['speaker']}: {entry['message']}")
     
     system_prompt = """あなたは職場での自然な会話を行うAIです。
 以下の点に注意して会話を続けてください：

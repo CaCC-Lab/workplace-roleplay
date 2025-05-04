@@ -382,8 +382,41 @@ button {
 }
 
 .info-section li {
-    margin: 10px 0;
-    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.reference-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: var(--border-radius);
+    border-left: 4px solid #6c757d;
+}
+
+.reference-section h2 {
+    color: #495057;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 22px;
+}
+
+.reference-section ul {
+    padding-left: 20px;
+}
+
+.reference-section li {
+    margin-bottom: 10px;
+}
+
+.reference-section a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.reference-section a:hover {
+    text-decoration: underline;
+    color: #3a7bc8;
 }
 
 /* レスポンシブ対応 */

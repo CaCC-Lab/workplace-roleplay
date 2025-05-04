@@ -7,6 +7,12 @@ const loadingDiv = document.getElementById('loading');
 let conversationStarted = false;
 let waitingForNext = false;
 
+// モデルの表示名を設定
+const modelDisplayNames = {
+    "A": "太郎",
+    "B": "花子"
+};
+
 startButton.addEventListener('click', async function() {
     if (!conversationStarted) {
         const selectedModel = localStorage.getItem('selectedModel');
@@ -45,7 +51,9 @@ startButton.addEventListener('click', async function() {
             }
 
             if (data.message) {
-                displayMessage(data.message, "bot-message");
+                // 話者Aを太郎に置き換え
+                const formattedMessage = data.message.replace(/話者A/g, modelDisplayNames["A"]);
+                displayMessage(formattedMessage, "bot-message");
                 nextButton.disabled = false;
                 conversationStarted = true;
                 waitingForNext = true;
@@ -80,7 +88,10 @@ nextButton.addEventListener('click', async function() {
             }
 
             if (data.message) {
-                displayMessage(data.message, "bot-message");
+                // 話者Aと話者Bを太郎と花子に置き換え
+                let formattedMessage = data.message.replace(/話者A/g, modelDisplayNames["A"]);
+                formattedMessage = formattedMessage.replace(/話者B/g, modelDisplayNames["B"]);
+                displayMessage(formattedMessage, "bot-message");
                 nextButton.disabled = false;
                 waitingForNext = true;
             }
