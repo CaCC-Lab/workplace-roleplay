@@ -9,17 +9,20 @@
 <body>
     <div id="chat-container">
         <h1>学習履歴</h1>
+        
+        <!-- シナリオ履歴セクション -->
         <div class="content-section">
-            {% if entries %}
-                {% for entry in entries %}
+            <h2>シナリオ練習履歴</h2>
+            {% if scenario_history %}
+                {% for scenario_id, entry in scenario_history.items() %}
                     <div class="journal-card">
-                        <h2>{{ entry.scenario_title }}</h2>
+                        <h3>{{ entry.title }}</h3>
                         <div class="practice-summary">
-                            <p>最終練習日時: {{ entry.last_practice|datetime }}</p>
-                            <p>練習回数: {{ entry.conversations|length }}</p>
+                            <p>最終練習日時: {{ entry.last_session }}</p>
+                            <p>練習回数: {{ entry.sessions_count }}</p>
                         </div>
                         <div class="journal-actions">
-                            <a href="{{ url_for('show_scenario', scenario_id=entry.scenario_id) }}" 
+                            <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" 
                                class="primary-button">
                                 再度練習する
                             </a>
@@ -28,10 +31,34 @@
                 {% endfor %}
             {% else %}
                 <div class="empty-state">
-                    <p>まだ練習履歴がありません。</p>
+                    <p>まだシナリオ練習履歴がありません。</p>
                     <p>シナリオを選んで練習を始めましょう！</p>
                     <a href="{{ url_for('list_scenarios') }}" class="primary-button">
                         シナリオ一覧へ
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- 雑談履歴セクション -->
+        <div class="content-section">
+            <h2>雑談練習履歴</h2>
+            {% if chat_history %}
+                <div class="chat-history-summary">
+                    <p>雑談練習回数: {{ chat_history|length // 2 }}</p>
+                    <p>最終練習日時: {{ chat_history[-1].timestamp if chat_history else '履歴なし' }}</p>
+                </div>
+                <div class="journal-actions">
+                    <a href="{{ url_for('chat') }}" class="primary-button">
+                        雑談練習する
+                    </a>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>まだ雑談練習履歴がありません。</p>
+                    <p>雑談練習を始めましょう！</p>
+                    <a href="{{ url_for('chat') }}" class="primary-button">
+                        雑談練習へ
                     </a>
                 </div>
             {% endif %}
