@@ -433,7 +433,7 @@ def clear_session_history(session_key, sub_key=None):
 # チャットエンドポイントを更新して共通関数を使用
 
 @app.route("/api/chat", methods=["POST"])
-def handle_chat():
+def handle_chat() -> Any:
     """
     チャットメッセージの処理
     """
@@ -740,7 +740,7 @@ def start_watch():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/watch/next", methods=["POST"])
-def next_watch_message():
+def next_watch_message() -> Any:
     """次の発言を生成"""
     try:
         if "watch_settings" not in session:
@@ -841,7 +841,7 @@ def generate_next_message(llm, history):
     return extract_content(response)
 
 @app.route("/api/get_assist", methods=["POST"])
-def get_assist():
+def get_assist() -> Any:
     """AIアシストの提案を取得するエンドポイント"""
     try:
         data = request.get_json()
@@ -1128,7 +1128,9 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
             # 最初に見つかったGeminiモデルを使用
             model_name = gemini_models[0]
             print(f"Attempting to use Gemini model: {model_name}")
-            content = create_model_and_get_response(model_name, prompt)
+            content_result = create_model_and_get_response(model_name, prompt)
+            # 確実に文字列になるように変換
+            content = str(content_result) if content_result is not None else ""
             used_model = model_name
             print(f"Successfully generated content using {used_model}")
             return content, used_model, None
@@ -1142,7 +1144,9 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
     try:
         print("Falling back to OpenAI")
         model_name = "openai/gpt-3.5-turbo"
-        content = create_model_and_get_response(model_name, prompt)
+        content_result = create_model_and_get_response(model_name, prompt)
+        # 確実に文字列になるように変換
+        content = str(content_result) if content_result is not None else ""
         used_model = model_name
         print(f"Successfully generated content using {used_model}")
         return content, used_model, None
@@ -1163,7 +1167,9 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
         local_models = get_available_local_models()
         if local_models:
             model_name = local_models[0]  # ローカルモデル名の変数名を修正
-            content = fallback_with_local_model(prompt, model_name)
+            content_result = fallback_with_local_model(prompt, model_name)
+            # 確実に文字列になるように変換
+            content = str(content_result) if content_result is not None else ""
             used_model = model_name
             print(f"Successfully generated content using local model {used_model}")
             return content, used_model, None
@@ -1177,7 +1183,7 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
             error_msg = f"Local model error: {str(local_error)}"
     
     # すべてのモデルが失敗した場合
-    return None, None, error_msg or "Unknown error occurred with all models"
+    return "", "", error_msg or "Unknown error occurred with all models"
 
 # ========== 会話履歴処理のヘルパー関数 ==========
 def add_messages_from_history(messages: List[BaseMessage], history, max_entries=5):
@@ -1451,7 +1457,7 @@ def view_journal():
 
 # 雑談練習開始用のエンドポイントを追加
 @app.route("/api/start_chat", methods=["POST"])
-def start_chat():
+def start_chat() -> Any:
     """
     雑談練習を開始するAPI
     """
