@@ -2,20 +2,26 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>シナリオ: {{ scenario_title }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/scenario.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div id="chat-container">
-        <h1>{{ scenario_title }}</h1>
+        <h1><i class="fas fa-theater-masks"></i> {{ scenario_title }}</h1>
         
-        <div class="scenario-info">
-            <h2>シナリオ概要</h2>
+        <div class="scenario-info content-section">
+            <h2><i class="fas fa-info-circle"></i> シナリオ概要</h2>
             <p>{{ scenario_desc }}</p>
             <div class="learning-points">
-                <h3>学習ポイント</h3>
+                <h3><i class="fas fa-graduation-cap"></i> 学習ポイント</h3>
                 <ul>
                     {% for point in scenario.learning_points %}
                         <li>{{ point }}</li>
@@ -26,33 +32,33 @@
 
         <div id="chat-messages"></div>
         <div id="input-container">
-            <button id="ai-assist-button">
-                <span class="icon">💡</span>
+            <button id="ai-assist-button" class="accent-button">
+                <i class="fas fa-lightbulb"></i>
                 AIアシスト
             </button>
             <input type="text" id="message-input" placeholder="メッセージを入力...">
-            <button id="send-button">送信</button>
-            <button id="clear-button">シナリオをリセット</button>
+            <button id="send-button" class="send-button"><i class="fas fa-paper-plane"></i></button>
+            <button id="clear-button" class="secondary-button"><i class="fas fa-sync-alt"></i> リセット</button>
         </div>
 
         <div class="ai-assist-popup" id="ai-assist-popup">
-            <h3>返答のヒント</h3>
+            <h3><i class="fas fa-lightbulb"></i> 返答のヒント</h3>
             <p id="ai-assist-content"></p>
         </div>
 
-        <div id="feedback-section">
-            <h2>フィードバック</h2>
+        <div id="feedback-section" class="content-section">
+            <h2><i class="fas fa-chart-line"></i> フィードバック</h2>
             <p class="feedback-hint">ロールプレイが終わったら、以下のボタンでフィードバックを取得できます。</p>
             <button id="get-feedback-button" class="primary-button">
-                <span class="icon">📝</span> フィードバックを取得
+                <i class="fas fa-clipboard-check"></i> フィードバックを取得
             </button>
             <div id="feedback-content"></div>
         </div>
     </div>
 
     <div class="navigation">
-        <a href="{{ url_for('list_scenarios') }}" class="nav-button">シナリオ一覧に戻る</a>
-        <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+        <a href="{{ url_for('list_scenarios') }}" class="nav-button"><i class="fas fa-list"></i> シナリオ一覧に戻る</a>
+        <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> トップページに戻る</a>
     </div>
 
     <script src="{{ url_for('static', filename='js/scenario.js') }}" data-scenario-id="{{ scenario_id }}"></script>

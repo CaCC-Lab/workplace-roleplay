@@ -2,34 +2,44 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>学習履歴 - 職場のあなた再現シート</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学習履歴 - 職場コミュニケーション練習アプリ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/journal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="chat-container">
-        <h1>学習履歴</h1>
+        <h1><i class="fas fa-book-open"></i> 学習履歴</h1>
         
         <!-- シナリオ履歴セクション -->
         <div class="content-section">
             <h2>シナリオ練習履歴</h2>
             {% if scenario_history %}
                 {% for scenario_id, entry in scenario_history.items() %}
-                    <div class="journal-card">
-                        <h3>{{ entry.title }}</h3>
-                        <div class="practice-summary">
-                            <p>最終練習日時: {{ entry.last_session }}</p>
-                            <p>練習回数: {{ entry.sessions_count }}</p>
-                        </div>
-                        <div class="journal-actions">
-                            <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" 
-                               class="primary-button">
-                                再度練習する
-                            </a>
-                        </div>
+                    <div class="journal-entry-header">
+                        <h3><i class="fas fa-file-alt"></i> {{ entry.title }}</h3>
+                        <span class="journal-date"><i class="fas fa-calendar-alt"></i> {{ entry.date }}</span>
+                    </div>
+                    <div class="practice-summary">
+                        <p>最終練習日時: {{ entry.last_session }}</p>
+                        <p>練習回数: {{ entry.sessions_count }}</p>
+                    </div>
+                    <div class="journal-actions">
+                        <button class="view-conversation-button primary-button" data-id="{{ loop.index0 }}" data-type="{{ tab }}"><i class="fas fa-eye"></i> 会話を見る</button>
+                        <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="primary-button">
+                            再度練習する
+                        </a>
                     </div>
                 {% endfor %}
             {% else %}
+                <div class="journal-intro content-section">
+                    <p><i class="fas fa-info-circle"></i> あなたの学習記録です。ここでは、これまでに練習したシナリオや雑談練習の記録を確認できます。</p>
+                </div>
                 <div class="empty-state">
                     <p>まだシナリオ練習履歴がありません。</p>
                     <p>シナリオを選んで練習を始めましょう！</p>
@@ -66,17 +76,16 @@
     </div>
 
     <div class="navigation">
-        <a href="{{ url_for('list_scenarios') }}" class="nav-button">シナリオ一覧に戻る</a>
-        <a href="{{ url_for('index') }}" class="nav-button">トップページに戻る</a>
+        <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> トップページに戻る</a>
     </div>
 
     <div class="progress-section">
         <h2>学習の進捗状況</h2>
+        <div class="journal-tabs">
+            <button class="tab-button active" data-tab="scenarios"><i class="fas fa-theater-masks"></i> シナリオ練習</button>
+            <button class="tab-button" data-tab="chats"><i class="fas fa-comment-dots"></i> 雑談練習</button>
+        </div>
         <div class="progress-stats">
-            <div class="stat-card">
-                <h3>完了したシナリオ</h3>
-                <div class="stat-value">{{ completed_scenarios }}/10</div>
-            </div>
             <div class="stat-card">
                 <h3>総練習時間</h3>
                 <div class="stat-value">{{ total_practice_time }}</div>

@@ -2,14 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>雑談練習 - 職場コミュニケーション練習アプリ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div id="chat-container">
         <header class="chat-header">
-            <h1>💬 雑談練習モード</h1>
+            <h1><i class="fas fa-comment-dots"></i> 雑談練習モード</h1>
             <p class="mode-description">
                 ビジネスシーンでの自然な雑談を練習できます。
                 相手や状況に応じた適切なコミュニケーションを学びましょう。
@@ -18,11 +24,11 @@
 
         <!-- 設定セクション -->
         <div class="settings-section">
-            <h2>🎯 練習設定</h2>
+            <h2><i class="fas fa-sliders-h"></i> 練習設定</h2>
             <div class="settings-grid">
                 <div class="setting-group">
-                    <h3>👥 相手設定</h3>
-                    <select id="partner-type">
+                    <h3><i class="fas fa-user-friends"></i> 相手設定</h3>
+                    <select id="partner-type" class="enhanced-select">
                         <option value="colleague">同僚（同年代）</option>
                         <option value="senior">先輩社員</option>
                         <option value="junior">後輩社員</option>
@@ -32,8 +38,8 @@
                 </div>
                 
                 <div class="setting-group">
-                    <h3>🌟 シチュエーション</h3>
-                    <select id="situation">
+                    <h3><i class="fas fa-map-marker-alt"></i> シチュエーション</h3>
+                    <select id="situation" class="enhanced-select">
                         <option value="lunch">ランチ休憩中</option>
                         <option value="break">休憩時間</option>
                         <option value="morning">始業前</option>
@@ -43,10 +49,10 @@
                 </div>
                 
                 <div class="setting-group">
-                    <h3>💭 話題</h3>
-                    <select id="topic">
+                    <h3><i class="fas fa-comment"></i> 話題</h3>
+                    <select id="topic" class="enhanced-select">
                         <option value="general">一般的な話題（天気、週末の予定など）</option>
-                        <option value="hobby">趣味・娯楽</option>
+                        <option value="hobby">趣味・娜楽</option>
                         <option value="news">ニュース・時事問題</option>
                         <option value="food">食事・グルメ</option>
                         <option value="work">仕事（一般的な内容）</option>
@@ -56,17 +62,17 @@
 
             <div class="action-buttons">
                 <button id="start-practice" class="primary-button">
-                    <span class="icon">▶️</span>練習を始める
+                    <i class="fas fa-play"></i> 練習を始める
                 </button>
                 <button id="clear-history" class="secondary-button">
-                    <span class="icon">🔄</span>履歴をクリア
+                    <i class="fas fa-sync-alt"></i> 履歴をクリア
                 </button>
             </div>
         </div>
 
         <!-- ローディング表示 -->
         <div id="loading" class="loading">
-            <span class="loading-icon">⌛</span>
+            <i class="fas fa-spinner fa-spin loading-icon"></i>
             <span class="loading-text">設定を反映中...</span>
         </div>
         
@@ -76,10 +82,10 @@
             <div class="input-area">
                 <input type="text" id="message-input" placeholder="メッセージを入力..." disabled>
                 <button id="send-button" class="send-button" disabled>
-                    <span class="icon">📤</span>送信
+                    <i class="fas fa-paper-plane"></i>
                 </button>
                 <button id="get-feedback" class="feedback-button" disabled>
-                    <span class="icon">📝</span>フィードバックを得る
+                    <i class="fas fa-clipboard-check"></i> フィードバックを得る
                 </button>
             </div>
         </div>
@@ -87,7 +93,7 @@
         <!-- フィードバック表示エリア -->
         <div id="feedback-area" class="content-section" style="display: none;">
             <div class="feedback-info">
-                <h2><span class="icon">🎯</span>フィードバック</h2>
+                <h2><i class="fas fa-chart-line"></i> フィードバック</h2>
                 <p class="feedback-hint">会話の内容に基づいて、あなたの雑談スキルを分析します。</p>
                 <div id="feedback-content" class="feedback-detail"></div>
             </div>
@@ -96,10 +102,10 @@
 
     <div class="navigation">
         <a href="{{ url_for('index') }}" class="nav-button">
-            <span class="icon">🏠</span>トップページに戻る
+            <i class="fas fa-home"></i> トップページに戻る
         </a>
     </div>
 
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
-</html> 
+</html>

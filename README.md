@@ -42,8 +42,8 @@
 
 1. リポジトリのクローン
 ```bash
-git clone [repository-url]
-cd roleplay-chatbot-webapp
+git clone https://github.com/CaCC-Lab/roleplay-chatbot-wepapp.git
+cd roleplay-chatbot-wepapp
 ```
 
 2. 仮想環境の作成と有効化
@@ -120,7 +120,7 @@ pip install -r requirements-dev.txt
 1. [Ollama](https://ollama.ai/)をインストール
 2. 以下のコマンドで必要なモデルをダウンロード:
 ```bash
-ollama pull llama2
+ollama pull gemma3
 ```
 3. Ollamaサーバーを起動:
 ```bash
@@ -149,7 +149,7 @@ python roleplay-chatbot-wepapp-main.py
 
 ## 👥 作者
 
-[Your Name]
+CaCCラボ
 
 ## 📝 注意事項
 

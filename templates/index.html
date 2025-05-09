@@ -5,14 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>職場コミュニケーション練習アプリ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div id="chat-container">
-        <h1>職場コミュニケーション練習アプリ</h1>
+        <h1><i class="fas fa-comments"></i> 職場コミュニケーション練習アプリ</h1>
         
-        <div class="model-selection">
-            <h2>🤖 AIモデルを選択</h2>
-            <p>会話に使用するAIモデルを選択してください。OpenAIのモデルは高精度ですが、ローカルモデル（Ollama）はプライバシーを重視する場合に適しています。</p>
+        <div class="model-selection content-section">
+            <h2><i class="fas fa-robot"></i> AIモデルを選択</h2>
+            <p>会話に使用するAIモデルを選択してください。</p>
             <div class="model-select-container">
                 <!-- プロバイダー選択 -->
                 <div class="provider-select">
@@ -45,26 +50,29 @@
 
             <div class="features-grid">
                 <div class="feature-card">
-                    <h3>🎭 シナリオロールプレイ</h3>
+                    <div class="feature-icon"><i class="fas fa-theater-masks"></i></div>
+                    <h3>シナリオロールプレイ</h3>
                     <p>実際の職場で起こりうる場面を再現し、AIと対話形式で練習できます。</p>
-                    <a href="{{ url_for('list_scenarios') }}" class="primary-button">シナリオを選ぶ</a>
+                    <a href="{{ url_for('list_scenarios') }}" class="primary-button"><i class="fas fa-play"></i> シナリオを選ぶ</a>
                 </div>
 
                 <div class="feature-card">
-                    <h3>💭 雑談練習</h3>
+                    <div class="feature-icon"><i class="fas fa-comment-dots"></i></div>
+                    <h3>雑談練習</h3>
                     <p>ビジネスシーンでの雑談力を向上させるための練習ができます。</p>
-                    <a href="{{ url_for('chat') }}" class="primary-button">雑談練習を始める</a>
+                    <a href="{{ url_for('chat') }}" class="primary-button"><i class="fas fa-comments"></i> 雑談練習を始める</a>
                 </div>
 
                 <div class="feature-card">
-                    <h3>👥 会話観戦モード</h3>
+                    <div class="feature-icon"><i class="fas fa-users"></i></div>
+                    <h3>会話観戦モード</h3>
                     <p>2つのAIモデルが会話する様子をリアルタイムで観戦できます。</p>
-                    <a href="{{ url_for('watch_mode') }}" class="primary-button">観戦する</a>
+                    <a href="{{ url_for('watch_mode') }}" class="primary-button"><i class="fas fa-eye"></i> 観戦する</a>
                 </div>
             </div>
 
-            <div class="info-section">
-                <h2>💡 使い方</h2>
+            <div class="info-section content-section">
+                <h2><i class="fas fa-lightbulb"></i> 使い方</h2>
                 <ol>
                     <li>「シナリオを選ぶ」から練習したい場面を選択</li>
                     <li>AIとロールプレイを実施</li>
@@ -73,8 +81,8 @@
                 </ol>
             </div>
 
-            <div class="reference-section">
-                <h2>📚 参考資料</h2>
+            <div class="reference-section content-section">
+                <h2><i class="fas fa-book"></i> 参考資料</h2>
                 <p>このアプリは厚生労働省が公開している職業能力開発に関する資料を参考に開発されています。</p>
                 <ul>
                     <li><a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/jinzaikaihatsu/career_consulting_gihou.html" target="_blank">キャリアコンサルティング技法等に関する調査・研究</a> - 厚生労働省による職業相談や職業指導に利用できるキャリアコンサルティング技法の調査研究資料です。コミュニケーション技法に関する詳細な情報が含まれています。</li>

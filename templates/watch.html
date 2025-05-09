@@ -2,13 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会話観戦モード - 職場コミュニケーション練習アプリ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div id="chat-container">
         <header class="chat-header">
-            <h1>👀 会話観戦モード</h1>
+            <h1><i class="fas fa-eye"></i> 会話観戦モード</h1>
             <p class="mode-description">
                 太郎さんと花子さんの会話を観察できます。
                 ビジネスシーンでの自然な会話の進め方を学びましょう。
@@ -17,11 +24,11 @@
 
         <!-- 設定セクション -->
         <div class="settings-section">
-            <h2>🎯 観戦設定</h2>
+            <h2><i class="fas fa-sliders-h"></i> 観戦設定</h2>
             <div class="settings-grid">
                 <div class="setting-group">
-                    <h3>👥 相手設定</h3>
-                    <select id="partner-type">
+                    <h3><i class="fas fa-user-friends"></i> 相手設定</h3>
+                    <select id="partner-type" class="enhanced-select">
                         <option value="colleague">同僚（同年代）</option>
                         <option value="senior">先輩社員</option>
                         <option value="junior">後輩社員</option>
@@ -31,8 +38,8 @@
                 </div>
                 
                 <div class="setting-group">
-                    <h3>🌟 シチュエーション</h3>
-                    <select id="situation">
+                    <h3><i class="fas fa-map-marker-alt"></i> シチュエーション</h3>
+                    <select id="situation" class="enhanced-select">
                         <option value="lunch">ランチ休憩中</option>
                         <option value="break">休憩時間</option>
                         <option value="morning">始業前</option>
@@ -42,8 +49,8 @@
                 </div>
                 
                 <div class="setting-group">
-                    <h3>💭 話題</h3>
-                    <select id="topic">
+                    <h3><i class="fas fa-comment"></i> 話題</h3>
+                    <select id="topic" class="enhanced-select">
                         <option value="general">一般的な話題（天気、週末の予定など）</option>
                         <option value="hobby">趣味・娯楽</option>
                         <option value="news">ニュース・時事問題</option>
@@ -55,21 +62,21 @@
 
             <div class="action-buttons">
                 <button id="start-watch" class="primary-button">
-                    <span class="icon">▶️</span>観戦を始める
+                    <i class="fas fa-play"></i> 観戦を始める
                 </button>
                 <button id="next-message" class="secondary-button" disabled>
-                    <span class="icon">⏭️</span>次の発言を見る
+                    <i class="fas fa-forward"></i> 次の発言を見る
                 </button>
                 <button id="clear-history" class="secondary-button">
-                    <span class="icon">🔄</span>履歴をクリア
+                    <i class="fas fa-trash-alt"></i> 履歴をクリア
                 </button>
             </div>
         </div>
 
         <!-- ローディング表示 -->
-        <div id="loading" class="loading" style="display: none;">
-            <span class="loading-icon">⌛</span>
-            <span class="loading-text">AIが考え中...</span>
+        <div id="loading" class="loading">
+            <i class="fas fa-spinner fa-spin loading-icon"></i>
+            <span class="loading-text">設定を反映中...</span>
         </div>
 
         <!-- チャットエリア -->
@@ -80,10 +87,10 @@
 
     <div class="navigation">
         <a href="{{ url_for('index') }}" class="nav-button">
-            <span class="icon">🏠</span>トップページに戻る
+            <i class="fas fa-home"></i> トップページに戻る
         </a>
     </div>
 
     <script src="{{ url_for('static', filename='js/watch.js') }}"></script>
 </body>
-</html> 
+</html>
