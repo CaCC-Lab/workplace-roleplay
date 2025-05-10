@@ -500,8 +500,8 @@ input:focus, select:focus, textarea:focus {
 .scenarios-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-  padding: 0;
+  gap: 3.5rem; /* カード間の間隔をさらに増やす */
+  padding: 1.5rem 0; /* 上下の余白も増やす */
 }
 
 .scenario-card {
@@ -514,6 +514,8 @@ input:focus, select:focus, textarea:focus {
   flex-direction: column;
   height: 100%;
   border: 1px solid var(--border-color);
+  margin-bottom: 1.5rem; /* カードの下部の余白を増やす */
+  margin-top: 0.5rem; /* カードの上部にも余白を追加 */
 }
 
 .scenario-card:hover {
@@ -530,6 +532,7 @@ input:focus, select:focus, textarea:focus {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
+  min-height: 80px; /* 固定の最小高さを設定 */
 }
 
 .scenario-card-header h3 {
@@ -540,6 +543,12 @@ input:focus, select:focus, textarea:focus {
   align-items: center;
   gap: 0.5rem;
   flex: 1;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 最大2行まで表示 */
+  line-clamp: 2; /* 標準プロパティ */
+  -webkit-box-orient: vertical;
 }
 
 .scenario-content {

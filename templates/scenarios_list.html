@@ -66,11 +66,11 @@
                                 {{ scenario_info.title }}
                             </h3>
                             <span class="difficulty-badge difficulty-{{ scenario_info.difficulty }}">
-                                {% if scenario_info.difficulty == 'easy' %}
+                                {% if scenario_info.difficulty == '初級' %}
                                     <i class="fas fa-star"></i> 初級
-                                {% elif scenario_info.difficulty == 'medium' %}
+                                {% elif scenario_info.difficulty == '中級' %}
                                     <i class="fas fa-star"></i><i class="fas fa-star"></i> 中級
-                                {% elif scenario_info.difficulty == 'hard' %}
+                                {% elif scenario_info.difficulty == '上級' %}
                                     <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i> 上級
                                 {% endif %}
                             </span>

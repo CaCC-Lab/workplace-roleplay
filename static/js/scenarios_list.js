@@ -50,21 +50,34 @@ function initializeFilters() {
     const scenariosList = document.querySelector('.scenarios-list');
     const scenarioCards = Array.from(document.querySelectorAll('.scenario-card'));
 
-    const difficultyOrder = {
-        '初級': 1,
-        '中級': 2,
-        '上級': 3
-    };
-
     function sortScenarios(order = 'asc') {
         const sortedCards = scenarioCards.sort((a, b) => {
-            const difficultyA = a.querySelector('.difficulty-badge').textContent.replace('難易度: ', '');
-            const difficultyB = b.querySelector('.difficulty-badge').textContent.replace('難易度: ', '');
+            const difficultyA = a.querySelector('.difficulty-badge').textContent.trim();
+            const difficultyB = b.querySelector('.difficulty-badge').textContent.trim();
+            
+            let valueA = 1;
+            let valueB = 1;
+            
+            if (difficultyA.includes('初級')) {
+                valueA = 1;
+            } else if (difficultyA.includes('中級')) {
+                valueA = 2;
+            } else if (difficultyA.includes('上級')) {
+                valueA = 3;
+            }
+            
+            if (difficultyB.includes('初級')) {
+                valueB = 1;
+            } else if (difficultyB.includes('中級')) {
+                valueB = 2;
+            } else if (difficultyB.includes('上級')) {
+                valueB = 3;
+            }
             
             if (order === 'asc') {
-                return difficultyOrder[difficultyA] - difficultyOrder[difficultyB];
+                return valueA - valueB;
             } else {
-                return difficultyOrder[difficultyB] - difficultyOrder[difficultyA];
+                return valueB - valueA;
             }
         });
 
@@ -79,11 +92,11 @@ function initializeFilters() {
         const selectedTag = tagFilter.value;
 
         scenarioCards.forEach(card => {
-            const cardDifficulty = card.querySelector('.difficulty-badge').textContent.replace('難易度: ', '');
-            const cardTags = Array.from(card.querySelectorAll('.tag')).map(tag => tag.textContent);
+            const cardDifficulty = card.querySelector('.difficulty-badge').textContent.replace('難易度: ', '').trim();
+            const cardTags = Array.from(card.querySelectorAll('.tag')).map(tag => tag.textContent.trim());
             
-            const difficultyMatch = !selectedDifficulty || cardDifficulty === selectedDifficulty;
-            const tagMatch = !selectedTag || cardTags.includes(selectedTag);
+            const difficultyMatch = !selectedDifficulty || cardDifficulty.includes(selectedDifficulty);
+            const tagMatch = !selectedTag || cardTags.some(tag => tag === selectedTag);
 
             card.style.display = difficultyMatch && tagMatch ? 'block' : 'none';
         });
