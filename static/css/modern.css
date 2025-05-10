@@ -1,11 +1,11 @@
 /* モダンなUIスタイルシート - 2025 */
 
 :root {
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
+  --primary-color: #3b3b6b;
+  --primary-hover: #2f2f57;
   --secondary-color: #f9fafb;
-  --accent-color: #10b981;
-  --accent-hover: #059669;
+  --accent-color: #D24848;
+  --accent-hover: #b93c3c;
   --text-color: #1f2937;
   --text-light: #6b7280;
   --border-color: #e5e7eb;
@@ -13,8 +13,8 @@
   --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --transition: all 0.3s ease;
   --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  --gradient-accent: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+  --gradient-primary: linear-gradient(135deg, #3b3b6b 0%, #2f2f57 100%);
+  --gradient-accent: linear-gradient(135deg, #D24848 0%, #b93c3c 100%);
 }
 
 /* ベーススタイル */
@@ -22,7 +22,7 @@ body {
   font-family: var(--font-sans);
   line-height: 1.6;
   color: var(--text-color);
-  background-color: #f3f4f6;
+  background-color: #ccaf60;
   margin: 0;
   padding: 0;
 }
@@ -47,7 +47,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-  background: var(--gradient-primary);
+  background: #3b3b6b;
   color: white;
   padding: 1.5rem;
   margin: 0;
@@ -98,15 +98,15 @@ button, .button, .primary-button, .secondary-button, .accent-button, .nav-button
 }
 
 .primary-button {
-  background: var(--gradient-primary);
+  background: #D24848;
   color: white;
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 4px rgba(210, 72, 72, 0.3);
 }
 
 .primary-button:hover {
-  background: var(--primary-hover);
+  background: #b93c3c;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 8px rgba(210, 72, 72, 0.4);
 }
 
 .secondary-button {
@@ -186,7 +186,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .user-message {
-  background: var(--gradient-primary);
+  background: #3b3b6b;
   color: white;
   margin-left: auto;
   border-bottom-right-radius: 4px;
@@ -525,7 +525,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .scenario-card-header {
-  background: var(--gradient-primary);
+  background: #D24848;
   color: white;
   padding: 1.25rem;
   display: flex;
@@ -785,7 +785,7 @@ input:focus, select:focus, textarea:focus {
     justify-content: center;
     min-width: 2.5rem;
     height: 2.5rem;
-    background-color: #4a6cf7;
+    background-color: #3b3b6b;
     color: white;
     border-radius: 50%;
     font-weight: 600;
