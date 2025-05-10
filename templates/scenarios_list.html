@@ -19,76 +19,82 @@
             <p><i class="fas fa-info-circle"></i> 以下のシナリオから練習したい場面を選択してください。各シナリオは実際の職場で起こりうる場面を想定しています。</p>
         </div>
         
-        <h2>シナリオを絞り込む</h2>
-        <div class="filter-options">
-            <div class="filter-group">
-                <label for="difficulty-filter">難易度</label>
-                <select id="difficulty-filter">
-                    <option value="">すべて</option>
-                    <option value="初級">初級</option>
-                    <option value="中級">中級</option>
-                    <option value="上級">上級</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="tag-filter">カテゴリー</label>
-                <select id="tag-filter">
-                    <option value="">すべて</option>
-                    <option value="コミュニケーション基礎">コミュニケーション基礎</option>
-                    <option value="報告・連絡・相談">報告・連絡・相談</option>
-                    <option value="断り方・交渉術">断り方・交渉術</option>
-                </select>
+        <div class="filter-container content-section">
+            <h2><i class="fas fa-filter"></i> シナリオを絞り込む</h2>
+            <div class="filter-options">
+                <div class="filter-group">
+                    <label for="difficulty-filter">難易度</label>
+                    <select id="difficulty-filter" class="styled-select">
+                        <option value="">すべて</option>
+                        <option value="初級">初級</option>
+                        <option value="中級">中級</option>
+                        <option value="上級">上級</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="tag-filter">カテゴリー</label>
+                    <select id="tag-filter" class="styled-select">
+                        <option value="">すべて</option>
+                        <option value="コミュニケーション基礎">コミュニケーション基礎</option>
+                        <option value="報告・連絡・相談">報告・連絡・相談</option>
+                        <option value="断り方・交渉術">断り方・交渉術</option>
+                    </select>
+                </div>
             </div>
         </div>
 
-        <div class="scenarios-list">
-            <h2>シナリオを選んでロールプレイを始めましょう</h2>
-            {% for scenario_id, scenario_info in scenarios.items() %}
-                <div class="scenario-card">
-                    <div class="scenario-card-header">
-                        <h3>
-                            {% if scenario_info.category == 'communication' %}
-                                <i class="fas fa-comments"></i>
-                            {% elif scenario_info.category == 'conflict' %}
-                                <i class="fas fa-exclamation-triangle"></i>
-                            {% elif scenario_info.category == 'negotiation' %}
-                                <i class="fas fa-handshake"></i>
-                            {% elif scenario_info.category == 'leadership' %}
-                                <i class="fas fa-users"></i>
-                            {% elif scenario_info.category == 'feedback' %}
-                                <i class="fas fa-comment-dots"></i>
-                            {% else %}
-                                <i class="fas fa-briefcase"></i>
-                            {% endif %}
-                            {{ scenario_info.title }}
-                        </h3>
-                        <span class="difficulty-badge difficulty-{{ scenario_info.difficulty }}">
-                            {% if scenario_info.difficulty == 'easy' %}
-                                <i class="fas fa-star"></i> 初級
-                            {% elif scenario_info.difficulty == 'medium' %}
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i> 中級
-                            {% elif scenario_info.difficulty == 'hard' %}
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i> 上級
-                            {% endif %}
-                        </span>
+        <div class="content-section">
+            <h2 class="section-title"><i class="fas fa-play-circle"></i> シナリオを選んでロールプレイを始めましょう</h2>
+            <div class="scenarios-list">
+                {% for scenario_id, scenario_info in scenarios.items() %}
+                    <div class="scenario-card">
+                        <div class="scenario-card-header">
+                            <h3>
+                                {% if scenario_info.category == 'communication' %}
+                                    <i class="fas fa-comments"></i>
+                                {% elif scenario_info.category == 'conflict' %}
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                {% elif scenario_info.category == 'negotiation' %}
+                                    <i class="fas fa-handshake"></i>
+                                {% elif scenario_info.category == 'leadership' %}
+                                    <i class="fas fa-users"></i>
+                                {% elif scenario_info.category == 'feedback' %}
+                                    <i class="fas fa-comment-dots"></i>
+                                {% else %}
+                                    <i class="fas fa-briefcase"></i>
+                                {% endif %}
+                                {{ scenario_info.title }}
+                            </h3>
+                            <span class="difficulty-badge difficulty-{{ scenario_info.difficulty }}">
+                                {% if scenario_info.difficulty == 'easy' %}
+                                    <i class="fas fa-star"></i> 初級
+                                {% elif scenario_info.difficulty == 'medium' %}
+                                    <i class="fas fa-star"></i><i class="fas fa-star"></i> 中級
+                                {% elif scenario_info.difficulty == 'hard' %}
+                                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i> 上級
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="scenario-content">
+                            <p class="scenario-description">{{ scenario_info.description }}</p>
+                            <div class="scenario-tags">
+                                {% for tag in scenario_info.tags %}
+                                    <span class="tag">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="scenario-card-footer">
+                            <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="primary-button"><i class="fas fa-play"></i> 開始</a>
+                        </div>
                     </div>
-                    <p class="scenario-description">{{ scenario_info.description }}</p>
-                    <div class="scenario-tags">
-                        {% for tag in scenario_info.tags %}
-                            <span class="tag">{{ tag }}</span>
-                        {% endfor %}
-                    </div>
-                    <div class="scenario-card-footer">
-                        <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="primary-button"><i class="fas fa-play"></i> 開始</a>
-                    </div>
-                </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
         </div>
     </div>
 
     <div class="navigation">
         <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> トップページに戻る</a>
-        <a href="{{ url_for('view_journal') }}" class="nav-button">学習履歴を見る</a>
+        <a href="{{ url_for('view_journal') }}" class="nav-button"><i class="fas fa-book"></i> 学習履歴を見る</a>
     </div>
 
     <!-- Tips Modal -->

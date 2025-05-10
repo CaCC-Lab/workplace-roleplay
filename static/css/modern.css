@@ -62,11 +62,26 @@ h1 {
   padding: 2rem;
   background-color: white;
   border-radius: var(--border-radius);
+}
+
+/* カードシャドウ */
+.card-shadow {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 1.5rem;
+  transition: var(--transition);
   margin-bottom: 1.5rem;
 }
 
+.card-shadow:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+
+
 /* ボタンスタイル */
-button {
+button, .button, .primary-button, .secondary-button, .accent-button, .nav-button {
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: var(--border-radius);
@@ -78,6 +93,8 @@ button {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  text-decoration: none;
+  margin: 0.5rem;
 }
 
 .primary-button {
@@ -219,10 +236,26 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 0.5rem;
 }
 
 .send-button:hover {
   transform: scale(1.05);
+}
+
+.feedback-button {
+  background: var(--gradient-accent);
+  color: white;
+  border-radius: var(--border-radius);
+  padding: 0.75rem 1.25rem;
+  margin: 0 0.5rem;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.feedback-button:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
 }
 
 .icon {
@@ -230,12 +263,18 @@ input:focus, select:focus, textarea:focus {
   display: inline-block;
 }
 
+/* フィーチャーセクション */
+.features-section {
+  margin: 2rem 0;
+  clear: both;
+  width: 100%;
+}
+
 /* フィーチャーカード */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
-  margin: 2rem 0;
 }
 
 .feature-card {
@@ -247,6 +286,14 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   height: 100%;
+  margin-bottom: 0;
+}
+
+.welcome-section,
+.info-section,
+.model-selection,
+.reference-section {
+  margin-bottom: 2rem;
 }
 
 .feature-card:hover {
@@ -265,31 +312,188 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 1.5rem;
 }
 
+/* フィルターオプション */
+.filter-container {
+  margin-bottom: 2rem;
+}
+
+.filter-options {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* モデル選択スタイル */
+.model-selection-wrapper {
+  margin: 2rem 0;
+  width: 100%;
+  clear: both;
+}
+
+.model-selection {
+  padding: 1.5rem;
+  background-color: #f9fafb;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--box-shadow);
+}
+
+.model-selection h2 {
+  margin-top: 0;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.model-select-container {
+  margin-top: 1rem;
+}
+
+.select-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.select-group {
+  flex: 1;
+  min-width: 200px;
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.select-group label {
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+.select-group select {
+  width: 100%;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.styled-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236366f1' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 12px) center;
+  padding-right: 2.5rem;
+}
+
+.section-title {
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-color);
+}
+
+.difficulty-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  gap: 0.25rem;
+}
+
+.scenario-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  background-color: var(--secondary-color);
+  border-radius: 50px;
+  font-size: 0.8rem;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
 /* ナビゲーション */
 .navigation {
   display: flex;
   gap: 1rem;
   justify-content: center;
   margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+/* 参考資料セクション */
+.reference-section-wrapper {
+  margin-top: 4rem;
+  clear: both;
+  width: 100%;
+  border-top: 1px solid var(--border-color);
+  padding-top: 0.5rem;
+}
+
+.reference-section {
+  background-color: #f9fafb;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--box-shadow);
+}
+
+.reference-list {
+  padding-left: 1.5rem;
+}
+
+.reference-list li {
+  margin-bottom: 0.75rem;
+}
+
+.reference-list a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.reference-list a:hover {
+  text-decoration: underline;
+  color: var(--primary-hover);
 }
 
 .nav-button {
   background-color: white;
   color: var(--text-color);
-  padding: 0.75rem 1.5rem;
   border-radius: var(--border-radius);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
   box-shadow: var(--box-shadow);
-  transition: var(--transition);
+  border: 1px solid var(--border-color);
 }
 
 .nav-button:hover {
   background-color: var(--secondary-color);
   transform: translateY(-2px);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 /* シナリオリスト */
@@ -297,7 +501,7 @@ input:focus, select:focus, textarea:focus {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
-  padding: 1.5rem;
+  padding: 0;
 }
 
 .scenario-card {
@@ -309,17 +513,33 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   height: 100%;
+  border: 1px solid var(--border-color);
 }
 
 .scenario-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: var(--primary-color);
 }
 
-.scenario-header {
+.scenario-card-header {
   background: var(--gradient-primary);
   color: white;
   padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.scenario-card-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
 }
 
 .scenario-content {
@@ -327,10 +547,18 @@ input:focus, select:focus, textarea:focus {
   flex-grow: 1;
 }
 
-.scenario-footer {
-  padding: 1.5rem;
+.scenario-description {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+  color: var(--text-color);
+}
+
+.scenario-card-footer {
+  padding: 1.25rem;
   border-top: 1px solid var(--border-color);
-  text-align: right;
+  text-align: center;
+  background-color: var(--secondary-color);
 }
 
 /* 設定セクション */
@@ -368,6 +596,7 @@ input:focus, select:focus, textarea:focus {
   gap: 1rem;
   margin-top: 1.5rem;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 /* ローディング */
@@ -443,6 +672,7 @@ input:focus, select:focus, textarea:focus {
 
   .input-area {
     flex-wrap: wrap;
+    justify-content: center;
   }
 
   #message-input {
@@ -450,8 +680,14 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 0.75rem;
   }
 
-  .action-buttons {
-    justify-content: center;
+  button, .button, .primary-button, .secondary-button, .accent-button, .nav-button {
+    padding: 0.75rem 1rem;
+    width: auto;
+    min-width: 120px;
+  }
+
+  .navigation {
+    padding: 0 1rem;
   }
 }
 
@@ -509,4 +745,86 @@ input:focus, select:focus, textarea:focus {
   #chat-messages {
     background-color: #111827;
   }
+}
+
+/* 使い方セクションのスタイル */
+.usage-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.usage-step {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.usage-step:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    background-color: #4a6cf7;
+    color: white;
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 1.2rem;
+    align-self: flex-start;
+    margin-top: 0.5rem;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-content h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.step-content p {
+    margin-top: 0.5rem;
+    color: #555;
+}
+
+.step-content ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.step-content li {
+    margin-bottom: 0.3rem;
+}
+
+@media (max-width: 768px) {
+    .usage-step {
+        flex-direction: column;
+    }
+    
+    #chat-container {
+        margin: 0;
+        border-radius: 0;
+    }
+    
+    .content-section {
+        padding: 1rem;
+    }
+    
+    .step-number {
+        margin-bottom: 0.5rem;
+    }
 }

@@ -30,7 +30,7 @@
                         <p>練習回数: {{ entry.sessions_count }}</p>
                     </div>
                     <div class="journal-actions">
-                        <button class="view-conversation-button primary-button" data-id="{{ loop.index0 }}" data-type="{{ tab }}"><i class="fas fa-eye"></i> 会話を見る</button>
+                        <button class="view-conversation-button primary-button" data-id="{{ scenario_id }}" data-type="scenario"><i class="fas fa-eye"></i> 会話を見る</button>
                         <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="primary-button">
                             再度練習する
                         </a>
@@ -59,6 +59,7 @@
                     <p>最終練習日時: {{ chat_history[-1].timestamp if chat_history else '履歴なし' }}</p>
                 </div>
                 <div class="journal-actions">
+                    <button class="view-conversation-button primary-button" data-type="chat"><i class="fas fa-eye"></i> 会話を見る</button>
                     <a href="{{ url_for('chat') }}" class="primary-button">
                         雑談練習する
                     </a>
@@ -96,5 +97,16 @@
             </div>
         </div>
     </div>
+    
+    <!-- 会話履歴表示用モーダル -->
+    <div id="conversation-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>会話履歴</h2>
+            <div id="conversation-history"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/journal.js') }}"></script>
 </body>
 </html> 

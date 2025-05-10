@@ -51,9 +51,8 @@ startButton.addEventListener('click', async function() {
             }
 
             if (data.message) {
-                // 話者Aを太郎に置き換え
-                const formattedMessage = data.message.replace(/話者A/g, modelDisplayNames["A"]);
-                displayMessage(formattedMessage, "bot-message");
+                // サーバーから直接太郎・花子の名前で応答が返されるようになったので、置換処理は不要
+                displayMessage(data.message, "bot-message");
                 nextButton.disabled = false;
                 conversationStarted = true;
                 waitingForNext = true;
@@ -88,10 +87,8 @@ nextButton.addEventListener('click', async function() {
             }
 
             if (data.message) {
-                // 話者Aと話者Bを太郎と花子に置き換え
-                let formattedMessage = data.message.replace(/話者A/g, modelDisplayNames["A"]);
-                formattedMessage = formattedMessage.replace(/話者B/g, modelDisplayNames["B"]);
-                displayMessage(formattedMessage, "bot-message");
+                // サーバーから直接太郎・花子の名前で応答が返されるようになったので、置換処理は不要
+                displayMessage(data.message, "bot-message");
                 nextButton.disabled = false;
                 waitingForNext = true;
             }

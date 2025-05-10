@@ -46,6 +46,20 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "your_secret_key_here")  # セッ
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+# カスタムJinjaフィルターの追加
+@app.template_filter('datetime')
+def format_datetime(value):
+    """ISO形式の日時文字列をより読みやすい形式に変換"""
+    if not value:
+        return "なし"
+    try:
+        # ISO形式の文字列をdatetimeオブジェクトに変換
+        dt = datetime.fromisoformat(value)
+        # 日本語形式でフォーマット
+        return dt.strftime('%Y年%m月%d日 %H:%M')
+    except (ValueError, TypeError):
+        return str(value)
+
 # ========== 設定値・初期化 ==========
 # Ollamaがローカルで起動しているURL
 OLLAMA_API_URL = "http://localhost:11434"
@@ -430,6 +444,32 @@ def clear_session_history(session_key, sub_key=None):
     
     session.modified = True
 
+# セッション開始時間を保存するヘルパー関数を追加
+def set_session_start_time(session_key, sub_key=None):
+    """
+    セッションの開始時間を記録するヘルパー関数
+    
+    Args:
+        session_key: セッションのキー
+        sub_key: サブキー（オプション）
+    """
+    # セッション設定キーを構築
+    settings_key = f"{session_key}_settings"
+    
+    # セッション設定が存在しない場合は初期化
+    if settings_key not in session:
+        session[settings_key] = {} if sub_key else {"start_time": datetime.now().isoformat()}
+    
+    # サブキーがある場合
+    if sub_key:
+        if sub_key not in session[settings_key]:
+            session[settings_key][sub_key] = {}
+        session[settings_key][sub_key]["start_time"] = datetime.now().isoformat()
+    else:
+        session[settings_key]["start_time"] = datetime.now().isoformat()
+    
+    session.modified = True
+
 # チャットエンドポイントを更新して共通関数を使用
 
 @app.route("/api/chat", methods=["POST"])
@@ -608,6 +648,10 @@ def scenario_chat():
         
         # セッション初期化（共通関数使用）
         initialize_session_history("scenario_history", scenario_id)
+        
+        # 初回メッセージの場合はセッション開始時間を記録
+        if len(session["scenario_history"].get(scenario_id, [])) == 0:
+            set_session_start_time("scenario", scenario_id)
 
         try:
             # 会話履歴の構築
@@ -711,7 +755,8 @@ def start_watch():
             "partner_type": partner_type,
             "situation": situation,
             "topic": topic,
-            "current_speaker": "A"
+            "current_speaker": "A",
+            "start_time": datetime.now().isoformat()  # 開始時間を記録
         }
         session.modified = True
 
@@ -729,7 +774,7 @@ def start_watch():
                 "timestamp": datetime.now().isoformat()
             }]
             
-            return jsonify({"message": f"話者A: {initial_message}"})
+            return jsonify({"message": f"太郎: {initial_message}"})
 
         except Exception as e:
             print(f"Error in watch initialization: {str(e)}")
@@ -753,6 +798,8 @@ def next_watch_message() -> Any:
         current_speaker = settings["current_speaker"]
         next_speaker = "B" if current_speaker == "A" else "A"
         model = settings["model_b"] if next_speaker == "B" else settings["model_a"]
+        # 表示名を設定
+        display_name = "花子" if next_speaker == "B" else "太郎"
 
         try:
             # 共通関数を使用して応答を生成
@@ -782,7 +829,7 @@ def next_watch_message() -> Any:
                     
                     # 正常応答でフォールバック通知付き
                     return jsonify({
-                        "message": f"話者{next_speaker}(代替): {next_message}", 
+                        "message": f"{display_name}(代替): {next_message}", 
                         "notice": "OpenAIのクォータ制限により、ローカルモデルを使用しています。"
                     })
                 else:
@@ -799,7 +846,7 @@ def next_watch_message() -> Any:
             settings["current_speaker"] = next_speaker
             session.modified = True
 
-            return jsonify({"message": f"話者{next_speaker}: {next_message}"})
+            return jsonify({"message": f"{display_name}: {next_message}"})
 
         except Exception as e:
             print(f"Error generating next message: {str(e)}")
@@ -814,7 +861,9 @@ def generate_next_message(llm, history):
     # 会話履歴をフォーマット
     formatted_history = []
     for entry in history:
-        formatted_history.append(f"話者{entry['speaker']}: {entry['message']}")
+        # 話者AとBを太郎と花子に置き換え
+        speaker_name = "太郎" if entry['speaker'] == "A" else "花子"
+        formatted_history.append(f"{speaker_name}: {entry['message']}")
     
     system_prompt = """あなたは職場での自然な会話を行うAIです。
 以下の点に注意して会話を続けてください：
@@ -1381,7 +1430,8 @@ def generate_initial_message(llm, partner_type, situation, topic):
 以下の点に注意して会話を始めてください：
 
 設定：
-- 相手: {get_partner_description(partner_type)}
+- あなたは太郎という名前の社員です
+- 相手: 花子という名前の{get_partner_description(partner_type)}
 - 状況: {get_situation_description(situation)}
 - 話題: {get_topic_description(topic)}
 
@@ -1397,6 +1447,7 @@ def generate_initial_message(llm, partner_type, situation, topic):
 - 1回の応答は3行程度まで
 - 必ず日本語のみを使用する
 - ローマ字や英語は使用しない
+- 相手の名前は「花子さん」と呼ぶ
 
 最初の声掛けをしてください。
 """
@@ -1449,10 +1500,79 @@ def view_journal():
     if "chat_history" in session:
         chat_history = session["chat_history"]
     
+    # 最終アクティビティの日時を計算
+    last_activity = None
+    
+    # シナリオ履歴から最新の日時を確認
+    for scenario_data in scenario_history.values():
+        if scenario_data.get("last_session"):
+            if not last_activity or scenario_data["last_session"] > last_activity:
+                last_activity = scenario_data["last_session"]
+    
+    # チャット履歴からも確認
+    if chat_history and len(chat_history) > 0:
+        chat_last = chat_history[-1].get("timestamp")
+        if chat_last:
+            if not last_activity or chat_last > last_activity:
+                last_activity = chat_last
+    
+    # 実際の練習時間を計算
+    total_minutes = 0
+    
+    # シナリオの練習時間計算
+    if "scenario_settings" in session:
+        scenario_settings = session["scenario_settings"]
+        for scenario_id, settings in scenario_settings.items():
+            if scenario_id in session.get("scenario_history", {}) and session["scenario_history"][scenario_id]:
+                # 開始時間と最後のメッセージの時間から計算
+                start_time = datetime.fromisoformat(settings.get("start_time", datetime.now().isoformat()))
+                last_msg_time = datetime.fromisoformat(session["scenario_history"][scenario_id][-1].get("timestamp", datetime.now().isoformat()))
+                
+                # 差分を分単位で計算
+                time_diff = (last_msg_time - start_time).total_seconds() / 60
+                total_minutes += time_diff
+    
+    # 雑談モードの練習時間計算
+    if "chat_settings" in session and "chat_history" in session and session["chat_history"]:
+        chat_settings = session["chat_settings"]
+        start_time = datetime.fromisoformat(chat_settings.get("start_time", datetime.now().isoformat()))
+        last_msg_time = datetime.fromisoformat(session["chat_history"][-1].get("timestamp", datetime.now().isoformat()))
+        
+        # 差分を分単位で計算
+        time_diff = (last_msg_time - start_time).total_seconds() / 60
+        total_minutes += time_diff
+    
+    # 観戦モードの練習時間計算
+    if "watch_settings" in session and "watch_history" in session and session["watch_history"]:
+        watch_settings = session["watch_settings"]
+        start_time = datetime.fromisoformat(watch_settings.get("start_time", datetime.now().isoformat()))
+        last_msg_time = datetime.fromisoformat(session["watch_history"][-1].get("timestamp", datetime.now().isoformat()))
+        
+        # 差分を分単位で計算
+        time_diff = (last_msg_time - start_time).total_seconds() / 60
+        total_minutes += time_diff
+    
+    # 時間と分に変換（小数点以下を四捨五入）
+    total_minutes = round(total_minutes)
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    
+    # 練習時間の文字列を構築
+    if hours > 0:
+        total_practice_time = f"{hours}時間{minutes}分"
+    else:
+        total_practice_time = f"{minutes}分"
+    
+    # もし練習時間が0の場合
+    if total_minutes == 0:
+        total_practice_time = "まだ記録がありません"
+    
     return render_template(
         "journal.html",
         scenario_history=scenario_history,
-        chat_history=chat_history
+        chat_history=chat_history,
+        last_activity=last_activity,
+        total_practice_time=total_practice_time
     )
 
 # 雑談練習開始用のエンドポイントを追加
@@ -1478,6 +1598,7 @@ def start_chat() -> Any:
             "partner_type": partner_type,
             "situation": situation,
             "topic": topic,
+            "start_time": datetime.now().isoformat(),  # 開始時間を記録
             "system_prompt": f"""あなたは職場での雑談練習をサポートするAIアシスタントです。
 # 設定
 - 相手: {get_partner_description(partner_type)}
@@ -1546,6 +1667,58 @@ def start_chat() -> Any:
     except Exception as e:
         print(f"Error in start_chat: {str(e)}")
         return jsonify({"error": f"雑談の開始に失敗しました: {str(e)}"}), 500
+
+@app.route("/api/conversation_history", methods=["POST"])
+def get_conversation_history():
+    """
+    会話履歴を取得するAPI
+    """
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        history_type = data.get("type")
+        
+        if history_type == "scenario":
+            scenario_id = data.get("scenario_id")
+            if not scenario_id:
+                return jsonify({"error": "シナリオIDが必要です"}), 400
+                
+            # 指定されたシナリオの履歴を取得
+            if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
+                return jsonify({"history": []})
+                
+            return jsonify({"history": session["scenario_history"][scenario_id]})
+            
+        elif history_type == "chat":
+            # 雑談履歴を取得
+            if "chat_history" not in session:
+                return jsonify({"history": []})
+                
+            return jsonify({"history": session["chat_history"]})
+            
+        elif history_type == "watch":
+            # 観戦履歴を取得
+            if "watch_history" not in session:
+                return jsonify({"history": []})
+                
+            # 観戦履歴は形式が異なるので変換
+            watch_history = []
+            for entry in session["watch_history"]:
+                watch_history.append({
+                    "timestamp": entry.get("timestamp"),
+                    "human" if entry["speaker"] == "A" else "ai": entry["message"]
+                })
+                
+            return jsonify({"history": watch_history})
+            
+        else:
+            return jsonify({"error": "不明な履歴タイプです"}), 400
+            
+    except Exception as e:
+        print(f"Error in get_conversation_history: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":

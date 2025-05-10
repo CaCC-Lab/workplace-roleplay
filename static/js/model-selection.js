@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (savedProvider) {
                 providerSelect.value = savedProvider;
                 updateModelSelect(savedProvider);
-                modelSelectContainer.style.display = 'block';
+                modelSelectContainer.style.display = 'flex';
                 
                 if (savedModel) {
                     modelSelect.value = savedModel;
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('selectedProvider', selectedProvider);
         
         updateModelSelect(selectedProvider);
-        modelSelectContainer.style.display = 'block';
+        modelSelectContainer.style.display = 'flex';
         
         // 最初のモデルを自動選択
         if (modelSelect.options.length > 0) {

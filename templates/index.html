@@ -15,80 +15,139 @@
     <div id="chat-container">
         <h1><i class="fas fa-comments"></i> 職場コミュニケーション練習アプリ</h1>
         
-        <div class="model-selection content-section">
-            <h2><i class="fas fa-robot"></i> AIモデルを選択</h2>
-            <p>会話に使用するAIモデルを選択してください。</p>
-            <div class="model-select-container">
-                <!-- プロバイダー選択 -->
-                <div class="provider-select">
-                    <label for="provider-select">プロバイダー:</label>
-                    <select id="provider-select" class="enhanced-select">
-                        <option value="">プロバイダーを選択してください</option>
-                        <option value="gemini">Google Gemini</option>
-                        <option value="openai">OpenAI</option>
-                        <option value="local">Local Models (Ollama)</option>
-                    </select>
-                </div>
-                
-                <!-- モデル選択（初期状態は非表示） -->
-                <div class="model-select" style="display: none; margin-top: 10px;">
-                    <label for="model-select">モデル:</label>
-                    <select id="model-select" class="enhanced-select">
-                        <!-- モデルはJavaScriptで動的に追加 -->
-                    </select>
-                </div>
-            </div>
-        </div>
-
         <div class="content-section">
             <div class="welcome-section">
-                <h2>🎯 アプリの目的</h2>
+                <h2><i class="fas fa-bullseye"></i> アプリの目的</h2>
                 <p>このアプリは、職場でのコミュニケーションスキルを安全に練習できる環境を提供します。
                    実際の場面を想定したロールプレイを通じて、自己理解を深め、
                    コミュニケーション能力の向上を支援します。</p>
             </div>
 
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-theater-masks"></i></div>
-                    <h3>シナリオロールプレイ</h3>
-                    <p>実際の職場で起こりうる場面を再現し、AIと対話形式で練習できます。</p>
-                    <a href="{{ url_for('list_scenarios') }}" class="primary-button"><i class="fas fa-play"></i> シナリオを選ぶ</a>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-comment-dots"></i></div>
-                    <h3>雑談練習</h3>
-                    <p>ビジネスシーンでの雑談力を向上させるための練習ができます。</p>
-                    <a href="{{ url_for('chat') }}" class="primary-button"><i class="fas fa-comments"></i> 雑談練習を始める</a>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-users"></i></div>
-                    <h3>会話観戦モード</h3>
-                    <p>2つのAIモデルが会話する様子をリアルタイムで観戦できます。</p>
-                    <a href="{{ url_for('watch_mode') }}" class="primary-button"><i class="fas fa-eye"></i> 観戦する</a>
-                </div>
-            </div>
-
-            <div class="info-section content-section">
+            <div class="info-section">
                 <h2><i class="fas fa-lightbulb"></i> 使い方</h2>
-                <ol>
-                    <li>「シナリオを選ぶ」から練習したい場面を選択</li>
-                    <li>AIとロールプレイを実施</li>
-                    <li>会話終了後にフィードバックを取得</li>
-                    <li>振り返りと改善点の確認</li>
-                </ol>
+                <div class="usage-steps">
+                    <div class="usage-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3><i class="fas fa-robot"></i> AIモデルを選択する</h3>
+                            <p>画面上部のドロップダウンメニューから、使用したいAIプロバイダー（Google Gemini、OpenAI、ローカルモデル）を選択し、
+                            続いて特定のモデルを選びます。モデルによって応答の質や特性が異なります。</p>
+                        </div>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3><i class="fas fa-theater-masks"></i> 練習モードを選択する</h3>
+                            <p>目的に合わせて以下のいずれかを選択します：</p>
+                            <ul>
+                                <li><strong>シナリオロールプレイ</strong>：特定の職場状況を再現した練習をしたい場合</li>
+                                <li><strong>雑談練習</strong>：一般的なビジネス雑談能力を磨きたい場合</li>
+                                <li><strong>会話観戦モード</strong>：AIモデル同士の会話から学びたい場合</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3><i class="fas fa-play"></i> シナリオを選んで練習を開始</h3>
+                            <p>シナリオロールプレイを選んだ場合、様々な職場状況から練習したいものを選択します。
+                            各シナリオには状況説明と役割の指定があります。指示に従ってAIと会話を始めてください。</p>
+                        </div>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3><i class="fas fa-comment-dots"></i> AIとの会話を実施</h3>
+                            <p>メッセージ入力欄に文章を入力して送信し、AIからの返答を待ちます。
+                            実際の職場での会話を想定し、自然なコミュニケーションを心がけてください。
+                            必要に応じて会話の途中でAIに別の役割を演じるよう指示することもできます。</p>
+                        </div>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h3><i class="fas fa-clipboard-check"></i> フィードバックを受け取る</h3>
+                            <p>会話が終了したら「フィードバックを取得」ボタンを押すことで、
+                            あなたのコミュニケーションスタイルや改善点についてのフィードバックを受け取れます。
+                            特定の観点（例：傾聴力、共感性、明確さなど）についての評価を依頼することも可能です。</p>
+                        </div>
+                    </div>
+                    <div class="usage-step">
+                        <div class="step-number">6</div>
+                        <div class="step-content">
+                            <h3><i class="fas fa-sync-alt"></i> 繰り返し練習して上達</h3>
+                            <p>フィードバックを元に改善点を意識し、同じシナリオまたは別のシナリオで繰り返し練習することで、
+                            職場でのコミュニケーション能力を段階的に向上させることができます。
+                            定期的な利用で実践的なスキルが身につきます。</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="reference-section content-section">
-                <h2><i class="fas fa-book"></i> 参考資料</h2>
-                <p>このアプリは厚生労働省が公開している職業能力開発に関する資料を参考に開発されています。</p>
-                <ul>
-                    <li><a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/jinzaikaihatsu/career_consulting_gihou.html" target="_blank">キャリアコンサルティング技法等に関する調査・研究</a> - 厚生労働省による職業相談や職業指導に利用できるキャリアコンサルティング技法の調査研究資料です。コミュニケーション技法に関する詳細な情報が含まれています。</li>
-                    <li><a href="https://www.mhlw.go.jp/file/06-Seisakujouhou-11800000-Shokugyounouryokukaihatsukyoku/0000198686.pdf" target="_blank">使用の手引き・作成例</a></li>
-                    <li><a href="https://www.mhlw.go.jp/file/06-Seisakujouhou-11800000-Shokugyounouryokukaihatsukyoku/0000199570.pdf" target="_blank">職場のあなた再現シート（職場における対応力チェック）</a></li>
-                </ul>
+            <div class="model-selection-wrapper">
+                <div class="model-selection">
+                    <h2><i class="fas fa-robot"></i> AIモデルを選択</h2>
+                    <p>会話に使用するAIモデルを選択してください。</p>
+                    <div class="model-select-container">
+                        <div class="select-row">
+                            <!-- プロバイダー選択 -->
+                            <div class="select-group">
+                                <label for="provider-select">プロバイダー:</label>
+                                <select id="provider-select" class="enhanced-select">
+                                    <option value="">選択してください</option>
+                                    <option value="gemini">Google Gemini</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="local">Local Models (Ollama)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- モデル選択（初期状態は非表示） -->
+                            <div class="select-group model-select" style="display: none;">
+                                <label for="model-select">モデル:</label>
+                                <select id="model-select" class="enhanced-select">
+                                    <!-- モデルはJavaScriptで動的に追加 -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-section">
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-theater-masks"></i></div>
+                        <h3>シナリオロールプレイ</h3>
+                        <p>実際の職場で起こりうる場面を再現し、AIと対話形式で練習できます。</p>
+                        <a href="{{ url_for('list_scenarios') }}" class="primary-button"><i class="fas fa-play"></i> シナリオを選ぶ</a>
+                    </div>
+
+                    <div class="feature-card card-shadow">
+                        <div class="feature-icon"><i class="fas fa-comment-dots"></i></div>
+                        <h3>雑談練習</h3>
+                        <p>ビジネスシーンでの雑談力を向上させるための練習ができます。</p>
+                        <a href="{{ url_for('chat') }}" class="primary-button"><i class="fas fa-comments"></i> 雑談練習を始める</a>
+                    </div>
+
+                    <div class="feature-card card-shadow">
+                        <div class="feature-icon"><i class="fas fa-users"></i></div>
+                        <h3>会話観戦モード</h3>
+                        <p>2つのAIモデルが会話する様子をリアルタイムで観戦できます。</p>
+                        <a href="{{ url_for('watch_mode') }}" class="primary-button"><i class="fas fa-eye"></i> 観戦する</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reference-section-wrapper">
+                <div class="reference-section">
+                    <h2><i class="fas fa-book"></i> 参考資料</h2>
+                    <p>このアプリは厚生労働省が公開している職業能力開発に関する資料を参考に開発されています。</p>
+                    <ul class="reference-list">
+                        <li><a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/jinzaikaihatsu/career_consulting_gihou.html" target="_blank">キャリアコンサルティング技法等に関する調査・研究</a> - 厚生労働省による職業相談や職業指導に利用できるキャリアコンサルティング技法の調査研究資料です。コミュニケーション技法に関する詳細な情報が含まれています。</li>
+                        <li><a href="https://www.mhlw.go.jp/file/06-Seisakujouhou-11800000-Shokugyounouryokukaihatsukyoku/0000198686.pdf" target="_blank">使用の手引き・作成例</a></li>
+                        <li><a href="https://www.mhlw.go.jp/file/06-Seisakujouhou-11800000-Shokugyounouryokukaihatsukyoku/0000199570.pdf" target="_blank">職場のあなた再現シート（職場における対応力チェック）</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
