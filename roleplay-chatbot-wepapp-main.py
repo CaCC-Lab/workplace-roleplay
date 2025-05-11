@@ -1723,4 +1723,4 @@ def get_conversation_history():
 # ========== メイン起動 ==========
 if __name__ == "__main__":
     # デバッグモードで実行（本番環境では debug=False にしてください）
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5001)
