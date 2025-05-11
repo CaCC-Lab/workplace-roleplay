@@ -78,7 +78,7 @@ if not GOOGLE_API_KEY:
 DEFAULT_TEMPERATURE = 0.7
 
 # デフォルトモデルの設定
-DEFAULT_MODEL = "gemini/gemini-2.5-flash-preview-04-17"  # 最新のモデルに更新
+DEFAULT_MODEL = "gemini/gemini-1.5-flash"  # Gemini-1.5-flashをデフォルトに設定
 
 # Gemini APIの初期化
 try:
