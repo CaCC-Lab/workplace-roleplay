@@ -1,6 +1,16 @@
 document.addEventListener('DOMContentLoaded', function() {
     initializeModal();
     initializeFilters();
+    
+    // ページロード完了後に強制的に初期ソートを実行
+    // DOMの準備ができていることを確認してからソート
+    setTimeout(() => {
+        const sortSelect = document.getElementById('sort-select');
+        if (sortSelect) {
+            sortScenarios('scenario-num');  // デフォルトではシナリオID順にソート
+            console.log('Applied initial sort on page load completion');
+        }
+    }, 200);
 });
 
 // モーダル関連の機能
@@ -50,41 +60,77 @@ function initializeFilters() {
     const scenariosList = document.querySelector('.scenarios-list');
     const scenarioCards = Array.from(document.querySelectorAll('.scenario-card'));
 
-    function sortScenarios(order = 'asc') {
+    function sortScenarios(order = 'scenario-num') {
+        // ソート前にコンソールに情報を出力
+        console.log(`Sorting scenarios with order: ${order}. Cards count: ${scenarioCards.length}`);
+        
+        if (scenarioCards.length === 0) {
+            console.warn('No scenario cards found to sort');
+            return;
+        }
+
         const sortedCards = scenarioCards.sort((a, b) => {
-            const difficultyA = a.querySelector('.difficulty-badge').textContent.trim();
-            const difficultyB = b.querySelector('.difficulty-badge').textContent.trim();
-            
-            let valueA = 1;
-            let valueB = 1;
-            
-            if (difficultyA.includes('初級')) {
-                valueA = 1;
-            } else if (difficultyA.includes('中級')) {
-                valueA = 2;
-            } else if (difficultyA.includes('上級')) {
-                valueA = 3;
+            // シナリオID順ソート
+            if (order === 'scenario-num') {
+                // href属性からシナリオIDの数値部分を抽出
+                const hrefA = a.querySelector('.primary-button').getAttribute('href');
+                const hrefB = b.querySelector('.primary-button').getAttribute('href');
+                
+                const idA = parseInt(hrefA.match(/scenario(\d+)/)[1]) || 0;
+                const idB = parseInt(hrefB.match(/scenario(\d+)/)[1]) || 0;
+                
+                console.log(`Comparing: scenario${idA} vs scenario${idB}`);
+                return idA - idB;
             }
-            
-            if (difficultyB.includes('初級')) {
-                valueB = 1;
-            } else if (difficultyB.includes('中級')) {
-                valueB = 2;
-            } else if (difficultyB.includes('上級')) {
-                valueB = 3;
-            }
-            
-            if (order === 'asc') {
-                return valueA - valueB;
-            } else {
-                return valueB - valueA;
+            // 難易度ソート
+            else {
+                const difficultyA = a.querySelector('.difficulty-badge').textContent.trim();
+                const difficultyB = b.querySelector('.difficulty-badge').textContent.trim();
+                
+                let valueA = 1;
+                let valueB = 1;
+                
+                if (difficultyA.includes('初級')) {
+                    valueA = 1;
+                } else if (difficultyA.includes('中級')) {
+                    valueA = 2;
+                } else if (difficultyA.includes('上級')) {
+                    valueA = 3;
+                }
+                
+                if (difficultyB.includes('初級')) {
+                    valueB = 1;
+                } else if (difficultyB.includes('中級')) {
+                    valueB = 2;
+                } else if (difficultyB.includes('上級')) {
+                    valueB = 3;
+                }
+                
+                if (order === 'asc') {
+                    return valueA - valueB;
+                } else {
+                    return valueB - valueA;
+                }
             }
         });
 
-        scenariosList.innerHTML = '';
+        // デバッグログの追加
+        console.log('Sorted order:', sortedCards.map(card => {
+            const href = card.querySelector('.primary-button').getAttribute('href');
+            return href.match(/scenario\d+/)[0];
+        }).join(', '));
+
+        // 既存のカードをすべて削除
+        while (scenariosList.firstChild) {
+            scenariosList.removeChild(scenariosList.firstChild);
+        }
+
+        // ソートされたカードを順番に追加
         sortedCards.forEach(card => {
             scenariosList.appendChild(card);
         });
+        
+        console.log('Sort completed and DOM updated');
     }
 
     function filterScenarios() {
@@ -105,7 +151,9 @@ function initializeFilters() {
     // ソートセレクトボックスの追加
     const sortSelect = document.createElement('select');
     sortSelect.id = 'sort-select';
+    sortSelect.className = 'styled-select';
     sortSelect.innerHTML = `
+        <option value="scenario-num">シナリオ番号順</option>
         <option value="asc">難易度：低い順</option>
         <option value="desc">難易度：高い順</option>
     `;
@@ -124,6 +172,19 @@ function initializeFilters() {
     tagFilter.addEventListener('change', filterScenarios);
     sortSelect.addEventListener('change', (e) => sortScenarios(e.target.value));
 
-    // 初期ソート
-    sortScenarios('asc');
+    // 初期ソート - シナリオID順で実行
+    console.log('Initializing filters and applying initial sort');
+    sortScenarios('scenario-num');
+    
+    // DOM変更をトラッキング
+    const observer = new MutationObserver((mutations) => {
+        // DOMに変更があった場合に再ソート
+        if (mutations.some(mutation => mutation.type === 'childList')) {
+            console.log('DOM changes detected, reapplying sort');
+            sortScenarios(sortSelect.value);
+        }
+    });
+    
+    // 監視の開始
+    observer.observe(scenariosList, { childList: true });
 } 
