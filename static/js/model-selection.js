@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // 保存された選択を復元
+            // 保存された選択を復元するか、デフォルト値を設定
             const savedProvider = localStorage.getItem('selectedProvider');
             const savedModel = localStorage.getItem('selectedModel');
             
@@ -46,6 +46,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (savedModel) {
                     modelSelect.value = savedModel;
                 }
+            } else {
+                // デフォルトでGeminiを選択
+                providerSelect.value = 'gemini';
+                updateModelSelect('gemini');
+                modelSelectContainer.style.display = 'flex';
+                
+                // デフォルトでgemini-1.5-flashを選択
+                setTimeout(() => {
+                    if (modelGroups.gemini.length > 0) {
+                        // gemini-1.5-flashを探して選択
+                        const defaultModel = 'gemini/gemini-1.5-flash';
+                        const defaultModelExists = modelGroups.gemini.some(model => model.value === defaultModel);
+                        
+                        if (defaultModelExists) {
+                            modelSelect.value = defaultModel;
+                        } else {
+                            // なければ最初のモデルを選択
+                            modelSelect.selectedIndex = 0;
+                        }
+                        
+                        // 選択を保存
+                        localStorage.setItem('selectedProvider', 'gemini');
+                        localStorage.setItem('selectedModel', modelSelect.value);
+                    }
+                }, 100); // 少し遅延させてモデルリストが更新された後に実行
             }
         })
         .catch(error => {
