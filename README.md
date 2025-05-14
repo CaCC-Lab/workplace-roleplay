@@ -157,3 +157,26 @@ CaCCラボ
 - AIの応答は参考程度にお考えください
 - 実際の職場での行動指針は、所属組織の方針に従ってください
 
+## 🔒 セッション設定
+
+アプリケーションはデフォルトでローカルファイルシステムにセッションデータを保存します。環境変数で設定を変更できます：
+
+### ファイルシステムセッション（デフォルト）
+```
+SESSION_TYPE=filesystem
+SESSION_FILE_DIR=/path/to/session/files  # オプション
+```
+
+### Redisセッション（スケーラブルな環境向け）
+```
+SESSION_TYPE=redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_password  # 必要な場合
+REDIS_DB=0
+```
+
+## Azure Web Appへのデプロイ
+
+Azure Web Appにデプロイする場合は、`azure-webapp-settings.md`を参照してください。
+

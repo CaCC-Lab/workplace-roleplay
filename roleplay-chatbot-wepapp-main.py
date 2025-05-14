@@ -43,7 +43,36 @@ from scenarios import load_scenarios
 app = Flask(__name__)
 # 環境変数からシークレットキーを取得、設定されていない場合はデフォルト値を使用
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "your_secret_key_here")  # セッション管理用のキー
-app.config["SESSION_TYPE"] = "filesystem"
+
+# セッション設定
+# 環境変数でセッションタイプを設定可能に（デフォルトはfilesystem）
+session_type = os.getenv("SESSION_TYPE", "filesystem")
+app.config["SESSION_TYPE"] = session_type
+
+# Redisセッションの設定（SESSION_TYPE=redisの場合に使用）
+if session_type == "redis":
+    try:
+        from redis import Redis
+        app.config["SESSION_REDIS"] = Redis(
+            host=os.getenv("REDIS_HOST", "localhost"),
+            port=int(os.getenv("REDIS_PORT", 6379)),
+            password=os.getenv("REDIS_PASSWORD", ""),
+            db=int(os.getenv("REDIS_DB", 0))
+        )
+        print("Redisセッションストアを使用します")
+    except ImportError:
+        print("警告: Redisパッケージがインストールされていません。pip install redisを実行してください。")
+        app.config["SESSION_TYPE"] = "filesystem"  # フォールバック
+        print("filesystemセッションにフォールバックします")
+else:
+    # filesystemセッションの場合はセッションファイルのパスを指定可能に
+    session_file_dir = os.getenv("SESSION_FILE_DIR")
+    if session_file_dir:
+        if not os.path.exists(session_file_dir):
+            os.makedirs(session_file_dir)
+        app.config["SESSION_FILE_DIR"] = session_file_dir
+    print(f"{session_type}セッションストアを使用します")
+
 Session(app)
 
 # カスタムJinjaフィルターの追加
