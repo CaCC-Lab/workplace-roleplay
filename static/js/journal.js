@@ -1,8 +1,68 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Journal.js loaded'); // デバッグ用のログ
+    
     // モーダル要素の取得
     const modal = document.getElementById('conversation-modal');
     const conversationHistory = document.getElementById('conversation-history');
     const closeBtn = modal.querySelector('.close');
+    
+    // タブ切り替え機能の追加
+    const tabButtons = document.querySelectorAll('.journal-tabs .tab-button');
+    console.log('Found tab buttons:', tabButtons.length); // 見つかったタブボタンの数をログ
+    
+    if (tabButtons.length > 0) {
+        tabButtons.forEach(button => {
+            console.log('Tab button found:', button.textContent.trim(), 'data-tab:', button.getAttribute('data-tab'));
+        });
+    } else {
+        console.warn('No tab buttons found in the document. Check HTML structure.');
+        // DOM構造をデバッグのためにログ出力
+        console.log('Journal tabs container:', document.querySelector('.journal-tabs'));
+    }
+    
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    console.log('Found tab panes:', tabPanes.length); // 見つかったタブペインの数をログ
+    
+    if (tabPanes.length > 0) {
+        tabPanes.forEach(pane => {
+            console.log('Tab pane found:', pane.id, 'classes:', pane.className);
+        });
+    } else {
+        console.warn('No tab panes found in the document. Check HTML structure.');
+    }
+    
+    // タブボタンのイベントリスナー
+    tabButtons.forEach((button, index) => {
+        console.log(`Adding click listener to button ${index}:`, button.getAttribute('data-tab')); // 各ボタンにリスナーを追加した証拠をログ
+        button.addEventListener('click', function(event) {
+            event.preventDefault(); // デフォルトの挙動を防止
+            console.log('Button clicked:', this.getAttribute('data-tab')); // クリック時にログを出力
+            
+            // アクティブクラスをすべてのボタンから削除
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // クリックされたボタンにアクティブクラスを追加
+            this.classList.add('active');
+            
+            // クリックされたタブのデータ属性を取得
+            const tab = this.getAttribute('data-tab');
+            
+            // ペインを全て非表示にする
+            tabPanes.forEach(pane => {
+                pane.classList.remove('active');
+                console.log(`Removing active class from: ${pane.id}`);
+            });
+            
+            // 対応するペインをアクティブにする
+            const activePane = document.getElementById(`${tab}-tab`);
+            console.log('Activating pane:', activePane ? activePane.id : 'Not found');
+            if (activePane) {
+                activePane.classList.add('active');
+            } else {
+                console.error(`Tab pane with id '${tab}-tab' not found in the document`);
+            }
+        });
+    });
     
     // 「会話を見る」ボタンのイベントリスナー
     const viewButtons = document.querySelectorAll('.view-conversation-button');
@@ -107,4 +167,30 @@ document.addEventListener('DOMContentLoaded', function() {
         historyHTML += '</div>';
         conversationHistory.innerHTML = historyHTML;
     }
+    
+    // ページ読み込み時にデフォルトタブ（シナリオ）を確実にアクティブにする
+    const defaultTab = document.querySelector('.tab-button[data-tab="scenarios"]');
+    console.log('Default tab:', defaultTab ? defaultTab.getAttribute('data-tab') : 'Not found');
+    if (defaultTab) {
+        // 少し遅延を入れてDOM構築完了後に実行
+        setTimeout(() => {
+            console.log('Triggering default tab click');
+            defaultTab.click();
+        }, 100);
+    } else {
+        console.warn('Default tab not found, cannot activate it');
+    }
+    
+    // ブラウザによっては特定のイベントが発火しない場合の対策
+    window.addEventListener('load', function() {
+        console.log('Window fully loaded, ensuring tab functionality');
+        const activeTab = document.querySelector('.tab-button.active');
+        if (activeTab) {
+            console.log('Active tab found, triggering click event');
+            activeTab.click();
+        } else if (defaultTab) {
+            console.log('No active tab found, activating default tab');
+            defaultTab.click();
+        }
+    });
 }); 

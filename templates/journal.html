@@ -16,86 +16,78 @@
     <div id="chat-container">
         <h1><i class="fas fa-book-open"></i> 学習履歴</h1>
         
+        <!-- タブナビゲーション -->
+        <div class="journal-tabs">
+            <button class="tab-button active" data-tab="scenarios"><i class="fas fa-file-alt"></i> シナリオ練習</button>
+            <button class="tab-button" data-tab="chat"><i class="fas fa-comments"></i> 雑談練習</button>
+        </div>
+        
         <!-- シナリオ履歴セクション -->
-        <div class="content-section">
-            <h2>シナリオ練習履歴</h2>
-            {% if scenario_history %}
-                {% for scenario_id, entry in scenario_history.items() %}
-                    <div class="journal-entry-header">
-                        <h3><i class="fas fa-file-alt"></i> {{ entry.title }}</h3>
-                        <span class="journal-date"><i class="fas fa-calendar-alt"></i> {{ entry.date }}</span>
+        <div class="tab-pane active" id="scenarios-tab">
+            <div class="content-section scenario-content">
+                <h2>シナリオ練習履歴</h2>
+                {% if scenario_history %}
+                    {% for scenario_id, entry in scenario_history.items() %}
+                        <div class="journal-entry-header">
+                            <h3><i class="fas fa-file-alt"></i> {{ entry.title }}</h3>
+                            <span class="journal-date"><i class="fas fa-calendar-alt"></i> {{ entry.date }}</span>
+                        </div>
+                        <div class="practice-summary">
+                            <p>最終練習日時: {{ entry.last_session }}</p>
+                            <p>練習回数: {{ entry.sessions_count }}</p>
+                        </div>
+                        <div class="journal-actions">
+                            <button class="view-conversation-button primary-button" data-id="{{ scenario_id }}" data-type="scenario"><i class="fas fa-eye"></i> 会話を見る</button>
+                            <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="primary-button">
+                                再度練習する
+                            </a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="journal-intro">
+                        <p><i class="fas fa-info-circle"></i> あなたの学習記録です。ここでは、これまでに練習したシナリオや雑談練習の記録を確認できます。</p>
                     </div>
-                    <div class="practice-summary">
-                        <p>最終練習日時: {{ entry.last_session }}</p>
-                        <p>練習回数: {{ entry.sessions_count }}</p>
-                    </div>
-                    <div class="journal-actions">
-                        <button class="view-conversation-button primary-button" data-id="{{ scenario_id }}" data-type="scenario"><i class="fas fa-eye"></i> 会話を見る</button>
-                        <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="primary-button">
-                            再度練習する
+                    <div class="empty-state">
+                        <p>まだシナリオ練習履歴がありません。</p>
+                        <p>シナリオを選んで練習を始めましょう！</p>
+                        <a href="{{ url_for('list_scenarios') }}" class="primary-button">
+                            シナリオ一覧へ
                         </a>
                     </div>
-                {% endfor %}
-            {% else %}
-                <div class="journal-intro content-section">
-                    <p><i class="fas fa-info-circle"></i> あなたの学習記録です。ここでは、これまでに練習したシナリオや雑談練習の記録を確認できます。</p>
-                </div>
-                <div class="empty-state">
-                    <p>まだシナリオ練習履歴がありません。</p>
-                    <p>シナリオを選んで練習を始めましょう！</p>
-                    <a href="{{ url_for('list_scenarios') }}" class="primary-button">
-                        シナリオ一覧へ
-                    </a>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
         
         <!-- 雑談履歴セクション -->
-        <div class="content-section">
-            <h2>雑談練習履歴</h2>
-            {% if chat_history %}
-                <div class="chat-history-summary">
-                    <p>雑談練習回数: {{ chat_history|length // 2 }}</p>
-                    <p>最終練習日時: {{ chat_history[-1].timestamp if chat_history else '履歴なし' }}</p>
-                </div>
-                <div class="journal-actions">
-                    <button class="view-conversation-button primary-button" data-type="chat"><i class="fas fa-eye"></i> 会話を見る</button>
-                    <a href="{{ url_for('chat') }}" class="primary-button">
-                        雑談練習する
-                    </a>
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <p>まだ雑談練習履歴がありません。</p>
-                    <p>雑談練習を始めましょう！</p>
-                    <a href="{{ url_for('chat') }}" class="primary-button">
-                        雑談練習へ
-                    </a>
-                </div>
-            {% endif %}
+        <div class="tab-pane" id="chat-tab">
+            <div class="content-section chat-content">
+                <h2>雑談練習履歴</h2>
+                {% if chat_history %}
+                    <div class="chat-history-summary">
+                        <p>雑談練習回数: {{ chat_history|length // 2 }}</p>
+                        <p>最終練習日時: {{ chat_history[-1].timestamp if chat_history else '履歴なし' }}</p>
+                    </div>
+                    <div class="journal-actions">
+                        <button class="view-conversation-button primary-button" data-type="chat"><i class="fas fa-eye"></i> 会話を見る</button>
+                        <a href="{{ url_for('chat') }}" class="primary-button">
+                            雑談練習する
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p>まだ雑談練習履歴がありません。</p>
+                        <p>雑談練習を始めましょう！</p>
+                        <a href="{{ url_for('chat') }}" class="primary-button">
+                            雑談練習へ
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <div class="navigation">
         <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> トップページに戻る</a>
-    </div>
-
-    <div class="progress-section">
-        <h2>学習の進捗状況</h2>
-        <div class="journal-tabs">
-            <button class="tab-button active" data-tab="scenarios"><i class="fas fa-theater-masks"></i> シナリオ練習</button>
-            <button class="tab-button" data-tab="chats"><i class="fas fa-comment-dots"></i> 雑談練習</button>
-        </div>
-        <div class="progress-stats">
-            <div class="stat-card">
-                <h3>総練習時間</h3>
-                <div class="stat-value">{{ total_practice_time }}</div>
-            </div>
-            <div class="stat-card">
-                <h3>最近の活動</h3>
-                <div class="stat-value">{{ last_activity|datetime }}</div>
-            </div>
-        </div>
     </div>
     
     <!-- 会話履歴表示用モーダル -->
@@ -108,5 +100,51 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/journal.js') }}"></script>
+    
+    <!-- インラインJavaScriptでタブ切り替え機能を直接実装 -->
+    <script>
+        // DOMが読み込まれたら実行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Inline tab script loaded');
+            
+            // タブ要素を取得
+            const scenariosTab = document.querySelector('.tab-button[data-tab="scenarios"]');
+            const chatTab = document.querySelector('.tab-button[data-tab="chat"]');
+            const scenariosPane = document.getElementById('scenarios-tab');
+            const chatPane = document.getElementById('chat-tab');
+            
+            if (scenariosTab && chatTab && scenariosPane && chatPane) {
+                console.log('All tab elements found in inline script');
+                
+                // シナリオタブクリックイベント
+                scenariosTab.addEventListener('click', function() {
+                    console.log('Scenarios tab clicked (inline)');
+                    // アクティブクラスの切り替え
+                    scenariosTab.classList.add('active');
+                    chatTab.classList.remove('active');
+                    scenariosPane.classList.add('active');
+                    chatPane.classList.remove('active');
+                });
+                
+                // 雑談タブクリックイベント
+                chatTab.addEventListener('click', function() {
+                    console.log('Chat tab clicked (inline)');
+                    // アクティブクラスの切り替え
+                    chatTab.classList.add('active');
+                    scenariosTab.classList.remove('active');
+                    chatPane.classList.add('active');
+                    scenariosPane.classList.remove('active');
+                });
+                
+                // 初期状態ではシナリオタブをアクティブに
+                scenariosTab.classList.add('active');
+                chatTab.classList.remove('active');
+                scenariosPane.classList.add('active');
+                chatPane.classList.remove('active');
+            } else {
+                console.error('Tab elements not found in inline script');
+            }
+        });
+    </script>
 </body>
 </html> 
