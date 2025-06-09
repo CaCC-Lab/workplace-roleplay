@@ -11,3 +11,4 @@ google-api-core>=2.15.0
 google-genai>=0.1.0
 redis
 pydub>=0.25.1
+Pillow>=9.0.0

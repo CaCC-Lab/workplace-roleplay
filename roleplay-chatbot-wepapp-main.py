@@ -1725,6 +1725,241 @@ def get_voice_for_emotion(emotion: str) -> str:
     }
     return emotion_voice_map.get(emotion, "kore")
 
+# 画像キャッシュ（シンプルなメモリキャッシュ）
+image_cache = {}
+MAX_CACHE_SIZE = 50  # 最大50個までキャッシュ
+
+@app.route("/api/generate_character_image", methods=["POST"])
+def generate_character_image():
+    """
+    AIキャラクターの画像を生成するAPI
+    """
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        # 必須パラメータの確認
+        scenario_id = data.get("scenario_id")
+        emotion = data.get("emotion", "neutral")
+        text = data.get("text", "")  # AIの応答テキスト（感情検出用）
+        
+        if not scenario_id:
+            return jsonify({"error": "シナリオIDが必要です"}), 400
+        
+        # シナリオ情報の取得
+        if scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオID"}), 400
+        
+        scenario = scenarios[scenario_id]
+        character_setting = scenario.get("character_setting", {})
+        
+        # キャラクター情報の解析
+        personality = character_setting.get("personality", "")
+        
+        # 年齢・性別・役職の推定
+        age_range = "40s"  # デフォルト
+        gender = "male"    # デフォルト
+        position = "manager"  # デフォルト
+        
+        # テキストから情報を抽出
+        if "女性" in personality or "female" in personality.lower():
+            gender = "female"
+        elif "男性" in personality or "male" in personality.lower():
+            gender = "male"
+        
+        if "20代" in personality or "新人" in personality:
+            age_range = "20s"
+        elif "30代" in personality:
+            age_range = "30s"
+        elif "40代" in personality:
+            age_range = "40s"
+        elif "50代" in personality:
+            age_range = "50s"
+        
+        if "部長" in personality:
+            position = "department manager"
+        elif "課長" in personality:
+            position = "section manager"
+        elif "先輩" in personality:
+            position = "senior colleague"
+        elif "同僚" in personality:
+            position = "colleague"
+        elif "後輩" in personality or "新人" in personality:
+            position = "junior colleague"
+        
+        # 感情から表情への変換（表情のみ変化、人物は同じ）
+        emotion_expressions = {
+            "happy": "with a warm, genuine smile and bright eyes",
+            "sad": "with a concerned, sympathetic expression",
+            "angry": "with a slightly frustrated but controlled expression",
+            "excited": "with an enthusiastic, energetic expression",
+            "worried": "with a worried, concerned look",
+            "tired": "looking slightly fatigued but professional",
+            "calm": "with a calm, composed expression",
+            "confident": "with a confident, assured expression",
+            "professional": "with a professional, neutral expression",
+            "friendly": "with a friendly, approachable expression",
+            "neutral": "with a neutral, attentive expression"
+        }
+        
+        expression = emotion_expressions.get(emotion, emotion_expressions["neutral"])
+        
+        # 画像生成プロンプトの構築（同一人物を保証するため詳細な特徴を固定）
+        gender_text = "woman" if gender == "female" else "man"
+        
+        # シナリオごとの固定的な外見特徴（キャラクターの一貫性を保つ）
+        # 各シナリオには固有の人物を割り当て
+        scenario_appearances = {
+            # 男性上司系
+            "scenario1": "short black hair with slight gray at temples, clean-shaven, rectangular glasses, serious demeanor",
+            "scenario3": "graying hair neatly styled, clean-shaven, thin-rimmed glasses, authoritative look",
+            "scenario5": "dark hair with professional cut, clean-shaven, no glasses, confident bearing",
+            "scenario9": "salt-and-pepper hair, clean-shaven, round glasses, thoughtful expression",
+            "scenario11": "silver hair, clean-shaven, no glasses, distinguished appearance",
+            "scenario13": "short black hair, clean-shaven, modern glasses, tech-savvy look",
+            "scenario16": "well-groomed dark hair, clean-shaven, designer glasses, strategic thinker",
+            "scenario22": "athletic build, short hair, clean-shaven, energetic presence",
+            "scenario29": "experienced look, graying temples, clean-shaven, warm smile",
+            
+            # 女性上司・先輩系
+            "scenario7": "shoulder-length black hair, professional style, light makeup, leadership aura",
+            "scenario15": "bob-cut hair, elegant makeup, pearl earrings, managerial presence",
+            "scenario17": "sophisticated short hair, refined makeup, executive appearance",
+            "scenario19": "long hair in low ponytail, gentle makeup, mentoring demeanor",
+            "scenario26": "stylish medium-length hair, polished makeup, PR professional look",
+            
+            # 同僚系（デフォルト外見）
+            "default_male": "short black hair, clean-shaven, casual professional look",
+            "default_female": "medium-length black hair, natural makeup, approachable appearance"
+        }
+        
+        # シナリオに基づいて外見を決定
+        if scenario_id in scenario_appearances:
+            appearance = scenario_appearances[scenario_id]
+        else:
+            # デフォルトの外見を使用
+            default_key = f"default_{gender}"
+            appearance = scenario_appearances.get(default_key, "professional appearance")
+        
+        # より強力な同一人物指定
+        # シナリオごとに固有のシード値を使用
+        character_seed = f"character_{scenario_id}_{gender}_{age_range}"
+        
+        prompt = (f"IMPORTANT: Generate the EXACT SAME person in every image. "
+                 f"Character ID: {character_seed}. "
+                 f"This is a professional Japanese {gender_text} in their {age_range}, "
+                 f"with EXACTLY these features: {appearance}. "
+                 f"They must have the SAME face structure, SAME hairstyle, SAME facial features in every image. "
+                 f"Only the expression changes to show {expression}. "
+                 f"Dressed in appropriate business attire for a {position}, "
+                 f"in a modern Japanese office environment, "
+                 f"photorealistic portrait style, high quality, "
+                 f"professional lighting. "
+                 f"CRITICAL: Maintain exact character consistency - same person, only expression differs.")
+        
+        # 状況に応じた背景の追加
+        situation = character_setting.get("situation", "")
+        if "会議" in situation:
+            prompt += ", meeting room background"
+        elif "休憩" in situation or "ランチ" in situation:
+            prompt += ", office break room or cafeteria background"
+        elif "懇親会" in situation:
+            prompt += ", casual office party setting"
+        
+        # キャッシュキーの生成（シナリオIDと感情のみで構成）
+        cache_key = f"{scenario_id}_{emotion}"
+        
+        # キャッシュチェック
+        if cache_key in image_cache:
+            print(f"画像キャッシュヒット: {cache_key}")
+            cached_data = image_cache[cache_key]
+            cached_data["cache_hit"] = True
+            return jsonify(cached_data)
+        
+        try:
+            # Gemini Image Generation APIを使用
+            from google import genai
+            from google.genai import types
+            from PIL import Image as PILImage
+            from io import BytesIO
+            import base64
+            
+            # Geminiクライアントの初期化
+            client = genai.Client(api_key=GOOGLE_API_KEY)
+            
+            print(f"画像生成開始: {cache_key}")
+            
+            # 画像生成リクエスト
+            response = client.models.generate_content(
+                model="gemini-2.0-flash-preview-image-generation",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=['TEXT', 'IMAGE']
+                )
+            )
+            
+            # レスポンスから画像データを取得
+            image_data = None
+            generated_text = None
+            
+            if response.candidates and response.candidates[0].content:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'text') and part.text:
+                        generated_text = part.text
+                    elif hasattr(part, 'inline_data') and part.inline_data:
+                        image_data = part.inline_data.data
+            
+            if not image_data:
+                raise ValueError("画像データが生成されませんでした")
+            
+            # 画像データの処理
+            if isinstance(image_data, str):
+                # すでにBase64の場合
+                image_base64 = image_data
+            else:
+                # バイナリデータの場合はBase64エンコード
+                image_base64 = base64.b64encode(image_data).decode('utf-8')
+            
+            # レスポンスの返却
+            response_data = {
+                "image": image_base64,
+                "format": "png",
+                "prompt": prompt,
+                "emotion": emotion,
+                "character_info": {
+                    "age": age_range,
+                    "gender": gender,
+                    "position": position
+                }
+            }
+            
+            if generated_text:
+                response_data["description"] = generated_text
+            
+            # キャッシュに保存（サイズ制限あり）
+            if len(image_cache) >= MAX_CACHE_SIZE:
+                # 最も古いエントリを削除
+                oldest_key = next(iter(image_cache))
+                del image_cache[oldest_key]
+                print(f"キャッシュサイズ制限により削除: {oldest_key}")
+            
+            image_cache[cache_key] = response_data.copy()
+            print(f"画像をキャッシュに保存: {cache_key}")
+            
+            return jsonify(response_data)
+            
+        except Exception as e:
+            print(f"Image generation error: {str(e)}")
+            return jsonify({
+                "error": "画像生成に失敗しました",
+                "details": str(e)
+            }), 500
+            
+    except Exception as e:
+        print(f"Error in generate_character_image: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/tts/voices", methods=["GET"])
 def get_available_voices():
     """

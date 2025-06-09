@@ -34,6 +34,13 @@
 - 練習時間の自動計測
 - 学習の振り返りと改善点の分析
 
+### 5. キャラクター画像生成機能 🎨（現在一時無効化中）
+- Google Gemini Image Generation APIによるキャラクター画像生成
+- 感情に応じた表情の動的変更
+- キャラクターの一貫性を保つための詳細なプロンプト制御
+- 役職や年齢に応じた適切な外見の生成
+- **注**: 現在、技術的な制約により一時的に無効化されています
+
 ## 🧠 対応AIモデル
 
 ### Google Gemini専用
@@ -102,6 +109,10 @@ http://localhost:5001
 # 基本設定
 FLASK_SECRET_KEY=your_secret_key_here
 GOOGLE_API_KEY=AI...   # Google APIキー（必須）
+                       # 以下の機能で使用されます：
+                       # - Gemini AIモデル（会話応答）
+                       # - Gemini TTS API（音声読み上げ）
+                       # - Gemini Image Generation API（画像生成、現在無効化中）
 
 # セッション設定
 SESSION_TYPE=filesystem
@@ -132,6 +143,13 @@ SESSION_TYPE=filesystem
 - Google Gemini APIを使用した高品質な日本語応答
 - モデルの特性を活かした自然な会話練習
 - Gemini TTS APIによる高品質な音声読み上げ機能
+
+### 音声合成機能の特徴
+- **30種類の多様な音声タイプ**: 年齢、性別、役職に応じた自然な音声を自動選択
+- **シナリオ固定音声**: 各シナリオで一貫した音声を使用し、没入感を維持
+- **感情表現**: 同じ音声で異なる感情（喜び、困惑、疲れなど）を表現
+- **高品質音声**: WAV形式（24kHz、16ビット、モノラル）での出力
+- **フォールバック機能**: Gemini TTS APIが利用できない場合はWeb Speech APIに自動切り替え
 
 ## 🛠 開発者向け情報
 
@@ -212,6 +230,7 @@ Azure Web Appへのデプロイ方法については、`azure-webapp-settings.md
 
 - Google Gemini APIを使用する場合、会話データはGoogleのサービスに送信されます
 - 音声読み上げ機能はGemini TTS APIを使用し、テキストのみがGoogleに送信されます
+- 画像生成機能（現在無効化中）はGemini Image Generation APIを使用し、キャラクター描写のプロンプトがGoogleに送信されます
 - セッションデータは一時的にサーバーに保存され、セッション終了後に自動削除されます
 - APIキーは環境変数で管理し、ソースコードには含まれません
 

@@ -4,6 +4,9 @@ const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
 const clearButton = document.getElementById('clear-button');
 
+// 画像生成機能の有効/無効フラグ（一貫性の問題がある場合は無効化可能）
+let enableImageGeneration = false;
+
 async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg) return;
@@ -96,6 +99,45 @@ function displayMessage(text, className, enableTTS = false) {
     const div = document.createElement("div");
     div.className = "message " + className;
     
+    // AIメッセージの場合は画像を生成（有効な場合のみ）
+    if (enableImageGeneration && className.includes('bot')) {
+        // 画像コンテナを追加
+        const imageContainer = document.createElement("div");
+        imageContainer.className = "character-image-container";
+        imageContainer.style.display = "none"; // 初期は非表示
+        
+        // ローディング表示
+        const loadingDiv = document.createElement("div");
+        loadingDiv.className = "image-loading";
+        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> キャラクター画像を生成中...';
+        imageContainer.appendChild(loadingDiv);
+        
+        div.appendChild(imageContainer);
+        
+        // 感情を検出
+        const emotion = detectEmotion(text.replace('相手役: ', ''));
+        
+        // 画像生成リクエスト
+        generateCharacterImage(scenarioId, emotion || 'neutral', text.replace('相手役: ', ''))
+            .then(imageData => {
+                if (imageData && imageData.image) {
+                    imageContainer.innerHTML = ''; // ローディングをクリア
+                    
+                    const img = document.createElement("img");
+                    img.src = `data:image/${imageData.format || 'png'};base64,${imageData.image}`;
+                    img.className = "character-image";
+                    img.alt = "相手役の表情";
+                    
+                    imageContainer.appendChild(img);
+                    imageContainer.style.display = "block";
+                }
+            })
+            .catch(error => {
+                console.error("画像生成エラー:", error);
+                imageContainer.style.display = "none"; // エラー時は非表示
+            });
+    }
+    
     // メッセージコンテナ
     const messageContainer = document.createElement("div");
     messageContainer.className = "message-container";
@@ -132,6 +174,8 @@ function clearScenarioHistory(){
         if(data.status === "success"){
             chatMessages.innerHTML = "";
             displayMessage("シナリオ履歴がクリアされました", "bot-message");
+            // キャラクター情報もリセット
+            resetCharacterForScenario(scenarioId);
         } else {
             displayMessage("エラー: " + data.message, "bot-message");
         }
@@ -485,4 +529,75 @@ function playTTSWithWebSpeech(text, button) {
         button.innerHTML = '<i class="fas fa-volume-up"></i>';
         alert('音声読み上げ機能でエラーが発生しました');
     }
+}
+
+// シナリオごとのキャラクター画像履歴を管理
+const characterImageHistory = {};
+// シナリオごとの基準キャラクター情報を保存
+const baseCharacterInfo = {};
+
+// 画像生成関数
+async function generateCharacterImage(scenarioId, emotion, text) {
+    try {
+        // このシナリオで既に画像を生成しているかチェック
+        const cacheKey = `${scenarioId}_${emotion}`;
+        if (characterImageHistory[cacheKey]) {
+            console.log('クライアント側キャッシュヒット:', cacheKey);
+            return characterImageHistory[cacheKey];
+        }
+        
+        // 基準キャラクター情報があるか確認
+        const hasBaseCharacter = baseCharacterInfo[scenarioId] !== undefined;
+        
+        const requestBody = {
+            scenario_id: scenarioId,
+            emotion: emotion,
+            text: text
+        };
+        
+        // 基準キャラクター情報がある場合は送信
+        if (hasBaseCharacter) {
+            requestBody.base_character = baseCharacterInfo[scenarioId];
+        }
+        
+        const response = await fetch('/api/generate_character_image', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error('画像生成APIエラー:', data);
+            return null;
+        }
+        
+        // 初回生成時は基準キャラクター情報として保存
+        if (!hasBaseCharacter && data.character_info) {
+            baseCharacterInfo[scenarioId] = data.character_info;
+            console.log('基準キャラクター情報を保存:', scenarioId, data.character_info);
+        }
+        
+        // クライアント側でもキャッシュ
+        characterImageHistory[cacheKey] = data;
+        
+        return data;
+        
+    } catch (error) {
+        console.error('画像生成エラー:', error);
+        return null;
+    }
+}
+
+// シナリオ開始時にキャラクター情報をリセット
+function resetCharacterForScenario(scenarioId) {
+    // 該当シナリオのキャッシュをクリア
+    Object.keys(characterImageHistory).forEach(key => {
+        if (key.startsWith(scenarioId + '_')) {
+            delete characterImageHistory[key];
+        }
+    });
+    // 基準キャラクター情報もクリア
+    delete baseCharacterInfo[scenarioId];
 } 

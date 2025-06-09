@@ -144,4 +144,58 @@
     font-size: 12px;
     text-align: right;
     font-style: italic;
+}
+
+/* キャラクター画像のスタイル */
+.character-image-container {
+    margin-bottom: 10px;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in;
+}
+
+.character-image {
+    max-width: 300px;
+    max-height: 300px;
+    width: auto;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    object-fit: cover;
+}
+
+.image-loading {
+    padding: 20px;
+    color: #666;
+    font-size: 14px;
+}
+
+.image-loading i {
+    margin-right: 8px;
+}
+
+/* AIメッセージのレイアウト調整 */
+.message.bot-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .character-image {
+        max-width: 200px;
+        max-height: 200px;
+    }
 } 
