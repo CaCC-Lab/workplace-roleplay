@@ -1,76 +1,49 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const providerSelect = document.getElementById('provider-select');
     const modelSelect = document.getElementById('model-select');
     const modelSelectContainer = document.querySelector('.model-select');
 
-    // モデルのグループ化用のオブジェクト
-    let modelGroups = {
-        gemini: [],
-        openai: [],
-        local: []
-    };
+    // Geminiモデルのリスト
+    let geminiModels = [];
 
     // APIからモデル一覧を取得
     fetch('/api/models')
         .then(response => response.json())
         .then(data => {
-            // モデルをグループ化
+            // Geminiモデルを取得
             data.models.forEach(model => {
                 if (model.startsWith('gemini/')) {
-                    modelGroups.gemini.push({
+                    geminiModels.push({
                         value: model,
                         label: model.replace('gemini/', '')
-                    });
-                } else if (model.startsWith('openai/')) {
-                    modelGroups.openai.push({
-                        value: model,
-                        label: model.replace('openai/', '')
-                    });
-                } else {
-                    modelGroups.local.push({
-                        value: model,
-                        label: model
                     });
                 }
             });
 
+            // モデルリストを更新
+            updateModelSelect();
+            modelSelectContainer.style.display = 'flex';
+            
             // 保存された選択を復元するか、デフォルト値を設定
-            const savedProvider = localStorage.getItem('selectedProvider');
             const savedModel = localStorage.getItem('selectedModel');
             
-            if (savedProvider) {
-                providerSelect.value = savedProvider;
-                updateModelSelect(savedProvider);
-                modelSelectContainer.style.display = 'flex';
-                
-                if (savedModel) {
-                    modelSelect.value = savedModel;
-                }
+            if (savedModel && geminiModels.some(model => model.value === savedModel)) {
+                modelSelect.value = savedModel;
             } else {
-                // デフォルトでGeminiを選択
-                providerSelect.value = 'gemini';
-                updateModelSelect('gemini');
-                modelSelectContainer.style.display = 'flex';
-                
                 // デフォルトでgemini-1.5-flashを選択
-                setTimeout(() => {
-                    if (modelGroups.gemini.length > 0) {
-                        // gemini-1.5-flashを探して選択
-                        const defaultModel = 'gemini/gemini-1.5-flash';
-                        const defaultModelExists = modelGroups.gemini.some(model => model.value === defaultModel);
-                        
-                        if (defaultModelExists) {
-                            modelSelect.value = defaultModel;
-                        } else {
-                            // なければ最初のモデルを選択
-                            modelSelect.selectedIndex = 0;
-                        }
-                        
-                        // 選択を保存
-                        localStorage.setItem('selectedProvider', 'gemini');
-                        localStorage.setItem('selectedModel', modelSelect.value);
-                    }
-                }, 100); // 少し遅延させてモデルリストが更新された後に実行
+                const defaultModel = 'gemini/gemini-1.5-flash';
+                const defaultModelExists = geminiModels.some(model => model.value === defaultModel);
+                
+                if (defaultModelExists) {
+                    modelSelect.value = defaultModel;
+                } else if (geminiModels.length > 0) {
+                    // なければ最初のモデルを選択
+                    modelSelect.value = geminiModels[0].value;
+                }
+                
+                // 選択を保存
+                if (modelSelect.value) {
+                    localStorage.setItem('selectedModel', modelSelect.value);
+                }
             }
         })
         .catch(error => {
@@ -78,20 +51,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Failed to fetch models:', error);
         });
 
-    // プロバイダー選択時の処理
-    providerSelect.addEventListener('change', function() {
-        const selectedProvider = this.value;
-        localStorage.setItem('selectedProvider', selectedProvider);
-        
-        updateModelSelect(selectedProvider);
-        modelSelectContainer.style.display = 'flex';
-        
-        // 最初のモデルを自動選択
-        if (modelSelect.options.length > 0) {
-            modelSelect.selectedIndex = 0;
-            localStorage.setItem('selectedModel', modelSelect.value);
-        }
-    });
 
     // モデル選択時の処理
     modelSelect.addEventListener('change', function() {
@@ -100,13 +59,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // モデル選択の更新
-    function updateModelSelect(provider) {
+    function updateModelSelect() {
         // 既存のオプションをクリア
         modelSelect.innerHTML = '';
         
-        // 選択されたプロバイダーのモデルを追加
-        const models = modelGroups[provider] || [];
-        models.forEach(model => {
+        // Geminiモデルを追加
+        geminiModels.forEach(model => {
             const option = document.createElement('option');
             option.value = model.value;
             option.textContent = model.label;

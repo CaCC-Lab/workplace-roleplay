@@ -47,7 +47,7 @@ async function startConversation() {
         }
 
         if (data.response) {
-            displayMessage("相手: " + data.response, "bot-message");
+            displayMessage("相手: " + data.response, "bot-message", true);
             messageInput.disabled = false;
             sendButton.disabled = false;
             getFeedbackButton.disabled = false;
@@ -96,7 +96,7 @@ async function sendMessage() {
         }
 
         if (data.response) {
-            displayMessage("相手: " + data.response, "bot-message");
+            displayMessage("相手: " + data.response, "bot-message", true);
         }
     } catch (err) {
         console.error("Error:", err);
@@ -196,12 +196,213 @@ async function clearHistory() {
 }
 
 // ユーティリティ関数
-function displayMessage(text, className) {
+function displayMessage(text, className, enableTTS = false) {
     const div = document.createElement("div");
     div.className = "message " + className;
-    div.textContent = text;
+    
+    // メッセージコンテナ
+    const messageContainer = document.createElement("div");
+    messageContainer.className = "message-container";
+    
+    // テキスト部分
+    const textSpan = document.createElement("span");
+    textSpan.className = "message-text";
+    textSpan.textContent = text;
+    messageContainer.appendChild(textSpan);
+    
+    // TTSボタンを追加（AIのメッセージのみ）
+    if (enableTTS && className.includes('bot')) {
+        const ttsButton = document.createElement("button");
+        ttsButton.className = "tts-button";
+        ttsButton.innerHTML = '<i class="fas fa-volume-up"></i>';
+        ttsButton.title = "読み上げ";
+        ttsButton.onclick = () => playTTS(text.replace('相手: ', ''), ttsButton);
+        messageContainer.appendChild(ttsButton);
+    }
+    
+    div.appendChild(messageContainer);
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// AIの応答から感情を検出する関数
+function detectEmotion(text) {
+    // 感情を示すキーワードと対応する感情
+    const emotionPatterns = {
+        happy: /嬉し|楽し|喜|笑|幸せ|ワクワク|素晴らし|最高|😊|😄|😃/,
+        sad: /悲し|寂し|残念|辛|涙|落ち込|😢|😭|😔/,
+        angry: /怒|腹立|イライラ|許せ|ムカ|😠|😡|💢/,
+        excited: /興奮|ドキドキ|期待|楽しみ|ワクワク|すごい|やった|😆|🎉/,
+        worried: /心配|不安|困|悩|迷|どうし|😟|😰|😨/,
+        tired: /疲れ|眠|だる|しんど|ふぅ|はぁ|😪|😴/,
+        calm: /落ち着|穏やか|静か|ゆっくり|のんびり|☺️|😌/,
+        professional: /申し訳|恐れ入|お願い|いたし|ございま|です|ます/,
+        friendly: /ね[！。]|よ[！。]|だね|でしょ|かな[？。]/
+    };
+    
+    // カッコ内の感情表現をチェック
+    const emotionInParentheses = text.match(/[（(]([^）)]+)[）)]/g);
+    if (emotionInParentheses) {
+        for (const match of emotionInParentheses) {
+            const innerText = match.slice(1, -1);
+            for (const [emotion, pattern] of Object.entries(emotionPatterns)) {
+                if (pattern.test(innerText)) {
+                    return emotion;
+                }
+            }
+        }
+    }
+    
+    // 本文から感情を検出
+    for (const [emotion, pattern] of Object.entries(emotionPatterns)) {
+        if (pattern.test(text)) {
+            return emotion;
+        }
+    }
+    
+    // デフォルトは通常の感情
+    return null;
+}
+
+// テキスト読み上げ関数
+async function playTTS(text, button) {
+    // 既に再生中の音声がある場合は停止
+    if (window.currentAudio && !window.currentAudio.paused) {
+        window.currentAudio.pause();
+        window.currentAudio = null;
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.disabled = false;
+        return;
+    }
+    
+    try {
+        // ボタンを無効化してローディング表示
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        // 感情を検出
+        const emotion = detectEmotion(text);
+        
+        // TTSリクエストの準備
+        const ttsRequest = {
+            text: text
+        };
+        
+        // 感情が検出された場合、リクエストに追加
+        if (emotion) {
+            ttsRequest.emotion = emotion;
+            console.log(`検出された感情: ${emotion}`);
+        }
+        
+        // Gemini TTS APIを呼び出し
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(ttsRequest)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            // APIエラーの場合、Web Speech APIにフォールバック
+            if (data.fallback === 'Web Speech API') {
+                console.log('Gemini TTSが失敗したため、Web Speech APIを使用します');
+                playTTSWithWebSpeech(text, button);
+                return;
+            }
+            throw new Error(data.error || 'TTS APIエラー');
+        }
+        
+        // Base64デコードして音声を再生
+        const audioFormat = data.format || 'wav';
+        const audio = new Audio(`data:audio/${audioFormat};base64,` + data.audio);
+        window.currentAudio = audio;
+        
+        // 再生中のアイコン表示
+        button.innerHTML = '<i class="fas fa-pause"></i>';
+        
+        audio.onended = () => {
+            // 再生終了後、元のアイコンに戻す
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            window.currentAudio = null;
+        };
+        
+        audio.onerror = () => {
+            console.error('音声再生エラー');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            window.currentAudio = null;
+            // エラー時はWeb Speech APIにフォールバック
+            playTTSWithWebSpeech(text, button);
+        };
+        
+        await audio.play();
+        
+    } catch (error) {
+        console.error('TTSエラー:', error);
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        // エラー時はWeb Speech APIにフォールバック
+        playTTSWithWebSpeech(text, button);
+    }
+}
+
+// Web Speech APIを使用したフォールバック関数
+function playTTSWithWebSpeech(text, button) {
+    // Web Speech APIがサポートされているか確認
+    if (!('speechSynthesis' in window)) {
+        alert('音声読み上げ機能が利用できません');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        return;
+    }
+    
+    try {
+        // 既に再生中の場合は停止
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+        
+        // 音声合成の設定
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ja-JP';  // 日本語を設定
+        utterance.rate = 1.0;      // 話す速度
+        utterance.pitch = 1.0;     // 音の高さ
+        utterance.volume = 1.0;    // 音量
+        
+        // 日本語の音声を選択（利用可能な場合）
+        const voices = window.speechSynthesis.getVoices();
+        const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
+        if (japaneseVoice) {
+            utterance.voice = japaneseVoice;
+        }
+        
+        // 再生中のアイコン表示
+        button.innerHTML = '<i class="fas fa-pause"></i>';
+        
+        // 再生終了時の処理
+        utterance.onend = () => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        };
+        
+        // エラー時の処理
+        utterance.onerror = (event) => {
+            console.error('音声合成エラー:', event);
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        };
+        
+        // 音声再生を開始
+        window.speechSynthesis.speak(utterance);
+        
+    } catch (error) {
+        console.error('Web Speech TTSエラー:', error);
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        alert('音声読み上げ機能が利用できません');
+    }
 }
 
 // イベントリスナーの設定

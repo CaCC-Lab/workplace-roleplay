@@ -30,8 +30,8 @@
                         <div class="step-number">1</div>
                         <div class="step-content">
                             <h3><i class="fas fa-robot"></i> AIモデルを選択する</h3>
-                            <p>ドロップダウンメニューから、使用したいAIプロバイダー（Google Gemini、OpenAI、ローカルモデル）を選択し、
-                            続いて特定のモデルを選びます。モデルによって応答の質や特性が異なります。</p>
+                            <p>ドロップダウンメニューから、使用したいGoogle Geminiモデルを選択します。
+                            モデルによって応答の速度や特性が異なります。</p>
                         </div>
                     </div>
                     <div class="usage-step">
@@ -87,23 +87,12 @@
             <div class="model-selection-wrapper">
                 <div class="model-selection">
                     <h2><i class="fas fa-robot"></i> AIモデルを選択</h2>
-                    <p>会話に使用するAIモデルを選択してください。</p>
+                    <p>会話に使用するGoogle Geminiモデルを選択してください。</p>
                     <div class="model-select-container">
                         <div class="select-row">
-                            <!-- プロバイダー選択 -->
-                            <div class="select-group">
-                                <label for="provider-select">プロバイダー:</label>
-                                <select id="provider-select" class="enhanced-select">
-                                    <option value="">選択してください</option>
-                                    <option value="gemini" selected>Google Gemini</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="local">Local Models (Ollama)</option>
-                                </select>
-                            </div>
-                            
-                            <!-- モデル選択（初期状態は非表示） -->
+                            <!-- モデル選択 -->
                             <div class="select-group model-select" style="display: none;">
-                                <label for="model-select">モデル:</label>
+                                <label for="model-select">Geminiモデル:</label>
                                 <select id="model-select" class="enhanced-select">
                                     <!-- モデルはJavaScriptで動的に追加 -->
                                 </select>

@@ -11,13 +11,10 @@ import json
 import time
 
 # LangChain関連
-from langchain_openai import ChatOpenAI  # OpenAI用
-from langchain_community.llms.ollama import Ollama  # Ollama用
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
-from openai import OpenAI as OpenAIClient
 from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -34,9 +31,9 @@ from scenarios import load_scenarios
 
 """
 要件:
-1. ローカルLLM (Ollama) とクラウドLLM (OpenAI) を切り替えられる
+1. Google Gemini APIを使用したAIチャット
 2. ユーザごとに会話メモリを保持
-3. モデル一覧を取得できる (ollamaが動いている前提)
+3. Geminiテキスト読み上げ機能の統合
 4. Flaskを使ったプロトタイプ（Jinja2テンプレート）
 """
 
@@ -90,18 +87,10 @@ def format_datetime(value):
         return str(value)
 
 # ========== 設定値・初期化 ==========
-# Ollamaがローカルで起動しているURL
-OLLAMA_API_URL = "http://localhost:11434"
-
-# OpenAI APIキー (環境変数から取得)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is not set")
-
 # Gemini APIキー (環境変数から取得)
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
-    print("Warning: GOOGLE_API_KEY is not set")
+    raise ValueError("GOOGLE_API_KEY environment variable is not set")
 
 # LLMの温度やその他パラメータは必要に応じて調整
 DEFAULT_TEMPERATURE = 0.7
@@ -238,71 +227,7 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
         print(f"Error creating Gemini model: {error_msg}")
         raise
 
-def get_available_openai_models():
-    """
-    OpenAI APIから利用可能なモデル一覧を取得
-    エラー時は基本モデルのリストを返す
-    """
-    try:
-        client = OpenAIClient(api_key=OPENAI_API_KEY)
-        models = client.models.list()
-        
-        chat_models = []
-        for model in models:
-            if model.id.startswith(("gpt-4", "gpt-3.5")):
-                chat_models.append(f"openai/{model.id}")
-        
-        return sorted(chat_models)  # Geminiモデルは別途追加するため、ここでは追加しない
-    except Exception as e:
-        print(f"OpenAI models fetch error: {e}")
-        return [
-            "openai/gpt-4o-mini",
-            "openai/gpt-4",
-            "openai/gpt-4-turbo-preview",
-            "openai/gpt-3.5-turbo"
-        ]  # Geminiモデルは別途追加するため、ここでは追加しない
-
-# ========== モデル取得 (ローカル) ==========
-def get_available_local_models():
-    """
-    Ollamaサーバから利用可能なモデル一覧を取得
-    失敗した場合はデフォルトの"llama2"のみ返す
-    """
-    try:
-        response = requests.get(f"{OLLAMA_API_URL}/api/tags", timeout=3)
-        models_info = response.json()
-        model_names = [m["name"] for m in models_info.get("models", [])]
-        return model_names if model_names else ["llama2"]
-    except Exception as e:
-        print(f"Ollama models fetch error: {e}")
-        return ["llama2"]
-
 # ========== LLM生成ユーティリティ ==========
-def create_ollama_llm(model_name: str):
-    """
-    LangChainのOllama LLMインスタンス生成（新しいクライアントを使用）
-    """
-    return Ollama(
-        model=model_name,
-        temperature=DEFAULT_TEMPERATURE,
-    )
-
-def create_openai_llm(model_name: str = "gpt-3.5-turbo") -> ChatOpenAI:
-    """
-    LangChainのOpenAI Chat modelインスタンス生成（更新版）
-    """
-    # モデル名からopenai/プレフィックスを削除
-    if model_name.startswith("openai/"):
-        model_name = model_name.replace("openai/", "")
-    
-    # APIキーをSecretStr型に変換
-    api_key = SecretStr(OPENAI_API_KEY) if OPENAI_API_KEY else None
-        
-    return ChatOpenAI(
-        temperature=DEFAULT_TEMPERATURE,
-        api_key=api_key,  # SecretStr型で渡す
-        model=model_name,
-    )
 
 # ========== シナリオ（職場のあなた再現シートを想定したデータ） ==========
 # 実際にはデータベースや外部ファイルなどで管理するのがおすすめ
@@ -327,50 +252,26 @@ def chat():
     return render_template("chat.html")
 
 # 新しいユーティリティ関数を追加
-def handle_llm_error(error: Exception, fallback_function=None, fallback_args=None, error_prefix="エラーが発生しました"):
+def handle_llm_error(error: Exception, error_prefix="エラーが発生しました"):
     """
     LLM関連のエラーを共通処理するユーティリティ関数
     
     Args:
         error: 発生した例外
-        fallback_function: フォールバック時に実行する関数
-        fallback_args: フォールバック関数に渡す引数の辞書
         error_prefix: エラーメッセージの接頭辞
         
     Returns:
-        (エラーメッセージ, ステータスコード, フォールバック結果, fallback_model)のタプル
+        (エラーメッセージ, ステータスコード)のタプル
     """
     error_str = str(error)
     print(f"LLM error: {error_str}")
     
-    # クォータ制限エラーの検出（OpenAIなど）
+    # クォータ制限エラーの検出
     if "insufficient_quota" in error_str or "429" in error_str:
-        try:
-            print("APIクォータ制限を検出。ローカルモデルにフォールバックします。")
-            local_models = get_available_local_models()
-            
-            if local_models and fallback_function:
-                fallback_model = local_models[0]  # 最初のローカルモデルを使用
-                print(f"Using fallback model: {fallback_model}")
-                
-                if fallback_args is None:
-                    fallback_args = {}
-                
-                # フォールバック関数に'fallback_model'引数を追加
-                fallback_args['fallback_model'] = fallback_model
-                
-                # フォールバック関数を実行
-                result = fallback_function(**fallback_args)
-                return None, None, result, fallback_model
-            else:
-                return "APIクォータ制限に達し、利用可能なローカルモデルもありません。後でもう一度お試しください。", 429, None, None
-                
-        except Exception as fallback_error:
-            print(f"Fallback model error: {str(fallback_error)}")
-            return f"すべてのモデルでエラーが発生しました: {str(fallback_error)}", 500, None, None
+        return "APIクォータ制限に達しました。後でもう一度お試しください。", 429
     else:
         # その他のエラー
-        return f"{error_prefix}: {error_str}", 500, None, None
+        return f"{error_prefix}: {error_str}", 500
 
 def create_model_and_get_response(model_name: str, messages_or_prompt, extract=True):
     """
@@ -395,24 +296,6 @@ def create_model_and_get_response(model_name: str, messages_or_prompt, extract=T
         # エラーはそのまま上位に伝播させる
         raise
 
-def fallback_with_local_model(messages_or_prompt, fallback_model, extract=True):
-    """
-    ローカルモデルを使用してフォールバック処理を行う
-    
-    Args:
-        messages_or_prompt: メッセージリストまたはプロンプト文字列
-        fallback_model: 使用するフォールバックモデル名
-        extract: 応答からコンテンツを抽出するかどうか
-        
-    Returns:
-        フォールバックレスポンス
-    """
-    llm = create_ollama_llm(fallback_model)
-    response = llm.invoke(messages_or_prompt)
-    
-    if extract:
-        return extract_content(response)
-    return response
 
 # セッション管理ヘルパー関数
 
@@ -1005,30 +888,11 @@ def extract_content(resp: Any) -> str:
 def initialize_llm(model_name: str):
     """モデル名に基づいて適切なLLMを初期化"""
     try:
-        if model_name.startswith('openai/'):
-            try:
-                return create_openai_llm(model_name.replace('openai/', ''))
-            except Exception as openai_error:
-                # OpenAIのクォータ制限エラーをチェック
-                error_str = str(openai_error)
-                if "insufficient_quota" in error_str or "429" in error_str:
-                    print(f"OpenAI quota limit reached: {error_str}")
-                    print("Falling back to local model...")
-                    # ローカルモデルにフォールバック
-                    local_models = get_available_local_models()
-                    if local_models:
-                        fallback_model = local_models[0]
-                        print(f"Using fallback model: {fallback_model}")
-                        return create_ollama_llm(fallback_model)
-                    else:
-                        raise ValueError("OpenAIのクォータ制限に達し、利用可能なローカルモデルもありません")
-                else:
-                    # その他のエラーはそのまま再発生
-                    raise
-        elif model_name.startswith('gemini/'):
+        if model_name.startswith('gemini/'):
             return create_gemini_llm(model_name.replace('gemini/', ''))
         else:
-            return create_ollama_llm(model_name)
+            # gemini/プレフィックスがない場合もGeminiとして処理
+            return create_gemini_llm(model_name)
     except Exception as e:
         print(f"Error in initialize_llm: {str(e)}")
         raise
@@ -1090,45 +954,26 @@ def get_all_available_models():
         dict: カテゴリ別モデルのマップと、全モデルリスト
     """
     try:
-        # ローカルモデル取得
-        local_models = get_available_local_models()
-        
-        # OpenAIモデル取得
-        openai_models = get_available_openai_models()
-        
         # Geminiモデル取得
         gemini_models = get_available_gemini_models()
         
-        # すべてのモデルを結合
-        all_models = (
-            openai_models +  # OpenAIモデル（"openai/"プレフィックス付き）
-            gemini_models +  # Geminiモデル（"gemini/"プレフィックス付き）
-            local_models     # ローカルモデル（プレフィックスなし）
-        )
-        
         return {
-            "models": all_models,
+            "models": gemini_models,
             "categories": {
-                "openai": openai_models,
-                "gemini": gemini_models,
-                "local": local_models
+                "gemini": gemini_models
             }
         }
     except Exception as e:
         print(f"Error fetching models: {str(e)}")
         # 基本的なモデルリストでフォールバック
         basic_models = [
-            "openai/gpt-4o-mini",
-            "openai/gpt-3.5-turbo",
-            "gemini/gemini-1.5-flash",
-            "llama2"
+            "gemini/gemini-1.5-pro",
+            "gemini/gemini-1.5-flash"
         ]
         return {
             "models": basic_models,
             "categories": {
-                "openai": ["openai/gpt-4o-mini", "openai/gpt-3.5-turbo"],
-                "gemini": ["gemini/gemini-1.5-flash"],
-                "local": ["llama2"]
+                "gemini": basic_models
             }
         }
 
@@ -1137,10 +982,7 @@ def get_all_available_models():
 @app.route("/api/models", methods=["GET"])
 def api_models():
     """
-    利用可能なすべてのモデル一覧を返す
-    - ローカルLLM (Ollama)
-    - OpenAI
-    - Google Gemini
+    利用可能なGeminiモデル一覧を返す
     """
     try:
         # 共通関数を使用してモデル情報を取得
@@ -1185,20 +1027,19 @@ def show_scenario(scenario_id):
 # モデル試行パターンを統一するためのヘルパー関数
 def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]]:
     """
-    複数のモデルを順に試行してプロンプトに対する応答を取得するヘルパー関数
+    Geminiモデルを使用してプロンプトに対する応答を取得するヘルパー関数
     
     Args:
         prompt: LLMに与えるプロンプト
         
     Returns:
         (応答内容, 使用したモデル名, エラーメッセージ)のタプル。
-        すべてのモデルが失敗した場合はエラーメッセージを返す。
+        モデルが失敗した場合はエラーメッセージを返す。
     """
     content = None
     used_model = None
     error_msg = None
     
-    # 1. まずGeminiを試行
     try:
         # 利用可能なGeminiモデルを確認
         gemini_models = get_available_gemini_models()
@@ -1213,55 +1054,14 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
             print(f"Successfully generated content using {used_model}")
             return content, used_model, None
         else:
-            print("No Gemini models available")
+            error_msg = "No Gemini models available"
+            print(error_msg)
     except Exception as gemini_error:
         print(f"Gemini model error: {str(gemini_error)}")
         error_msg = str(gemini_error)
     
-    # 2. Geminiが失敗したらOpenAIを試行
-    try:
-        print("Falling back to OpenAI")
-        model_name = "openai/gpt-3.5-turbo"
-        content_result = create_model_and_get_response(model_name, prompt)
-        # 確実に文字列になるように変換
-        content = str(content_result) if content_result is not None else ""
-        used_model = model_name
-        print(f"Successfully generated content using {used_model}")
-        return content, used_model, None
-    except Exception as openai_error:
-        print(f"OpenAI model error: {str(openai_error)}")
-        
-        # クォータ制限エラーをチェック
-        if "insufficient_quota" in str(openai_error) or "429" in str(openai_error):
-            if not error_msg:
-                error_msg = f"APIクォータ制限: {str(openai_error)}"
-        else:
-            if not error_msg:
-                error_msg = f"OpenAI Error: {str(openai_error)}"
-    
-    # 3. OpenAIも失敗した場合、ローカルモデルを試行
-    try:
-        print("Falling back to local Ollama model")
-        local_models = get_available_local_models()
-        if local_models:
-            model_name = local_models[0]  # ローカルモデル名の変数名を修正
-            content_result = fallback_with_local_model(prompt, model_name)
-            # 確実に文字列になるように変換
-            content = str(content_result) if content_result is not None else ""
-            used_model = model_name
-            print(f"Successfully generated content using local model {used_model}")
-            return content, used_model, None
-        else:
-            print("No local models available")
-            if not error_msg:
-                error_msg = "No models available for inference"
-    except Exception as local_error:
-        print(f"Local model error: {str(local_error)}")
-        if not error_msg:
-            error_msg = f"Local model error: {str(local_error)}"
-    
-    # すべてのモデルが失敗した場合
-    return "", "", error_msg or "Unknown error occurred with all models"
+    # Geminiが失敗した場合
+    return "", "", error_msg or "Gemini model error occurred"
 
 # ========== 会話履歴処理のヘルパー関数 ==========
 def add_messages_from_history(messages: List[BaseMessage], history, max_entries=5):
@@ -1748,6 +1548,278 @@ def get_conversation_history():
     except Exception as e:
         print(f"Error in get_conversation_history: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/tts", methods=["POST"])
+def text_to_speech():
+    """
+    Gemini TTS APIを使用してテキストを音声に変換するAPI
+    """
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        text = data.get("text", "")
+        if not text:
+            return jsonify({"error": "テキストが必要です"}), 400
+        
+        # 音声設定（クライアントから指定された音声を使用）
+        voice_name = data.get("voice", "kore")  # デフォルトは日本語女性音声（小文字）
+        voice_style = data.get("style", None)  # 音声スタイル（オプション）
+        emotion = data.get("emotion", None)  # 感情（オプション）
+        
+        # 感情による音声の自動変更は行わない（シナリオごとに固定音声を使用）
+        # if emotion and not data.get("voice"):
+        #     voice_name = get_voice_for_emotion(emotion)
+        
+        try:
+            # Gemini TTS APIを使用
+            from google import genai
+            from google.genai import types
+            import base64
+            import wave
+            import io
+            
+            # Geminiクライアントの初期化
+            client = genai.Client(api_key=GOOGLE_API_KEY)
+            
+            # プロンプトの構築（スタイルのみ適用、感情は声の表現で）
+            prompt = text
+            if voice_style:
+                prompt = f"{voice_style}: {text}"
+            
+            # 感情はプロンプトに含めるが、音声は変更しない
+            # これにより同じ声優が異なる感情を表現できる
+            if emotion and not voice_style:
+                emotion_prompts = {
+                    "happy": "Say cheerfully",
+                    "sad": "Say sadly", 
+                    "angry": "Say angrily",
+                    "excited": "Say excitedly",
+                    "calm": "Say calmly",
+                    "tired": "Say tiredly",
+                    "worried": "Say worriedly",
+                    "confident": "Say confidently",
+                    "friendly": "Say in a friendly manner",
+                    "professional": "Say professionally",
+                    "whisper": "Whisper",
+                    "spooky": "Say mysteriously"
+                }
+                if emotion in emotion_prompts:
+                    prompt = f"{emotion_prompts[emotion]}: {text}"
+            
+            # 音声合成リクエストの作成
+            response = client.models.generate_content(
+                model="models/gemini-2.5-flash-preview-tts",  # 正しいモデル名
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name=voice_name.lower(),  # 小文字に変換
+                            )
+                        )
+                    ),
+                )
+            )
+            
+            # デバッグ情報を追加
+            print(f"TTS Response type: {type(response)}")
+            print(f"Has parts: {hasattr(response, 'parts')}")
+            print(f"Has candidates: {hasattr(response, 'candidates') and len(response.candidates) if hasattr(response, 'candidates') else 0}")
+            
+            # 音声データを取得（参考プロジェクトのロジックを使用）
+            audio_data = None
+            if hasattr(response, 'parts') and response.parts:
+                part = response.parts[0]
+                print(f"Using response.parts[0], type: {type(part)}")
+                if hasattr(part, 'inline_data'):
+                    audio_data = part.inline_data.data
+                    print(f"Got inline_data.data, size: {len(audio_data) if audio_data else 0}")
+            elif response.candidates and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                print(f"Using candidate[0], type: {type(candidate)}")
+                if hasattr(candidate, 'content') and candidate.content and hasattr(candidate.content, 'parts'):
+                    part = candidate.content.parts[0]
+                    print(f"Got candidate.content.parts[0], type: {type(part)}")
+                    if hasattr(part, 'inline_data'):
+                        audio_data = part.inline_data.data
+                        print(f"Got inline_data.data from candidate, size: {len(audio_data) if audio_data else 0}")
+                else:
+                    raise ValueError("音声データが返されませんでした")
+            else:
+                raise ValueError("レスポンスに音声データが含まれていません")
+            
+            if not audio_data:
+                raise ValueError("音声データが空です")
+            
+            # Base64デコード（必要な場合）
+            # 音声データはすでにバイナリ形式なので、そのまま使用
+            if isinstance(audio_data, bytes):
+                audio_bytes = audio_data
+                print(f"Using binary audio data, size: {len(audio_bytes)} bytes")
+            elif isinstance(audio_data, str):
+                # 文字列の場合はBase64デコード
+                try:
+                    audio_bytes = base64.b64decode(audio_data)
+                    print(f"Base64 decoded successfully, size: {len(audio_bytes)} bytes")
+                except Exception as e:
+                    print(f"Base64 decode error: {e}")
+                    raise ValueError("音声データのデコードに失敗しました")
+            else:
+                raise ValueError(f"予期しない音声データタイプ: {type(audio_data)}")
+            
+            # WAVファイルをメモリ上で作成
+            wav_io = io.BytesIO()
+            with wave.open(wav_io, 'wb') as wf:
+                wf.setnchannels(1)  # モノラル
+                wf.setsampwidth(2)  # 16ビット
+                wf.setframerate(24000)  # 24kHz
+                wf.writeframes(audio_bytes)
+            
+            # WAVデータを取得
+            wav_io.seek(0)
+            wav_data = wav_io.read()
+            print(f"WAV data created, size: {len(wav_data)} bytes")
+            
+            # Base64エンコードして返す
+            audio_content = base64.b64encode(wav_data).decode('utf-8')
+            print(f"Base64 encoded for response, length: {len(audio_content)}")
+            
+            return jsonify({
+                "audio": audio_content,
+                "format": "wav",
+                "voice": voice_name,
+                "provider": "gemini"
+            })
+            
+        except Exception as tts_error:
+            print(f"TTS error: {str(tts_error)}")
+            # エラーの場合はフォールバックとしてWeb Speech APIの使用を提案
+            return jsonify({
+                "error": "音声合成に失敗しました",
+                "details": str(tts_error),
+                "fallback": "Web Speech API"
+            }), 500
+            
+    except Exception as e:
+        print(f"Error in text_to_speech: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+def get_voice_for_emotion(emotion: str) -> str:
+    """感情に最適な音声を選択する"""
+    emotion_voice_map = {
+        "happy": "autonoe",  # 明るい女性音声
+        "excited": "fenrir",  # 興奮しやすい男性音声
+        "sad": "vindemiatrix",  # 優しい女性音声
+        "tired": "enceladus",  # 息づかいのある男性音声
+        "angry": "algenib",  # 砂利声の男性音声
+        "worried": "achernar",  # ソフトな男性音声
+        "calm": "schedar",  # 均等な中性音声
+        "confident": "alnilam",  # 確実な男性音声
+        "professional": "orus",  # 会社的な男性音声
+        "friendly": "achird",  # フレンドリーな男性音声
+        "whisper": "enceladus",  # 息づかいのある音声
+        "spooky": "umbriel"  # 気楽な中性音声（逆説的に不気味さを演出）
+    }
+    return emotion_voice_map.get(emotion, "kore")
+
+@app.route("/api/tts/voices", methods=["GET"])
+def get_available_voices():
+    """
+    利用可能な音声の一覧を取得するAPI
+    """
+    try:
+        # Gemini TTSの利用可能な音声（全30種類）
+        voices = [
+            # 主要な音声（日本語向け推奨）
+            {"id": "kore", "name": "Kore - 会社的", "gender": "female", "provider": "gemini", "style": "professional"},
+            {"id": "aoede", "name": "Aoede - 軽快", "gender": "female", "provider": "gemini", "style": "breezy"},
+            {"id": "callirrhoe", "name": "Callirrhoe - おおらか", "gender": "female", "provider": "gemini", "style": "easygoing"},
+            {"id": "leda", "name": "Leda - 若々しい", "gender": "female", "provider": "gemini", "style": "youthful"},
+            {"id": "algieba", "name": "Algieba - スムーズ", "gender": "female", "provider": "gemini", "style": "smooth"},
+            {"id": "autonoe", "name": "Autonoe - 明るい", "gender": "female", "provider": "gemini", "style": "bright"},
+            {"id": "despina", "name": "Despina - スムーズ", "gender": "female", "provider": "gemini", "style": "smooth"},
+            {"id": "erinome", "name": "Erinome - クリア", "gender": "female", "provider": "gemini", "style": "clear"},
+            {"id": "laomedeia", "name": "Laomedeia - アップビート", "gender": "female", "provider": "gemini", "style": "upbeat"},
+            {"id": "pulcherrima", "name": "Pulcherrima - 前向き", "gender": "female", "provider": "gemini", "style": "forward"},
+            {"id": "vindemiatrix", "name": "Vindemiatrix - 優しい", "gender": "female", "provider": "gemini", "style": "gentle"},
+            
+            # 男性音声
+            {"id": "enceladus", "name": "Enceladus - 息づかい", "gender": "male", "provider": "gemini", "style": "breathy"},
+            {"id": "charon", "name": "Charon - 情報提供的", "gender": "male", "provider": "gemini", "style": "informative"},
+            {"id": "fenrir", "name": "Fenrir - 興奮しやすい", "gender": "male", "provider": "gemini", "style": "excitable"},
+            {"id": "orus", "name": "Orus - 会社的", "gender": "male", "provider": "gemini", "style": "corporate"},
+            {"id": "iapetus", "name": "Iapetus - クリア", "gender": "male", "provider": "gemini", "style": "clear"},
+            {"id": "algenib", "name": "Algenib - 砂利声", "gender": "male", "provider": "gemini", "style": "gravelly"},
+            {"id": "rasalgethi", "name": "Rasalgethi - 情報豊富", "gender": "male", "provider": "gemini", "style": "informative"},
+            {"id": "achernar", "name": "Achernar - ソフト", "gender": "male", "provider": "gemini", "style": "soft"},
+            {"id": "alnilam", "name": "Alnilam - 確実", "gender": "male", "provider": "gemini", "style": "assured"},
+            {"id": "gacrux", "name": "Gacrux - 成熟", "gender": "male", "provider": "gemini", "style": "mature"},
+            {"id": "achird", "name": "Achird - フレンドリー", "gender": "male", "provider": "gemini", "style": "friendly"},
+            {"id": "zubenelgenubi", "name": "Zubenelgenubi - カジュアル", "gender": "male", "provider": "gemini", "style": "casual"},
+            {"id": "sadachbia", "name": "Sadachbia - 活発", "gender": "male", "provider": "gemini", "style": "lively"},
+            {"id": "sadaltager", "name": "Sadaltager - 知識豊富", "gender": "male", "provider": "gemini", "style": "knowledgeable"},
+            {"id": "sulafat", "name": "Sulafat - 温かい", "gender": "male", "provider": "gemini", "style": "warm"},
+            
+            # 中性音声
+            {"id": "puck", "name": "Puck - アップビート", "gender": "neutral", "provider": "gemini", "style": "upbeat"},
+            {"id": "zephyr", "name": "Zephyr - 明るい", "gender": "neutral", "provider": "gemini", "style": "bright"},
+            {"id": "umbriel", "name": "Umbriel - 気楽", "gender": "neutral", "provider": "gemini", "style": "easygoing"},
+            {"id": "schedar", "name": "Schedar - 均等", "gender": "neutral", "provider": "gemini", "style": "even"}
+        ]
+        
+        # Web Speech API（フォールバック）
+        voices.append({
+            "id": "web-speech", 
+            "name": "ブラウザ音声合成（フォールバック）", 
+            "gender": "various", 
+            "provider": "browser"
+        })
+        
+        return jsonify({"voices": voices})
+        
+    except Exception as e:
+        print(f"Error in get_available_voices: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/tts/styles", methods=["GET"])
+def get_available_styles():
+    """
+    利用可能な音声スタイルと感情の一覧を取得するAPI
+    """
+    try:
+        styles = {
+            "emotions": [
+                {"id": "happy", "name": "楽しい・嬉しい", "description": "明るく元気な感じ"},
+                {"id": "sad", "name": "悲しい・寂しい", "description": "優しく穏やかな感じ"},
+                {"id": "angry", "name": "怒り・不満", "description": "力強く断定的な感じ"},
+                {"id": "excited", "name": "興奮・ワクワク", "description": "活発でエネルギッシュ"},
+                {"id": "worried", "name": "心配・不安", "description": "控えめで慎重な感じ"},
+                {"id": "tired", "name": "疲れ・眠い", "description": "ゆっくりと息遣いのある感じ"},
+                {"id": "calm", "name": "落ち着き・安心", "description": "穏やかで安定した感じ"},
+                {"id": "confident", "name": "自信・確信", "description": "はっきりと明確な感じ"},
+                {"id": "professional", "name": "ビジネス・丁寧", "description": "フォーマルで礼儀正しい"},
+                {"id": "friendly", "name": "親しみ・気さく", "description": "温かく親しみやすい"},
+                {"id": "whisper", "name": "ささやき", "description": "静かで密やかな感じ"},
+                {"id": "spooky", "name": "不気味・怖い", "description": "神秘的で薄気味悪い"}
+            ],
+            "custom_styles": [
+                {"example": "in a storytelling manner", "description": "物語を語るような口調で"},
+                {"example": "like a news anchor", "description": "ニュースキャスターのように"},
+                {"example": "as if giving a presentation", "description": "プレゼンテーションをするように"},
+                {"example": "in a comforting way", "description": "慰めるような優しい口調で"},
+                {"example": "with dramatic emphasis", "description": "ドラマチックに強調して"}
+            ]
+        }
+        
+        return jsonify(styles)
+        
+    except Exception as e:
+        print(f"Error in get_available_styles: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":

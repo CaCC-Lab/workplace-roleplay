@@ -4,26 +4,31 @@
 
 ## 🌟 主な機能
 
-### 1. シナリオロールプレイ
+### 1. シナリオロールプレイ 📝
 - 30種類以上の実践的な職場シナリオを収録
 - シナリオの難易度別分類（初級〜上級）
 - AIと対話形式でリアルな状況を練習
 - 会話終了後に詳細なフィードバックを取得
 - 練習履歴の記録と振り返り
+- **音声読み上げ機能**（2025年1月9日追加）
+  - AIの応答を自然な音声で再生
+  - シナリオごとに役職・年齢・性別に応じた固定音声を使用
+  - ロールプレイ中は一貫した音声で没入感を維持
 
-### 2. 雑談練習モード
+### 2. 雑談練習モード 💬
 - 職場での適切な雑談スキルを向上
 - 相手（同僚・先輩・上司など）や状況に応じた会話練習
 - 会話スキルに関する具体的なフィードバック
 - 実践的なアドバイスの提供
+- **音声読み上げ対応**：AIの応答を音声で聞くことが可能
 
-### 3. 会話観戦モード
+### 3. 会話観戦モード 👥
 - 2つのAIモデル間の会話をリアルタイムで観察
 - 会話の進行をステップバイステップで確認
 - 自然な会話の流れと職場での適切なコミュニケーションを学習
 - 異なるAIモデルの組み合わせで多様な会話パターンを観察
 
-### 4. 学習記録・分析機能
+### 4. 学習記録・分析機能 📊
 - 練習した会話の履歴を保存
 - シナリオごとの進捗状況を記録
 - 練習時間の自動計測
@@ -31,26 +36,29 @@
 
 ## 🧠 対応AIモデル
 
-### クラウドAIモデル
-- **OpenAI**
-  - GPT-4
-  - GPT-4-turbo
-  - GPT-4o-mini
-  - GPT-3.5-turbo
-- **Google Gemini**
-  - Gemini-1.5-pro
-  - Gemini-1.5-flash
+### Google Gemini専用
+- **Gemini-1.5-pro**: 高精度な応答を提供
+- **Gemini-1.5-flash**: 高速な応答を提供
 
-### ローカルAIモデル (Ollama経由)
-- Llama2
-- その他Ollamaでサポートされているモデル
+### 音声読み上げ機能（2025年1月9日実装）
+- Gemini TTS API (gemini-2.5-flash-preview-tts)を使用した高品質な音声合成
+- **30種類の多様な音声タイプ**から状況に応じて自動選択：
+  - **女性音声（11種）**: Kore（標準的）、Aoede（明るい）、Callirrhoe（おおらか）、Leda（優しい）、Algieba（温かい）、Autonoe（明るい）、Despina（陽気）、Erinome（柔らかい）、Laomedeia（流暢）、Pulcherrima（美しい）、Vindemiatrix（上品）
+  - **男性音声（15種）**: Orus（会社的）、Alnilam（プロフェッショナル）、Charon（深みのある）、Fenrir（力強い）、Iapetus（威厳のある）、Algenib（親しみやすい）、Rasalgethi（独特で印象的）、Achernar（明瞭）、Achird（フレンドリー）、Gacrux（安定感のある）、Zubenelgenubi（バランスの取れた）、Sadachbia（知的）、Sadaltager（知識豊富）、Sulafat（エネルギッシュ）、Enceladus（落ち着いた）
+  - **中性音声（4種）**: Puck（元気）、Zephyr（明るい）、Umbriel（神秘的）、Schedar（均等）
+- **シナリオに応じた固定音声機能**：
+  - 各シナリオのキャラクター設定（役職・年齢・性別）に基づいて音声を自動割り当て
+  - ロールプレイ中は同一音声を維持し、一貫性と没入感を確保
+  - 感情表現はプロンプトで制御（同じ声で異なる感情を表現）
+- WAV形式（24kHz、16ビット、モノラル）での高品質音声出力
+- フォールバックとしてWeb Speech APIをサポート
 
 ## 💻 動作環境
 
 - Python 3.8以上
 - Flask 2.0以上
-- インターネット接続（クラウドAIモデル使用時）
-- [Ollama](https://ollama.ai/)（ローカルモデル使用時）
+- インターネット接続（Google Gemini APIの利用に必須）
+- モダンブラウザ（音声読み上げ機能にはWeb Speech API対応ブラウザが必要）
 
 ## 🚀 セットアップ
 
@@ -93,8 +101,7 @@ http://localhost:5001
 ```
 # 基本設定
 FLASK_SECRET_KEY=your_secret_key_here
-OPENAI_API_KEY=sk-...  # OpenAI APIキー（オプション）
-GOOGLE_API_KEY=AI...   # Google APIキー（オプション）
+GOOGLE_API_KEY=AI...   # Google APIキー（必須）
 
 # セッション設定
 SESSION_TYPE=filesystem
@@ -106,18 +113,6 @@ SESSION_TYPE=filesystem
 # REDIS_PORT=6379
 # REDIS_PASSWORD=your_password
 # REDIS_DB=0
-```
-
-## 🔧 ローカルLLM（Ollama）のセットアップ
-
-1. [Ollama](https://ollama.ai/)をインストール
-2. Ollamaサーバーを起動
-```bash
-ollama serve
-```
-3. 使用したいモデルをダウンロード（例：Llama2）
-```bash
-ollama pull llama2
 ```
 
 ## 📚 機能詳細
@@ -133,10 +128,10 @@ ollama pull llama2
 - 改善点の具体的な提案
 - 次回練習時の注目ポイント提示
 
-### マルチモデル対応
-- APIキーが設定されていない場合は自動的にローカルモデルにフォールバック
-- 複数のAIプロバイダー間でのシームレスな切り替え
-- 各モデルの特性を活かした会話練習
+### Gemini専用設計
+- Google Gemini APIを使用した高品質な日本語応答
+- モデルの特性を活かした自然な会話練習
+- Gemini TTS APIによる高品質な音声読み上げ機能
 
 ## 🛠 開発者向け情報
 
@@ -215,8 +210,8 @@ Azure Web Appへのデプロイ方法については、`azure-webapp-settings.md
 
 ## 🔒 プライバシーとセキュリティ
 
-- OpenAI/Google APIを使用する場合、会話データは各サービスに送信されます
-- ローカルLLM（Ollama）使用時は、すべてのデータがローカルで処理されます
+- Google Gemini APIを使用する場合、会話データはGoogleのサービスに送信されます
+- 音声読み上げ機能はGemini TTS APIを使用し、テキストのみがGoogleに送信されます
 - セッションデータは一時的にサーバーに保存され、セッション終了後に自動削除されます
 - APIキーは環境変数で管理し、ソースコードには含まれません
 

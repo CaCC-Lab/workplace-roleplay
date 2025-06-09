@@ -986,3 +986,54 @@ body {
     transition: transform 0.2s;
 }
 
+/* TTS（音声読み上げ）ボタンのスタイル */
+.message-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.message-text {
+    flex: 1;
+}
+
+.tts-button {
+    background-color: transparent;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.tts-button:hover {
+    background-color: #f0f0f0;
+    color: #333;
+    border-color: #999;
+}
+
+.tts-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.tts-button i {
+    font-size: 14px;
+}
+
+/* AIメッセージのTTSボタン配置調整 */
+.bot-message .message-container {
+    justify-content: flex-start;
+}
+
+.bot-message .tts-button {
+    order: 2;
+    margin-left: auto;
+}
+
