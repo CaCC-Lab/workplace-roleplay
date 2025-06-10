@@ -18,7 +18,7 @@
 │   ├── __init__.py               # シナリオロード処理
 │   └── data/                     # シナリオデータ
 ├── flask_session/                # Flaskセッションデータ
-├── roleplay-chatbot-wepapp-main.py # メインアプリケーション
+├── app.py                        # メインアプリケーション
 ├── requirements.txt              # 依存パッケージ
 ├── requirements-dev.txt          # 開発用依存パッケージ
 ├── .env                          # 環境変数設定
@@ -33,7 +33,7 @@
 - テンプレートファイル → `templates/`
 - 静的アセット(JS, CSS) → `static/`
 - シナリオデータ → `scenarios/data/`
-- メイン処理 → `roleplay-chatbot-wepapp-main.py`
+- メイン処理 → `app.py`
 
 ### 機能概要
 - ローカルLLM (Ollama) とクラウドLLM (OpenAI, Gemini) の切り替え

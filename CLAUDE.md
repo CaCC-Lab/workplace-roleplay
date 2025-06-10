@@ -26,7 +26,7 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt  # 開発ツール用
 
 # アプリケーションの起動
-python roleplay-chatbot-wepapp-main.py
+python app.py
 
 # 開発ツール（requirements-dev.txtをインストール後）
 black .                   # コードフォーマット
@@ -80,7 +80,7 @@ def generate():
 ## 重要な実装詳細
 
 ### LLMプロバイダーの初期化
-`roleplay-chatbot-wepapp-main.py`の`initialize_llm()`関数でGeminiモデルを初期化:
+`app.py`の`initialize_llm()`関数でGeminiモデルを初期化:
 - Gemini: `ChatGoogleGenerativeAI`クラスを使用
 - `create_gemini_llm()`関数で従来のモデルからの移行をサポート
 

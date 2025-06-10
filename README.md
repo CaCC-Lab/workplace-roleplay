@@ -71,8 +71,8 @@
 
 1. リポジトリのクローン
 ```bash
-git clone https://github.com/CaCC-Lab/roleplay-chatbot-wepapp.git
-cd roleplay-chatbot-wepapp
+git clone https://github.com/CaCC-Lab/workplace-roleplay.git
+cd workplace-roleplay
 ```
 
 2. 仮想環境の作成と有効化
@@ -95,7 +95,7 @@ cp .env.example .env
 
 5. アプリケーションの起動
 ```bash
-python roleplay-chatbot-wepapp-main.py
+python app.py
 ```
 
 6. ブラウザで以下のURLにアクセス
@@ -177,7 +177,7 @@ SESSION_TYPE=filesystem
 │   ├── __init__.py               # シナリオロード処理
 │   └── data/                     # シナリオデータ（YAMLファイル）
 ├── flask_session/                # セッションデータ保存場所
-├── roleplay-chatbot-wepapp-main.py # メインアプリケーション
+├── app.py                        # メインアプリケーション
 ├── requirements.txt              # 依存パッケージ
 ├── requirements-dev.txt          # 開発用依存パッケージ
 └── azure-webapp-settings.md      # Azureデプロイガイド
