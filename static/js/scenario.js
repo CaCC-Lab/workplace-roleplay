@@ -7,6 +7,10 @@ const clearButton = document.getElementById('clear-button');
 // 画像生成機能の有効/無効フラグ（一貫性の問題がある場合は無効化可能）
 let enableImageGeneration = false;
 
+// 音声データのキャッシュ（メッセージIDをキーとして音声データを保存）
+const audioCache = new Map();
+let messageIdCounter = 0;
+
 async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg) return;
@@ -99,6 +103,10 @@ function displayMessage(text, className, enableTTS = false) {
     const div = document.createElement("div");
     div.className = "message " + className;
     
+    // メッセージIDを生成して要素に設定
+    const messageId = `msg-${++messageIdCounter}`;
+    div.setAttribute('data-message-id', messageId);
+    
     // AIメッセージの場合は画像を生成（有効な場合のみ）
     if (enableImageGeneration && className.includes('bot')) {
         // 画像コンテナを追加
@@ -154,8 +162,12 @@ function displayMessage(text, className, enableTTS = false) {
         ttsButton.className = "tts-button";
         ttsButton.innerHTML = '<i class="fas fa-volume-up"></i>';
         ttsButton.title = "読み上げ";
-        ttsButton.onclick = () => playTTS(text.replace('相手役: ', ''), ttsButton);
+        ttsButton.setAttribute('data-message-id', messageId);
+        ttsButton.onclick = () => playPreloadedTTS(messageId, ttsButton);
         messageContainer.appendChild(ttsButton);
+        
+        // 音声を事前生成（非同期で実行）
+        preloadTTS(text.replace('相手役: ', ''), messageId, ttsButton);
     }
     
     div.appendChild(messageContainer);
@@ -176,6 +188,8 @@ function clearScenarioHistory(){
             displayMessage("シナリオ履歴がクリアされました", "bot-message");
             // キャラクター情報もリセット
             resetCharacterForScenario(scenarioId);
+            // 音声キャッシュもクリア
+            audioCache.clear();
         } else {
             displayMessage("エラー: " + data.message, "bot-message");
         }
@@ -600,4 +614,200 @@ function resetCharacterForScenario(scenarioId) {
     });
     // 基準キャラクター情報もクリア
     delete baseCharacterInfo[scenarioId];
-} 
+}
+
+// 音声を事前生成する関数
+async function preloadTTS(text, messageId, button) {
+    try {
+        // シナリオIDに基づいて固定の音声を使用
+        const voiceMap = {
+            // 男性上司系
+            'scenario1': 'orus',      // 会社的な男性音声 - 40代男性課長
+            'scenario3': 'orus',      // 会社的な男性音声 - 40代男性部長
+            'scenario5': 'alnilam',   // プロフェッショナルな男性音声 - 男性課長
+            'scenario9': 'charon',    // 深みのある男性音声 - 50代部長
+            'scenario11': 'iapetus',  // 威厳のある男性音声 - 役員
+            'scenario13': 'rasalgethi', // 独特で印象的な男性音声 - エンジニアリーダー
+            'scenario16': 'sadachbia', // 知的な男性音声 - 経営企画部長
+            'scenario22': 'gacrux',   // 安定感のある男性音声 - 営業部長
+            'scenario29': 'zubenelgenubi', // バランスの取れた男性音声 - ベテラン営業マン
+            
+            // 女性上司・先輩系
+            'scenario7': 'kore',      // 標準的な女性音声 - 女性チームリーダー
+            'scenario15': 'schedar',  // 明快な女性音声 - 女性マネージャー
+            'scenario17': 'vindemiatrix', // 上品な女性音声 - 女性部長
+            'scenario19': 'leda',     // 優しい女性音声 - メンター先輩
+            'scenario26': 'pulcherrima', // 美しい女性音声 - 広報部リーダー
+            
+            // 同僚系（男女混合）
+            'scenario2': 'achird',    // フレンドリーな男性音声 - 同僚
+            'scenario4': 'aoede',     // 明るい女性音声 - 同僚
+            'scenario6': 'fenrir',    // 力強い男性音声 - 同期
+            'scenario8': 'callirrhoe', // おおらかな女性音声 - 同僚
+            'scenario10': 'algenib',  // 親しみやすい男性音声 - 同期
+            'scenario12': 'autonoe',  // 明るい女性音声 - 同僚
+            'scenario14': 'sulafat',  // エネルギッシュな男性音声 - 営業同僚
+            'scenario18': 'despina',  // 陽気な女性音声 - 企画部同僚
+            'scenario20': 'achernar', // 明瞭な男性音声 - エンジニア同僚
+            'scenario23': 'laomedeia', // 流暢な女性音声 - マーケティング同僚
+            'scenario25': 'erinome',  // 柔らかい女性音声 - 人事同僚
+            'scenario27': 'enceladus', // 落ち着いた男性音声 - 経理同僚
+            
+            // 後輩・新人系
+            'scenario21': 'puck',     // 元気な中性的音声 - 新人
+            'scenario24': 'zephyr',   // 明るい中性的音声 - 後輩
+            'scenario28': 'umbriel',  // 神秘的な中性的音声 - インターン
+            'scenario30': 'algieba'   // 温かい女性音声 - 新人
+        };
+        
+        const fixedVoice = voiceMap[scenarioId] || 'kore';
+        
+        console.log(`音声を事前生成中: メッセージID=${messageId}, シナリオ=${scenarioId}, 音声=${fixedVoice}`);
+        
+        // TTSリクエストの準備
+        const ttsRequest = {
+            text: text,
+            voice: fixedVoice
+        };
+        
+        // Gemini TTS APIを呼び出し
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(ttsRequest)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error('音声事前生成エラー:', data.error);
+            // エラーの場合は、フォールバック情報を保存
+            audioCache.set(messageId, { 
+                error: true, 
+                fallback: data.fallback === 'Web Speech API',
+                text: text 
+            });
+            return;
+        }
+        
+        // 音声データをキャッシュに保存
+        const audioFormat = data.format || 'wav';
+        const audioUrl = `data:audio/${audioFormat};base64,${data.audio}`;
+        
+        // Audio要素を作成してキャッシュ
+        const audio = new Audio(audioUrl);
+        audio.preload = 'auto';
+        
+        audioCache.set(messageId, {
+            audio: audio,
+            text: text,
+            voice: data.voice,
+            format: audioFormat
+        });
+        
+        console.log(`音声事前生成完了: メッセージID=${messageId}`);
+        
+        // ボタンのスタイルを更新（準備完了を示す）
+        button.classList.add('tts-ready');
+        
+    } catch (error) {
+        console.error('音声事前生成エラー:', error);
+        audioCache.set(messageId, { 
+            error: true, 
+            fallback: true,
+            text: text 
+        });
+    }
+}
+
+// 事前生成された音声を再生する関数
+async function playPreloadedTTS(messageId, button) {
+    // 既に再生中の音声がある場合は停止
+    if (window.currentAudio && !window.currentAudio.paused) {
+        window.currentAudio.pause();
+        window.currentAudio = null;
+        // 全てのボタンを元の状態に戻す
+        document.querySelectorAll('.tts-button').forEach(btn => {
+            btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            btn.disabled = false;
+        });
+        return;
+    }
+    
+    const cachedData = audioCache.get(messageId);
+    
+    if (!cachedData) {
+        console.error('キャッシュされた音声が見つかりません:', messageId);
+        // キャッシュがない場合は従来の方法で生成
+        const messageDiv = button.closest('.message');
+        const text = messageDiv.querySelector('.message-text').textContent.replace('相手役: ', '');
+        playTTS(text, button);
+        return;
+    }
+    
+    if (cachedData.error) {
+        // エラーの場合はWeb Speech APIにフォールバック
+        if (cachedData.fallback) {
+            playTTSWithWebSpeech(cachedData.text, button);
+        } else {
+            alert('音声再生エラーが発生しました');
+        }
+        return;
+    }
+    
+    try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-pause"></i>';
+        
+        const audio = cachedData.audio;
+        window.currentAudio = audio;
+        
+        audio.onended = () => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            window.currentAudio = null;
+        };
+        
+        audio.onerror = () => {
+            console.error('音声再生エラー');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            window.currentAudio = null;
+            // エラー時はWeb Speech APIにフォールバック
+            playTTSWithWebSpeech(cachedData.text, button);
+        };
+        
+        await audio.play();
+        console.log('事前生成された音声を再生中:', messageId);
+        
+    } catch (error) {
+        console.error('音声再生エラー:', error);
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        // エラー時はWeb Speech APIにフォールバック
+        playTTSWithWebSpeech(cachedData.text, button);
+    }
+}
+
+// メモリ管理：古い音声データを削除
+function cleanupAudioCache() {
+    // キャッシュサイズが50を超えたら古いものから削除
+    if (audioCache.size > 50) {
+        const entriesToDelete = audioCache.size - 40; // 40個まで減らす
+        const iterator = audioCache.keys();
+        for (let i = 0; i < entriesToDelete; i++) {
+            const keyToDelete = iterator.next().value;
+            const cachedData = audioCache.get(keyToDelete);
+            if (cachedData && cachedData.audio) {
+                // Audio要素を適切にクリーンアップ
+                cachedData.audio.pause();
+                cachedData.audio.src = '';
+            }
+            audioCache.delete(keyToDelete);
+        }
+        console.log(`音声キャッシュをクリーンアップしました: ${entriesToDelete}個削除`);
+    }
+}
+
+// 定期的にキャッシュをクリーンアップ
+setInterval(cleanupAudioCache, 60000); // 1分ごと 
