@@ -141,6 +141,29 @@ async function getFeedback() {
                 const parsedHtml = marked.parse(data.feedback);
                 feedbackContent.innerHTML = parsedHtml;
                 
+                // 強み分析を表示（存在する場合）
+                if (data.strength_analysis) {
+                    const strengthDiv = document.createElement('div');
+                    strengthDiv.id = 'strengthHighlight';
+                    strengthDiv.innerHTML = `
+                        <h3>🌟 あなたの強み</h3>
+                        <div class="strength-badges">
+                            ${data.strength_analysis.top_strengths.map(strength => `
+                                <div class="strength-badge">
+                                    <span class="strength-name">${strength.name}</span>
+                                    <span class="strength-score">${Math.round(strength.score)}点</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    feedbackContent.appendChild(strengthDiv);
+                    
+                    // アニメーション効果
+                    setTimeout(() => {
+                        strengthDiv.classList.add('show');
+                    }, 100);
+                }
+                
                 feedbackArea.style.display = 'block';
                 feedbackContent.style.display = 'block';
                 
@@ -213,11 +236,20 @@ function displayMessage(text, className, enableTTS = false) {
     // TTSボタンを追加（AIのメッセージのみ）
     if (enableTTS && className.includes('bot')) {
         const ttsButton = document.createElement("button");
-        ttsButton.className = "tts-button";
-        ttsButton.innerHTML = '<i class="fas fa-volume-up"></i>';
-        ttsButton.title = "読み上げ";
-        ttsButton.onclick = () => playTTS(text.replace('相手: ', ''), ttsButton);
+        ttsButton.className = "tts-button tts-loading";
+        ttsButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        ttsButton.title = "音声を生成中...";
+        ttsButton.disabled = true; // 初期状態では無効
+        ttsButton.onclick = async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('[ttsButton.onclick] ボタンがクリックされました');
+            await window.playUnifiedTTS(text.replace('相手: ', ''), ttsButton);
+        };
         messageContainer.appendChild(ttsButton);
+        
+        // 雑談モードでは音声を即座生成してボタンを有効化
+        preloadChatTTS(text.replace('相手: ', ''), ttsButton);
     }
     
     div.appendChild(messageContainer);
@@ -264,15 +296,48 @@ function detectEmotion(text) {
     return null;
 }
 
+// 全ての音声再生とWeb Speech APIを停止する関数
+function stopAllAudio() {
+    console.log('[stopAllAudio] 停止処理を実行中...');
+    
+    // Audio要素による再生を停止
+    if (window.currentAudio && !window.currentAudio.paused) {
+        console.log('[stopAllAudio] Audio要素を停止');
+        window.currentAudio.pause();
+        window.currentAudio.currentTime = 0; // 再生位置をリセット
+        window.currentAudio = null;
+    }
+    
+    // Web Speech APIによる音声合成を停止
+    if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        console.log('[stopAllAudio] Web Speech APIを停止');
+        window.speechSynthesis.cancel();
+    }
+    
+    // 全てのTTSボタンを元の状態に戻す
+    document.querySelectorAll('.tts-button').forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        btn.disabled = false;
+        btn.classList.remove('playing');
+    });
+    
+    // 現在の再生ボタンをリセット
+    window.currentPlayingButton = null;
+    
+    console.log('[stopAllAudio] 停止処理完了');
+}
+
 // テキスト読み上げ関数
 async function playTTS(text, button) {
-    // 既に再生中の音声がある場合は停止
-    if (window.currentAudio && !window.currentAudio.paused) {
-        window.currentAudio.pause();
-        window.currentAudio = null;
-        button.innerHTML = '<i class="fas fa-volume-up"></i>';
-        button.disabled = false;
-        return;
+    console.log('[playTTS] クリックされました:', text.substring(0, 20) + '...');
+    
+    // 何か音声が再生中の場合は停止のみ実行
+    if (button.classList.contains('playing') || 
+        (window.currentAudio && !window.currentAudio.paused) ||
+        (window.speechSynthesis && window.speechSynthesis.speaking)) {
+        console.log('[playTTS] 音声を停止します');
+        stopAllAudio();
+        return; // 停止のみ実行して終了
     }
     
     try {
@@ -317,14 +382,18 @@ async function playTTS(text, button) {
         const audioFormat = data.format || 'wav';
         const audio = new Audio(`data:audio/${audioFormat};base64,` + data.audio);
         window.currentAudio = audio;
+        window.currentPlayingButton = button; // 再生中のボタンを記録
         
         // 再生中のアイコン表示
-        button.innerHTML = '<i class="fas fa-pause"></i>';
+        button.innerHTML = '<i class="fas fa-stop"></i>';
+        button.classList.add('playing');
+        console.log('[playTTS] Gemini TTSで再生開始:', text.substring(0, 20) + '...');
         
         audio.onended = () => {
             // 再生終了後、元のアイコンに戻す
             button.disabled = false;
             button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            button.classList.remove('playing');
             window.currentAudio = null;
         };
         
@@ -332,6 +401,7 @@ async function playTTS(text, button) {
             console.error('音声再生エラー');
             button.disabled = false;
             button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            button.classList.remove('playing');
             window.currentAudio = null;
             // エラー時はWeb Speech APIにフォールバック
             playTTSWithWebSpeech(text, button);
@@ -359,9 +429,10 @@ function playTTSWithWebSpeech(text, button) {
     }
     
     try {
-        // 既に再生中の場合は停止
-        if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
+        // 何か音声が再生中の場合は停止のみ実行
+        if (button.classList.contains('playing') || window.speechSynthesis.speaking) {
+            stopAllAudio();
+            return; // 停止のみ実行して終了
         }
         
         // 音声合成の設定
@@ -379,12 +450,16 @@ function playTTSWithWebSpeech(text, button) {
         }
         
         // 再生中のアイコン表示
-        button.innerHTML = '<i class="fas fa-pause"></i>';
+        button.innerHTML = '<i class="fas fa-stop"></i>';
+        button.classList.add('playing');
+        window.currentPlayingButton = button; // 再生中のボタンを記録
         
         // 再生終了時の処理
         utterance.onend = () => {
             button.disabled = false;
             button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            button.classList.remove('playing');
+            window.currentPlayingButton = null;
         };
         
         // エラー時の処理
@@ -392,16 +467,67 @@ function playTTSWithWebSpeech(text, button) {
             console.error('音声合成エラー:', event);
             button.disabled = false;
             button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            button.classList.remove('playing');
+            window.currentPlayingButton = null;
         };
         
         // 音声再生を開始
         window.speechSynthesis.speak(utterance);
+        console.log('[playTTSWithWebSpeech] 再生開始:', text.substring(0, 20) + '...');
         
     } catch (error) {
         console.error('Web Speech TTSエラー:', error);
         button.disabled = false;
         button.innerHTML = '<i class="fas fa-volume-up"></i>';
         alert('音声読み上げ機能が利用できません');
+    }
+}
+
+// 雑談モード用の音声事前生成関数
+async function preloadChatTTS(text, button) {
+    console.log('[preloadChatTTS] 雑談モードで音声生成開始');
+    
+    try {
+        // Gemini TTS APIを呼び出し
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                text: text,
+                voice: 'kore' // 雑談モードはデフォルト音声
+            })
+        });
+        
+        const data = await response.json();
+        console.log('[preloadChatTTS] APIレスポンス:', response.ok, !!data.audio);
+        
+        if (response.ok && data.audio) {
+            // 成功時: ボタンを有効化
+            button.disabled = false;
+            button.classList.remove('tts-loading');
+            button.classList.add('tts-ready');
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            button.title = 'Gemini音声で読み上げ（準備完了）';
+            console.log('[preloadChatTTS] Gemini TTS生成完了');
+        } else {
+            // エラー時: フォールバックで有効化
+            button.disabled = false;
+            button.classList.remove('tts-loading');
+            button.classList.add('tts-fallback');
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            button.title = 'システム音声で読み上げ（フォールバック）';
+            console.log('[preloadChatTTS] Gemini TTSエラー、フォールバックで有効化');
+        }
+        
+    } catch (error) {
+        console.error('[preloadChatTTS] エラー:', error);
+        
+        // エラー時もボタンを有効化（フォールバックで再生可能）
+        button.disabled = false;
+        button.classList.remove('tts-loading');
+        button.classList.add('tts-fallback');
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.title = 'システム音声で読み上げ（フォールバック）';
     }
 }
 

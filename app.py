@@ -28,6 +28,17 @@ load_dotenv()
 
 # 既存のimport文の下に追加
 from scenarios import load_scenarios
+from strength_analyzer import (
+    analyze_user_strengths,
+    get_top_strengths,
+    generate_encouragement_messages
+)
+from api_key_manager import (
+    get_google_api_key,
+    handle_api_error,
+    record_api_usage,
+    api_key_manager
+)
 
 """
 要件:
@@ -1153,11 +1164,19 @@ def get_scenario_feedback():
         feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
         
         if feedback_content:
-            return jsonify({
+            # フィードバックレスポンスを作成
+            response_data = {
                 "feedback": feedback_content,
                 "scenario": scenario_data["title"],
                 "model_used": used_model,
-            })
+            }
+            
+            # 強み分析を追加
+            response_data = update_feedback_with_strength_analysis(
+                response_data, "scenario", scenario_id
+            )
+            
+            return jsonify(response_data)
         else:
             # すべてのモデルが失敗した場合
             return jsonify({
@@ -1231,11 +1250,19 @@ def get_chat_feedback():
         feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
         
         if feedback_content:
-            return jsonify({
+            # フィードバックレスポンスを作成
+            response_data = {
                 "feedback": feedback_content,
                 "model_used": used_model,
                 "status": "success"
-            })
+            }
+            
+            # 強み分析を追加
+            response_data = update_feedback_with_strength_analysis(
+                response_data, "chat"
+            )
+            
+            return jsonify(response_data)
         else:
             # すべてのモデルが失敗した場合
             return jsonify({
@@ -1291,20 +1318,8 @@ def generate_initial_message(llm, partner_type, situation, topic):
 @app.route("/watch")
 def watch_mode():
     """観戦モードページ"""
-    # 共通関数を使用してモデル情報を取得
-    model_info = get_all_available_models()
-    
-    # カテゴリー別のモデル情報を準備
-    models = {
-        "openai": model_info["categories"]["openai"],
-        "gemini": model_info["categories"]["gemini"],
-        "local": model_info["categories"]["local"]
-    }
-    
-    return render_template(
-        "watch.html",
-        models=models
-    )
+    # 観戦モードはモデル情報が不要なため、シンプルにテンプレートを返す
+    return render_template("watch.html")
 
 # 学習履歴を表示するルートを追加
 @app.route("/journal")
@@ -1580,8 +1595,11 @@ def text_to_speech():
             import wave
             import io
             
+            # APIキーマネージャーから次のキーを取得
+            current_api_key = get_google_api_key()
+            
             # Geminiクライアントの初期化
-            client = genai.Client(api_key=GOOGLE_API_KEY)
+            client = genai.Client(api_key=current_api_key)
             
             # プロンプトの構築（スタイルのみ適用、感情は声の表現で）
             prompt = text
@@ -1687,6 +1705,9 @@ def text_to_speech():
             audio_content = base64.b64encode(wav_data).decode('utf-8')
             print(f"Base64 encoded for response, length: {len(audio_content)}")
             
+            # API使用成功を記録
+            record_api_usage(current_api_key)
+            
             return jsonify({
                 "audio": audio_content,
                 "format": "wav",
@@ -1696,6 +1717,11 @@ def text_to_speech():
             
         except Exception as tts_error:
             print(f"TTS error: {str(tts_error)}")
+            
+            # APIエラーを記録
+            if 'current_api_key' in locals():
+                handle_api_error(current_api_key, tts_error)
+            
             # エラーの場合はフォールバックとしてWeb Speech APIの使用を提案
             return jsonify({
                 "error": "音声合成に失敗しました",
@@ -2053,6 +2079,148 @@ def get_available_styles():
         
     except Exception as e:
         print(f"Error in get_available_styles: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ========== 強み分析機能 ==========
+@app.route("/strength_analysis")
+def strength_analysis_page():
+    """強み分析ページを表示"""
+    return render_template("strength_analysis.html")
+
+
+@app.route("/api/strength_analysis", methods=["POST"])
+def analyze_strengths():
+    """会話履歴から強みを分析"""
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({"error": "Invalid JSON"}), 400
+            
+        session_type = data.get("type", "chat")  # chat or scenario
+        scenario_id = data.get("scenario_id")
+        
+        # 会話履歴を取得
+        if session_type == "chat":
+            history = session.get("chat_history", [])
+        elif session_type == "scenario":
+            if not scenario_id:
+                return jsonify({"error": "シナリオIDが必要です"}), 400
+            elif scenario_id == "all":
+                # 全シナリオの履歴を結合
+                scenario_histories = session.get("scenario_history", {})
+                history = []
+                for scenario_id, scenario_history in scenario_histories.items():
+                    history.extend(scenario_history)
+            else:
+                history = session.get("scenario_history", {}).get(scenario_id, [])
+        else:
+            return jsonify({"error": f"不明なセッションタイプ: {session_type}"}), 400
+        
+        if not history:
+            return jsonify({
+                "scores": {key: 50 for key in ["empathy", "clarity", "active_listening", 
+                          "adaptability", "positivity", "professionalism"]},
+                "messages": ["まだ練習履歴がありません。会話を始めてみましょう！"],
+                "history": []
+            })
+        
+        # 会話履歴をフォーマット
+        formatted_history = format_conversation_history(history)
+        
+        # 強み分析を実行（シンプルバージョン）
+        scores = analyze_user_strengths(formatted_history)
+        
+        # 使用モデル名（今はシンプル分析なので固定）
+        used_model = "simple_analyzer"
+        
+        # セッションに保存される強み履歴を更新
+        if "strength_history" not in session:
+            session["strength_history"] = {}
+        
+        if session_type not in session["strength_history"]:
+            session["strength_history"][session_type] = []
+        
+        # 新しい分析結果を追加
+        session["strength_history"][session_type].append({
+            "timestamp": datetime.now().isoformat(),
+            "scores": scores,
+            "practice_count": len(session["strength_history"][session_type]) + 1
+        })
+        
+        # 最大20件まで保持
+        if len(session["strength_history"][session_type]) > 20:
+            session["strength_history"][session_type] = session["strength_history"][session_type][-20:]
+        
+        session.modified = True
+        
+        # 励ましメッセージを生成
+        messages = generate_encouragement_messages(
+            scores,
+            session["strength_history"][session_type][:-1]  # 現在の結果を除く
+        )
+        
+        # パーソナライズされたメッセージを追加（1つ目のメッセージがある場合）
+        if messages and len(messages) < 3:
+            top_strength = get_top_strengths(scores, 1)[0]
+            additional_messages = [
+                f"{top_strength['name']}の才能が光っています！この強みを活かしてさらに成長しましょう。",
+                f"素晴らしい{top_strength['name']}ですね！次回はさらに磨きをかけていきましょう。",
+                f"{top_strength['name']}が{top_strength['score']}点！あなたの強みを自信にして前進しましょう。"
+            ]
+            import random
+            messages.append(random.choice(additional_messages))
+        
+        return jsonify({
+            "scores": scores,
+            "messages": messages,
+            "history": session["strength_history"][session_type],
+            "model_used": used_model
+        })
+        
+    except Exception as e:
+        print(f"Error in analyze_strengths: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+def update_feedback_with_strength_analysis(feedback_response, session_type, scenario_id=None):
+    """
+    既存のフィードバックレスポンスに強み分析を追加するヘルパー関数
+    """
+    try:
+        # 会話履歴を取得
+        if session_type == "chat":
+            history = session.get("chat_history", [])
+        else:
+            history = session.get("scenario_history", {}).get(scenario_id, [])
+        
+        if history:
+            # 強み分析を実行（シンプルバージョン）
+            formatted_history = format_conversation_history(history)
+            scores = analyze_user_strengths(formatted_history)
+            
+            # トップ3の強みを取得
+            top_strengths = get_top_strengths(scores, 3)
+            
+            # フィードバックレスポンスに追加
+            feedback_response["strength_analysis"] = {
+                "scores": scores,
+                "top_strengths": top_strengths
+            }
+    except Exception as e:
+        print(f"Error adding strength analysis to feedback: {str(e)}")
+    
+    return feedback_response
+
+
+# ========== APIキー管理 ==========
+@app.route("/api/key_status", methods=["GET"])
+def get_api_key_status():
+    """APIキーの使用状況を取得"""
+    try:
+        status = api_key_manager.get_status()
+        return jsonify(status)
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 

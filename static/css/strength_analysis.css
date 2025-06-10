@@ -1,0 +1,280 @@
+/**
+ * 強み分析ページのスタイル
+ */
+
+/* コンテナ */
+.strength-analysis-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #f5f5f5;
+    min-height: 100vh;
+}
+
+.strength-analysis-container h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+}
+
+/* チャートセクション */
+.chart-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chart-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.chart-section h2 {
+    color: #444;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+}
+
+/* チャートキャンバス */
+.chart-section canvas {
+    max-height: 400px;
+    width: 100% !important;
+    height: 400px !important;
+}
+
+/* データがない場合 */
+.no-data {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* 強みの詳細 */
+.strength-details {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.strength-details h2 {
+    color: #444;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+}
+
+/* 強みアイテム */
+.strength-item {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4CAF50;
+}
+
+.strength-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.medal {
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+}
+
+.strength-header h3 {
+    flex: 1;
+    margin: 0;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+.score {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.strength-description {
+    color: #666;
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+/* プログレスバー */
+.strength-progress {
+    width: 100%;
+    height: 10px;
+    background: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.progress-bar {
+    height: 100%;
+    transition: width 1s ease;
+    border-radius: 5px;
+}
+
+/* 励ましメッセージセクション */
+.encouragement-section {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border-left: 4px solid #3182ce;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.encouragement-section h2 {
+    color: #2d3748;
+    margin-bottom: 1rem;
+    font-size: 1.8rem;
+}
+
+.encouragement-text {
+    font-size: 1.2rem;
+    color: #2d3748;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+/* 強みバッジ（フィードバック画面用） */
+#strengthHighlight {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #f0f9ff;
+    border-radius: 8px;
+}
+
+#strengthHighlight.show {
+    opacity: 1;
+}
+
+#strengthHighlight h3 {
+    color: #333;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+}
+
+.strength-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.strength-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.strength-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.strength-name {
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.strength-score {
+    font-weight: 700;
+}
+
+/* タブ切り替え */
+.tab-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+    gap: 0.5rem;
+}
+
+.tab-button {
+    padding: 0.75rem 2rem;
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    color: #666;
+}
+
+.tab-button:hover {
+    background: #f5f5f5;
+    border-color: #999;
+}
+
+.tab-button.active {
+    background: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+}
+
+/* エラーメッセージ */
+.error-message {
+    background: #fee;
+    color: #c33;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+/* エラーメッセージ */
+.error-message {
+    background: #fee;
+    color: #c33;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    margin: 2rem 0;
+    border-left: 4px solid #c33;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .strength-analysis-container {
+        padding: 1rem;
+    }
+    
+    .chart-section,
+    .strength-details,
+    .encouragement-section {
+        padding: 1.5rem;
+    }
+    
+    .strength-header {
+        flex-wrap: wrap;
+    }
+    
+    .strength-header h3 {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    
+    .tab-button {
+        padding: 0.5rem 1.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .strength-badges {
+        justify-content: center;
+    }
+}

@@ -1010,6 +1010,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     color: #666;
+    position: relative;
 }
 
 .tts-button:hover {
@@ -1023,8 +1024,71 @@ body {
     opacity: 0.6;
 }
 
+.tts-button.playing {
+    background-color: #ff4444;
+    color: white;
+    border-color: #ff4444;
+    animation: pulse 1.5s infinite;
+}
+
+.tts-button.playing:hover {
+    background-color: #cc3333;
+    border-color: #cc3333;
+}
+
+.tts-button.tts-loading {
+    border-color: #ffc107;
+    color: #ffc107;
+    cursor: not-allowed;
+}
+
+.tts-button.tts-ready {
+    border-color: #28a745;
+    color: #28a745;
+    animation: readyPulse 2s ease-in-out;
+}
+
+.tts-button.tts-ready:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.tts-button.tts-fallback {
+    border-color: #fd7e14;
+    color: #fd7e14;
+}
+
+.tts-button.tts-fallback:hover {
+    background-color: #fd7e14;
+    color: white;
+}
+
+@keyframes readyPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(40, 167, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
 .tts-button i {
     font-size: 14px;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+    }
 }
 
 /* AIメッセージのTTSボタン配置調整 */
@@ -1035,5 +1099,57 @@ body {
 .bot-message .tts-button {
     order: 2;
     margin-left: auto;
+}
+
+/* ========== 強み分析共通スタイル ========== */
+#strengthHighlight {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #f0f9ff;
+    border-radius: 8px;
+    border: 1px solid #e0f2fe;
+}
+
+#strengthHighlight.show {
+    opacity: 1;
+}
+
+#strengthHighlight h3 {
+    color: #1e40af;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.strength-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.strength-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.strength-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.strength-name {
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.strength-score {
+    font-weight: 700;
 }
 

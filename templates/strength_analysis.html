@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あなたの強み分析 - 職場コミュニケーション練習アプリ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/strength_analysis.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="chat-container">
+        <div class="strength-analysis-container">
+            <h1>🌟 あなたの強み分析</h1>
+            
+            <!-- タブ切り替え -->
+            <div class="tab-container">
+                <button class="tab-button active" data-session-type="chat">雑談練習</button>
+                <button class="tab-button" data-session-type="scenario">シナリオ練習</button>
+            </div>
+            
+            <!-- 現在のスキルレーダーチャート -->
+            <div class="chart-section">
+                <h2>📊 現在のコミュニケーションスキル</h2>
+                <canvas id="strengthRadarChart"></canvas>
+            </div>
+            
+            <!-- 成長推移グラフ -->
+            <div class="chart-section">
+                <h2>📈 成長の軌跡</h2>
+                <canvas id="growthChart"></canvas>
+            </div>
+            
+            <!-- 強みの詳細説明 -->
+            <div class="strength-details">
+                <h2>💪 あなたの主な強み</h2>
+                <div id="topStrengths"></div>
+            </div>
+            
+            <!-- 励ましメッセージ -->
+            <div class="encouragement-section">
+                <h2>💬 今日の成長メッセージ</h2>
+                <div id="encouragementMessage"></div>
+            </div>
+        </div>
+        
+        <!-- ナビゲーション -->
+        <div class="navigation">
+            <a href="/" class="nav-button"><i class="fas fa-home"></i> ホームへ戻る</a>
+            <a href="/chat" class="nav-button"><i class="fas fa-comments"></i> 雑談練習</a>
+            <a href="/scenarios" class="nav-button"><i class="fas fa-theater-masks"></i> シナリオ練習</a>
+            <a href="/journal" class="nav-button"><i class="fas fa-book"></i> 学習履歴</a>
+        </div>
+    </div>
+
+    <!-- Chart.jsライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 強み分析用JavaScript -->
+    <script src="{{ url_for('static', filename='js/strength_chart.js') }}"></script>
+</body>
+</html>

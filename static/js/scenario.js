@@ -9,6 +9,7 @@ let enableImageGeneration = false;
 
 // 音声データのキャッシュ（メッセージIDをキーとして音声データを保存）
 const audioCache = new Map();
+window.audioCache = audioCache; // 共通関数からアクセスできるように
 let messageIdCounter = 0;
 
 async function sendMessage() {
@@ -159,15 +160,22 @@ function displayMessage(text, className, enableTTS = false) {
     // TTSボタンを追加（AIのメッセージのみ）
     if (enableTTS && className.includes('bot')) {
         const ttsButton = document.createElement("button");
-        ttsButton.className = "tts-button";
-        ttsButton.innerHTML = '<i class="fas fa-volume-up"></i>';
-        ttsButton.title = "読み上げ";
+        ttsButton.className = "tts-button tts-loading";
+        ttsButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        ttsButton.title = "音声を生成中...";
+        ttsButton.disabled = true; // 初期状態では無効
         ttsButton.setAttribute('data-message-id', messageId);
-        ttsButton.onclick = () => playPreloadedTTS(messageId, ttsButton);
+        ttsButton.onclick = async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('[ttsButton.onclick] ボタンがクリックされました:', messageId);
+            await window.playUnifiedTTS(text.replace('相手役: ', ''), ttsButton, true, messageId);
+        };
         messageContainer.appendChild(ttsButton);
         
-        // 音声を事前生成（非同期で実行）
-        preloadTTS(text.replace('相手役: ', ''), messageId, ttsButton);
+        // 音声を事前生成（統一TTS関数を使用）
+        console.log(`[displayMessage] 事前生成開始 - messageId: ${messageId}, text: "${text.replace('相手役: ', '').substring(0, 20)}..."`);
+        preloadScenarioTTS(text.replace('相手役: ', ''), messageId, ttsButton);
     }
     
     div.appendChild(messageContainer);
@@ -228,6 +236,30 @@ document.getElementById('get-feedback-button').addEventListener('click', async (
             }
             
             content.innerHTML = feedbackHtml;
+            
+            // 強み分析を表示（存在する場合）
+            if (data.strength_analysis) {
+                const strengthDiv = document.createElement('div');
+                strengthDiv.id = 'strengthHighlight';
+                strengthDiv.innerHTML = `
+                    <h3>🌟 あなたの強み</h3>
+                    <div class="strength-badges">
+                        ${data.strength_analysis.top_strengths.map(strength => `
+                            <div class="strength-badge">
+                                <span class="strength-name">${strength.name}</span>
+                                <span class="strength-score">${Math.round(strength.score)}点</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                content.appendChild(strengthDiv);
+                
+                // アニメーション効果
+                setTimeout(() => {
+                    strengthDiv.classList.add('show');
+                }, 100);
+            }
+            
             content.classList.add('active');
             document.getElementById('feedback-section').scrollIntoView({ behavior: 'smooth' });
         } else {
@@ -355,195 +387,39 @@ function detectEmotion(text) {
     return null;
 }
 
-// テキスト読み上げ関数
-async function playTTS(text, button) {
-    // 既に再生中の音声がある場合は停止
+// 全ての音声再生とWeb Speech APIを停止する関数
+function stopAllAudio() {
+    console.log('[stopAllAudio] 停止処理を実行中...');
+    
+    // Audio要素による再生を停止
     if (window.currentAudio && !window.currentAudio.paused) {
+        console.log('[stopAllAudio] Audio要素を停止');
         window.currentAudio.pause();
+        window.currentAudio.currentTime = 0; // 再生位置をリセット
         window.currentAudio = null;
-        button.innerHTML = '<i class="fas fa-volume-up"></i>';
-        button.disabled = false;
-        return;
     }
     
-    try {
-        // ボタンを無効化してローディング表示
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
-        // シナリオIDに基づいて固定の音声を使用
-        const voiceMap = {
-            // 男性上司系
-            'scenario1': 'orus',      // 会社的な男性音声 - 40代男性課長
-            'scenario3': 'orus',      // 会社的な男性音声 - 40代男性部長
-            'scenario5': 'alnilam',   // プロフェッショナルな男性音声 - 男性課長
-            'scenario9': 'charon',    // 深みのある男性音声 - 50代部長
-            'scenario11': 'iapetus',  // 威厳のある男性音声 - 役員
-            'scenario13': 'rasalgethi', // 独特で印象的な男性音声 - エンジニアリーダー
-            'scenario16': 'sadachbia', // 知的な男性音声 - 経営企画部長
-            'scenario22': 'gacrux',   // 安定感のある男性音声 - 営業部長
-            'scenario29': 'zubenelgenubi', // バランスの取れた男性音声 - ベテラン営業マン
-            
-            // 女性上司・先輩系
-            'scenario7': 'kore',      // 標準的な女性音声 - 女性チームリーダー
-            'scenario15': 'schedar',  // 明快な女性音声 - 女性マネージャー
-            'scenario17': 'vindemiatrix', // 上品な女性音声 - 女性部長
-            'scenario19': 'leda',     // 優しい女性音声 - メンター先輩
-            'scenario26': 'pulcherrima', // 美しい女性音声 - 広報部リーダー
-            
-            // 同僚系（男女混合）
-            'scenario2': 'achird',    // フレンドリーな男性音声 - 同僚
-            'scenario4': 'aoede',     // 明るい女性音声 - 同僚
-            'scenario6': 'fenrir',    // 力強い男性音声 - 同期
-            'scenario8': 'callirrhoe', // おおらかな女性音声 - 同僚
-            'scenario10': 'algenib',  // 親しみやすい男性音声 - 同期
-            'scenario12': 'autonoe',  // 明るい女性音声 - 同僚
-            'scenario14': 'sulafat',  // エネルギッシュな男性音声 - 営業同僚
-            'scenario18': 'despina',  // 陽気な女性音声 - 企画部同僚
-            'scenario20': 'achernar', // 明瞭な男性音声 - エンジニア同僚
-            'scenario23': 'laomedeia', // 流暢な女性音声 - マーケティング同僚
-            'scenario25': 'erinome',  // 柔らかい女性音声 - 人事同僚
-            'scenario27': 'enceladus', // 落ち着いた男性音声 - 経理同僚
-            
-            // 後輩・新人系
-            'scenario21': 'puck',     // 元気な中性的音声 - 新人
-            'scenario24': 'zephyr',   // 明るい中性的音声 - 後輩
-            'scenario28': 'umbriel',  // 神秘的な中性的音声 - インターン
-            'scenario30': 'algieba'   // 温かい女性音声 - 新人
-        };
-        
-        // シナリオIDから音声を取得（デフォルトは kore）
-        const fixedVoice = voiceMap[scenarioId] || 'kore';
-        
-        // TTSリクエストの準備（固定音声を使用）
-        const ttsRequest = {
-            text: text,
-            voice: fixedVoice
-        };
-        
-        console.log(`シナリオ ${scenarioId} の固定音声: ${fixedVoice}`);
-        
-        // Gemini TTS APIを呼び出し
-        const response = await fetch('/api/tts', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(ttsRequest)
-        });
-        
-        const data = await response.json();
-        console.log('TTS Response:', {
-            ok: response.ok,
-            status: response.status,
-            hasAudio: !!data.audio,
-            audioLength: data.audio ? data.audio.length : 0,
-            format: data.format,
-            voice: data.voice
-        });
-        
-        if (!response.ok) {
-            // APIエラーの場合、Web Speech APIにフォールバック
-            if (data.fallback === 'Web Speech API') {
-                console.log('Gemini TTSが失敗したため、Web Speech APIを使用します');
-                playTTSWithWebSpeech(text, button);
-                return;
-            }
-            throw new Error(data.error || 'TTS APIエラー');
-        }
-        
-        // Base64デコードして音声を再生
-        const audioFormat = data.format || 'wav';
-        const audioUrl = `data:audio/${audioFormat};base64,${data.audio}`;
-        console.log('Audio URL created, length:', audioUrl.length);
-        
-        const audio = new Audio(audioUrl);
-        window.currentAudio = audio;
-        
-        // 再生中のアイコン表示
-        button.innerHTML = '<i class="fas fa-pause"></i>';
-        
-        audio.onended = () => {
-            // 再生終了後、元のアイコンに戻す
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-volume-up"></i>';
-            window.currentAudio = null;
-        };
-        
-        audio.onerror = () => {
-            console.error('音声再生エラー');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-volume-up"></i>';
-            window.currentAudio = null;
-            // エラー時はWeb Speech APIにフォールバック
-            playTTSWithWebSpeech(text, button);
-        };
-        
-        await audio.play();
-        
-    } catch (error) {
-        console.error('TTSエラー:', error);
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-volume-up"></i>';
-        // エラー時はWeb Speech APIにフォールバック
-        playTTSWithWebSpeech(text, button);
+    // Web Speech APIによる音声合成を停止
+    if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        console.log('[stopAllAudio] Web Speech APIを停止');
+        window.speechSynthesis.cancel();
     }
+    
+    // 全てのTTSボタンを元の状態に戻す
+    document.querySelectorAll('.tts-button').forEach(btn => {
+        btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        btn.disabled = false;
+        btn.classList.remove('playing');
+    });
+    
+    // 現在の再生ボタンをリセット
+    window.currentPlayingButton = null;
+    
+    console.log('[stopAllAudio] 停止処理完了');
 }
 
-// Web Speech APIを使用したフォールバック関数
-function playTTSWithWebSpeech(text, button) {
-    // Web Speech APIがサポートされているか確認
-    if (!('speechSynthesis' in window)) {
-        alert('音声読み上げ機能が利用できません');
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-volume-up"></i>';
-        return;
-    }
-    
-    try {
-        // 既に再生中の場合は停止
-        if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
-        }
-        
-        // 音声合成の設定
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ja-JP';  // 日本語を設定
-        utterance.rate = 1.0;      // 話す速度
-        utterance.pitch = 1.0;     // 音の高さ
-        utterance.volume = 1.0;    // 音量
-        
-        // 日本語の音声を選択（利用可能な場合）
-        const voices = window.speechSynthesis.getVoices();
-        const japaneseVoice = voices.find(voice => voice.lang === 'ja-JP');
-        if (japaneseVoice) {
-            utterance.voice = japaneseVoice;
-        }
-        
-        // 再生中のアイコン表示
-        button.innerHTML = '<i class="fas fa-pause"></i>';
-        
-        // 再生終了時の処理
-        utterance.onend = () => {
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-volume-up"></i>';
-        };
-        
-        // エラー時の処理
-        utterance.onerror = (event) => {
-            console.error('音声合成エラー:', event);
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-volume-up"></i>';
-        };
-        
-        // 音声再生を開始
-        window.speechSynthesis.speak(utterance);
-        
-    } catch (error) {
-        console.error('Web Speech APIエラー:', error);
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-volume-up"></i>';
-        alert('音声読み上げ機能でエラーが発生しました');
-    }
-}
+// 注記: playTTS とplayTTSWithWebSpeech 関数は tts-common.js の統一TTS機能に置き換えられました
+// 新しい統一TTS機能は playUnifiedTTS 関数として実装されています
 
 // シナリオごとのキャラクター画像履歴を管理
 const characterImageHistory = {};
@@ -616,8 +492,104 @@ function resetCharacterForScenario(scenarioId) {
     delete baseCharacterInfo[scenarioId];
 }
 
-// 音声を事前生成する関数
-async function preloadTTS(text, messageId, button) {
+// シンプルな事前生成関数（統一された音声選択を使用）
+async function preloadScenarioTTS(text, messageId, button) {
+    console.log(`[preloadScenarioTTS] 開始: ${messageId}`);
+    
+    // ローディング状態をマーク
+    audioCache.set(messageId, 'loading');
+    
+    try {
+        // 統一された音声選択関数を使用（tts-common.jsから）
+        const voice = (typeof getVoiceForScenario === 'function') ? getVoiceForScenario() : 'kore';
+        
+        console.log(`[preloadScenarioTTS] Gemini TTSで生成中: ${messageId}, 音声=${voice}, シナリオ=${scenarioId}`);
+        
+        // Gemini TTS APIを呼び出し
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                text: text,
+                voice: voice
+            })
+        });
+        
+        const data = await response.json();
+        console.log(`[preloadScenarioTTS] APIレスポンス: ${messageId}, OK=${response.ok}, オーディオあり=${!!data.audio}, 実際の音声=${data.voice}`);
+        
+        if (!response.ok) {
+            console.error(`[preloadScenarioTTS] Gemini TTSエラー: ${messageId}`, data.error);
+            // エラー時の処理
+            button.disabled = false;
+            button.classList.remove('tts-loading');
+            button.classList.add('tts-fallback');
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            button.title = 'システム音声で読み上げ（フォールバック）';
+            
+            audioCache.set(messageId, { 
+                error: true, 
+                fallback: data.fallback === 'Web Speech API',
+                text: text,
+                voice: voice // 要求した音声も記録
+            });
+            return;
+        }
+        
+        // 音声データをキャッシュに保存
+        const audioFormat = data.format || 'wav';
+        const audioUrl = `data:audio/${audioFormat};base64,${data.audio}`;
+        const audio = new Audio(audioUrl);
+        audio.preload = 'auto';
+        
+        // キャッシュに保存する際に、messageIdとvoiceの組み合わせを確実に記録
+        const cacheEntry = {
+            audio: audio,
+            text: text,
+            voice: data.voice, // 実際に使用された音声
+            requestedVoice: voice, // 要求した音声
+            format: audioFormat,
+            messageId: messageId,
+            scenarioId: scenarioId
+        };
+        
+        audioCache.set(messageId, cacheEntry);
+        
+        console.log(`[preloadScenarioTTS] Gemini TTS生成完了: ${messageId}, 要求音声=${voice}, 実際音声=${data.voice}`);
+        
+        // ボタンを有効化
+        button.disabled = false;
+        button.classList.remove('tts-loading');
+        button.classList.add('tts-ready');
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.title = `Gemini音声で読み上げ（準備完了：${data.voice}）`;
+        
+    } catch (error) {
+        console.error(`[preloadScenarioTTS] 事前生成エラー: ${messageId}`, error);
+        
+        // エラー時もボタンを有効化
+        button.disabled = false;
+        button.classList.remove('tts-loading');
+        button.classList.add('tts-fallback');
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.title = 'システム音声で読み上げ（フォールバック）';
+        
+        audioCache.set(messageId, { 
+            error: true, 
+            fallback: true,
+            text: text,
+            voice: (typeof getVoiceForScenario === 'function') ? getVoiceForScenario() : 'kore'
+        });
+    }
+}
+
+// 従来のpreloadTTS関数（廃止予定）
+async function preloadTTS_DEPRECATED(text, messageId, button) {
+    console.log(`[preloadTTS] 開始: ${messageId}`);
+    
+    // ローディング状態をマーク
+    audioCache.set(messageId, 'loading');
+    
     try {
         // シナリオIDに基づいて固定の音声を使用
         const voiceMap = {
@@ -662,7 +634,7 @@ async function preloadTTS(text, messageId, button) {
         
         const fixedVoice = voiceMap[scenarioId] || 'kore';
         
-        console.log(`音声を事前生成中: メッセージID=${messageId}, シナリオ=${scenarioId}, 音声=${fixedVoice}`);
+        console.log(`[preloadTTS] Gemini TTSで生成中: ${messageId}, 音声=${fixedVoice}`);
         
         // TTSリクエストの準備
         const ttsRequest = {
@@ -678,15 +650,23 @@ async function preloadTTS(text, messageId, button) {
         });
         
         const data = await response.json();
+        console.log(`[preloadTTS] APIレスポンス: ${messageId}, OK=${response.ok}, オーディオあり=${!!data.audio}`);
         
         if (!response.ok) {
-            console.error('音声事前生成エラー:', data.error);
-            // エラーの場合は、フォールバック情報を保存
+            console.error(`[preloadTTS] Gemini TTSエラー: ${messageId}`, data.error);
+            // エラーの場合は、ボタンを有効化してフォールバック情報を保存
+            button.disabled = false;
+            button.classList.remove('tts-loading');
+            button.classList.add('tts-fallback');
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            button.title = 'システム音声で読み上げ（フォールバック）';
+            
             audioCache.set(messageId, { 
                 error: true, 
                 fallback: data.fallback === 'Web Speech API',
                 text: text 
             });
+            console.log(`[preloadTTS] フォールバック情報を保存: ${messageId}`);
             return;
         }
         
@@ -705,89 +685,36 @@ async function preloadTTS(text, messageId, button) {
             format: audioFormat
         });
         
-        console.log(`音声事前生成完了: メッセージID=${messageId}`);
+        console.log(`[preloadTTS] Gemini TTS生成完了: ${messageId}`);
         
-        // ボタンのスタイルを更新（準備完了を示す）
+        // ボタンを有効化し、スタイルを更新（Gemini準備完了を示す）
+        button.disabled = false;
+        button.classList.remove('tts-loading');
         button.classList.add('tts-ready');
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.title = 'Gemini音声で読み上げ（準備完了）';
         
     } catch (error) {
-        console.error('音声事前生成エラー:', error);
+        console.error(`[preloadTTS] 事前生成エラー: ${messageId}`, error);
+        
+        // エラー時もボタンを有効化（フォールバックで再生可能）
+        button.disabled = false;
+        button.classList.remove('tts-loading');
+        button.classList.add('tts-fallback');
+        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+        button.title = 'システム音声で読み上げ（フォールバック）';
+        
         audioCache.set(messageId, { 
             error: true, 
             fallback: true,
             text: text 
         });
+        console.log(`[preloadTTS] エラー情報を保存: ${messageId}`);
     }
 }
 
-// 事前生成された音声を再生する関数
-async function playPreloadedTTS(messageId, button) {
-    // 既に再生中の音声がある場合は停止
-    if (window.currentAudio && !window.currentAudio.paused) {
-        window.currentAudio.pause();
-        window.currentAudio = null;
-        // 全てのボタンを元の状態に戻す
-        document.querySelectorAll('.tts-button').forEach(btn => {
-            btn.innerHTML = '<i class="fas fa-volume-up"></i>';
-            btn.disabled = false;
-        });
-        return;
-    }
-    
-    const cachedData = audioCache.get(messageId);
-    
-    if (!cachedData) {
-        console.error('キャッシュされた音声が見つかりません:', messageId);
-        // キャッシュがない場合は従来の方法で生成
-        const messageDiv = button.closest('.message');
-        const text = messageDiv.querySelector('.message-text').textContent.replace('相手役: ', '');
-        playTTS(text, button);
-        return;
-    }
-    
-    if (cachedData.error) {
-        // エラーの場合はWeb Speech APIにフォールバック
-        if (cachedData.fallback) {
-            playTTSWithWebSpeech(cachedData.text, button);
-        } else {
-            alert('音声再生エラーが発生しました');
-        }
-        return;
-    }
-    
-    try {
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-pause"></i>';
-        
-        const audio = cachedData.audio;
-        window.currentAudio = audio;
-        
-        audio.onended = () => {
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-volume-up"></i>';
-            window.currentAudio = null;
-        };
-        
-        audio.onerror = () => {
-            console.error('音声再生エラー');
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-volume-up"></i>';
-            window.currentAudio = null;
-            // エラー時はWeb Speech APIにフォールバック
-            playTTSWithWebSpeech(cachedData.text, button);
-        };
-        
-        await audio.play();
-        console.log('事前生成された音声を再生中:', messageId);
-        
-    } catch (error) {
-        console.error('音声再生エラー:', error);
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-volume-up"></i>';
-        // エラー時はWeb Speech APIにフォールバック
-        playTTSWithWebSpeech(cachedData.text, button);
-    }
-}
+// 注記: playPreloadedTTS 関数は tts-common.js の統一TTS機能に置き換えられました
+// 現在は playUnifiedTTS 関数がキャッシュされた音声と新規生成音声の両方を処理します
 
 // メモリ管理：古い音声データを削除
 function cleanupAudioCache() {

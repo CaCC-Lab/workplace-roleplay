@@ -1,233 +1,96 @@
-.error-message {
-    color: #cc0000;
-    font-weight: bold;
-    padding: 10px;
-    border-radius: 4px;
-    background-color: rgba(255, 0, 0, 0.05);
-}
+/* ========== シナリオページのスタイル ========== */
 
-.bot-message {
-    background-color: #e9ecef;
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 4px;
-}
-
-.user-message {
-    background-color: #d4edda;
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 4px;
-}
-
-.ai-assist-popup {
-    display: none;
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-}
-
-.ai-assist-popup.active {
-    display: block;
-}
-
-#feedback-section {
+/* フィードバックセクション */
+.feedback-section {
     margin-top: 2rem;
-    border-top: 1px solid #e0e0e0;
-    padding-top: 1rem;
+    padding: 2rem;
+    background-color: #f8f9fa;
+    border-radius: 10px;
 }
 
-#feedback-content {
-    background-color: #f9f9f9;
-    border: 1px solid #e0e0e0;
+.feedback-content {
+    background: white;
+    padding: 1.5rem;
     border-radius: 8px;
-    padding: 20px;
-    margin-top: 15px;
-    display: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 1rem;
 }
 
-#feedback-content.active {
+.feedback-content.active {
     display: block;
 }
 
-#feedback-content.error {
-    background-color: #fff2f2;
-    border-color: #ffcccc;
+.feedback-content.error {
+    background-color: #fee;
 }
 
-/* シナリオ固有のスタイル */
-.scenario-info {
-    margin-bottom: 2rem;
-}
-
-.learning-points {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-.ai-assist-popup {
-    background: white;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-/* AIアシストポップアップのスタイル更新 */
-#ai-assist-popup {
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    max-width: 300px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    opacity: 0;
-    transform: translateY(20px);
-    visibility: hidden;
-    z-index: 1000;
-}
-
-#ai-assist-popup.active {
-    opacity: 1;
-    transform: translateY(0);
-    visibility: visible;
-}
-
-#ai-assist-popup.error {
-    background-color: #fff2f2;
-    border-color: #ffcccc;
-    color: #cc0000;
-}
-
-#ai-assist-content {
-    font-size: 14px;
-    line-height: 1.4;
-    white-space: pre-wrap;
-}
-
-#ai-assist-button {
-    position: relative;
-}
-
-#ai-assist-button.loading::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 16px;
-    height: 16px;
-    margin: -8px 0 0 -8px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
+/* モデル情報 */
 .model-info {
-    margin-top: 20px;
-    padding-top: 10px;
-    border-top: 1px dashed #ddd;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ddd;
+    font-size: 0.9rem;
     color: #666;
-    font-size: 12px;
     text-align: right;
-    font-style: italic;
 }
 
-/* TTSボタンの準備完了スタイル */
-.tts-button.tts-ready {
-    position: relative;
+/* ========== エラーメッセージ ========== */
+.error-message {
+    background-color: #fee;
+    color: #c33;
+    padding: 10px;
+    border-left: 4px solid #c33;
+    margin: 10px 0;
 }
 
-.tts-button.tts-ready::before {
-    content: "";
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 8px;
-    height: 8px;
-    background-color: #4CAF50;
-    border-radius: 50%;
-    animation: pulse 1.5s infinite;
+/* ========== 強み分析表示 ========== */
+#strengthHighlight {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #f0f9ff;
+    border-radius: 8px;
+    border: 1px solid #e0f2fe;
 }
 
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 0.7;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
+#strengthHighlight.show {
+    opacity: 1;
 }
 
-/* キャラクター画像のスタイル */
-.character-image-container {
-    margin-bottom: 10px;
-    text-align: center;
-    animation: fadeIn 0.5s ease-in;
+#strengthHighlight h3 {
+    color: #1e40af;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
 }
 
-.character-image {
-    max-width: 300px;
-    max-height: 300px;
-    width: auto;
-    height: auto;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    object-fit: cover;
-}
-
-.image-loading {
-    padding: 20px;
-    color: #666;
-    font-size: 14px;
-}
-
-.image-loading i {
-    margin-right: 8px;
-}
-
-/* AIメッセージのレイアウト調整 */
-.message.bot-message {
+.strength-badges {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
-/* アニメーション */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.strength-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 768px) {
-    .character-image {
-        max-width: 200px;
-        max-height: 200px;
-    }
-} 
+.strength-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.strength-name {
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.strength-score {
+    font-weight: 700;
+}

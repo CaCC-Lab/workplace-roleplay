@@ -10,10 +10,12 @@
 - AIと対話形式でリアルな状況を練習
 - 会話終了後に詳細なフィードバックを取得
 - 練習履歴の記録と振り返り
-- **音声読み上げ機能**（2025年6月9日追加）
+- **音声読み上げ機能**（2025年6月9日追加、6月11日改善）
   - AIの応答を自然な音声で再生
   - シナリオごとに役職・年齢・性別に応じた固定音声を使用
   - ロールプレイ中は一貫した音声で没入感を維持
+  - 音声再生中の停止機能
+  - 統一されたTTS管理システム
 
 ### 2. 雑談練習モード 💬
 - 職場での適切な雑談スキルを向上
@@ -165,6 +167,7 @@ SESSION_TYPE=filesystem
 │       ├── model-selection.js    # モデル選択用JS
 │       ├── scenario.js           # シナリオモード用JS
 │       ├── scenarios_list.js     # シナリオ一覧用JS
+│       ├── tts-common.js         # 統一TTS管理システム
 │       └── watch.js              # 観戦モード用JS
 ├── templates/                    # Flaskテンプレート
 │   ├── chat.html                 # 雑談モードページ
@@ -180,7 +183,8 @@ SESSION_TYPE=filesystem
 ├── app.py                        # メインアプリケーション
 ├── requirements.txt              # 依存パッケージ
 ├── requirements-dev.txt          # 開発用依存パッケージ
-└── azure-webapp-settings.md      # Azureデプロイガイド
+├── azure-webapp-settings.md      # Azureデプロイガイド
+└── strength_analyzer.py          # 強み分析機能
 ```
 
 ### 開発用依存パッケージ
