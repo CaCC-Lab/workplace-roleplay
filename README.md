@@ -1,275 +1,321 @@
-# 職場コミュニケーション練習アプリ
+# 🎯 AI職場コミュニケーショントレーナー
 
-このアプリケーションは、職場でのコミュニケーションスキルを安全に練習できる環境を提供します。AIとの対話を通じて、実際の職場で役立つコミュニケーション能力の向上を支援します。
+<div align="center">
+  
+  **職場でのコミュニケーションスキルを、AIとの対話で安全に練習できるWebアプリケーション**
+  
+  🔗 **[デモサイトで体験する](https://workplace-roleplay.cacc-lab.net/)**
+  
+  [![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+  [![Flask](https://img.shields.io/badge/Flask-2.0+-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+  [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-API-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+  
+</div>
 
-## 🌟 主な機能
+---
 
-### 1. シナリオロールプレイ 📝
-- 30種類以上の実践的な職場シナリオを収録
-- シナリオの難易度別分類（初級〜上級）
-- AIと対話形式でリアルな状況を練習
-- 会話終了後に詳細なフィードバックを取得
-- 練習履歴の記録と振り返り
-- **音声読み上げ機能**（2025年6月9日追加、6月11日改善）
-  - AIの応答を自然な音声で再生
-  - シナリオごとに役職・年齢・性別に応じた固定音声を使用
-  - ロールプレイ中は一貫した音声で没入感を維持
-  - 音声再生中の停止機能
-  - 統一されたTTS管理システム
+## 🚀 プロジェクト概要
 
-### 2. 雑談練習モード 💬
-- 職場での適切な雑談スキルを向上
-- 相手（同僚・先輩・上司など）や状況に応じた会話練習
-- 会話スキルに関する具体的なフィードバック
-- 実践的なアドバイスの提供
-- **音声読み上げ対応**：AIの応答を音声で聞くことが可能
+このプロジェクトは、多くの人が抱える「職場でのコミュニケーションへの不安」を解決するために開発しました。
 
-### 3. 会話観戦モード 👥
-- 2つのAIモデル間の会話をリアルタイムで観察
-- 会話の進行をステップバイステップで確認
-- 自然な会話の流れと職場での適切なコミュニケーションを学習
-- 異なるAIモデルの組み合わせで多様な会話パターンを観察
+**解決したい課題：**
+- 新入社員や転職者が感じる職場での会話への不安
+- 難しい状況（クレーム対応、交渉など）の練習機会の不足
+- 実際の場面でトライ＆エラーすることのリスク
 
-### 4. 学習記録・分析機能 📊
-- 練習した会話の履歴を保存
-- シナリオごとの進捗状況を記録
-- 練習時間の自動計測
-- 学習の振り返りと改善点の分析
+**ソリューション：**
+最新のAI技術（Google Gemini）を活用し、リアルな職場シナリオで何度でも練習できる環境を提供。30種類以上のシナリオと高度な音声合成機能により、没入感のある練習体験を実現しました。
 
-### 5. キャラクター画像生成機能 🎨（現在一時無効化中）
-- Google Gemini Image Generation APIによるキャラクター画像生成
-- 感情に応じた表情の動的変更
-- キャラクターの一貫性を保つための詳細なプロンプト制御
-- 役職や年齢に応じた適切な外見の生成
-- **注**: 現在、技術的な制約により一時的に無効化されています
+## 💡 主要機能
 
-## 🧠 対応AIモデル
+<table>
+<tr>
+<td width="50%" valign="top">
 
-### Google Gemini専用
-- **Gemini-1.5-pro**: 高精度な応答を提供
-- **Gemini-1.5-flash**: 高速な応答を提供
+### 🎭 シナリオロールプレイ
+**30種類以上の実践的シナリオ**
+- 初級：基本的な報連相、依頼の仕方
+- 中級：クレーム対応、交渉術
+- 上級：難しい人間関係、緊急事態対応
 
-### 音声読み上げ機能（2025年6月9日実装）
-- Gemini TTS API (gemini-2.5-flash-preview-tts)を使用した高品質な音声合成
-- **30種類の多様な音声タイプ**から状況に応じて自動選択：
-  - **女性音声（11種）**: Kore（標準的）、Aoede（明るい）、Callirrhoe（おおらか）、Leda（優しい）、Algieba（温かい）、Autonoe（明るい）、Despina（陽気）、Erinome（柔らかい）、Laomedeia（流暢）、Pulcherrima（美しい）、Vindemiatrix（上品）
-  - **男性音声（15種）**: Orus（会社的）、Alnilam（プロフェッショナル）、Charon（深みのある）、Fenrir（力強い）、Iapetus（威厳のある）、Algenib（親しみやすい）、Rasalgethi（独特で印象的）、Achernar（明瞭）、Achird（フレンドリー）、Gacrux（安定感のある）、Zubenelgenubi（バランスの取れた）、Sadachbia（知的）、Sadaltager（知識豊富）、Sulafat（エネルギッシュ）、Enceladus（落ち着いた）
-  - **中性音声（4種）**: Puck（元気）、Zephyr（明るい）、Umbriel（神秘的）、Schedar（均等）
-- **シナリオに応じた固定音声機能**：
-  - 各シナリオのキャラクター設定（役職・年齢・性別）に基づいて音声を自動割り当て
-  - ロールプレイ中は同一音声を維持し、一貫性と没入感を確保
-  - 感情表現はプロンプトで制御（同じ声で異なる感情を表現）
-- WAV形式（24kHz、16ビット、モノラル）での高品質音声出力
-- フォールバックとしてWeb Speech APIをサポート
+**特徴的な実装：**
+- YAMLベースのシナリオ管理システム
+- キャラクター設定に基づく自動音声割り当て
+- 会話後の詳細なフィードバック生成
 
-## 💻 動作環境
+</td>
+<td width="50%" valign="top">
 
+### 🗣️ 高度な音声合成機能
+**30種類の多様な音声タイプ**
+- 女性11種、男性15種、中性4種
+- 役職・年齢・性別に応じた自動選択
+- 感情表現（喜び、困惑、疲れ等）に対応
+
+**技術的工夫：**
+- 音声データの事前生成＆キャッシング
+- メモリ効率を考慮した自動クリーンアップ
+- Web Speech APIへの自動フォールバック
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 💬 雑談練習モード
+**状況に応じた会話練習**
+- 同僚との日常会話
+- 上司との適切なコミュニケーション
+- 初対面での会話
+
+**AIによる分析：**
+- 話題選択の適切さ
+- 敬語使いの正確性
+- 会話の流れの自然さ
+
+</td>
+<td width="50%" valign="top">
+
+### 📊 強み分析システム
+**6つのスキル項目を可視化**
+- 共感力、明確な伝達力、傾聴力
+- 適応力、前向きさ、プロフェッショナリズム
+
+**データビジュアライゼーション：**
+- レーダーチャートで現在の強みを表示
+- 時系列グラフで成長を追跡
+- パーソナライズされた励ましメッセージ
+
+</td>
+</tr>
+</table>
+
+### 🎯 その他の特徴的機能
+- **会話観戦モード**: 2つのAIモデル間の模範会話を観察学習
+- **学習履歴管理**: すべての練習記録を保存し、振り返り可能
+- **リアルタイムストリーミング**: Server-Sent Eventsによる低遅延な会話体験
+
+## 🛠️ 技術スタック
+
+### バックエンド
+- **Flask 2.0+**: 軽量で柔軟なWebフレームワーク
+- **LangChain**: AIモデルとの対話管理、メモリ管理
+- **Flask-Session**: セッション管理（ファイルシステム/Redis対応）
+- **PyYAML**: シナリオデータの管理
+
+### AI/機械学習
+- **Google Gemini API**: 
+  - gemini-1.5-pro（高精度応答）
+  - gemini-1.5-flash（高速応答）
+- **Gemini TTS API**: 30種類の音声による高品質な音声合成
+- **LangChain Memory**: 会話履歴の管理
+
+### フロントエンド
+- **純粋なJavaScript**: フレームワーク非依存の実装
+- **Chart.js**: 強み分析のデータビジュアライゼーション
+- **Server-Sent Events**: リアルタイム通信
+- **Web Speech API**: 音声合成のフォールバック
+
+## 🏗️ アーキテクチャと実装の工夫
+
+### システムアーキテクチャ
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│                 │     │                  │     │                 │
+│   フロントエンド  │────▶│  Flask Server    │────▶│ Google Gemini   │
+│  (JavaScript)   │ SSE │                  │ API │     API         │
+│                 │◀────│  - Session管理    │◀────│                 │
+└─────────────────┘     │  - ルーティング    │     └─────────────────┘
+                       │  - エラーハンドル   │              │
+                       └──────────────────┘              │
+                                │                        │
+                                ▼                        ▼
+                       ┌──────────────────┐     ┌─────────────────┐
+                       │                  │     │                 │
+                       │ Session Storage  │     │  Gemini TTS     │
+                       │ (File/Redis)     │     │     API         │
+                       │                  │     │                 │
+                       └──────────────────┘     └─────────────────┘
+```
+
+### 主要な技術的実装
+
+#### 1. **統一TTS管理システム**
+```javascript
+// tts-common.js - 全ページで一貫した音声制御
+class TTSManager {
+    constructor() {
+        this.audioCache = new Map();
+        this.maxCacheSize = 50;
+        this.currentAudio = null;
+    }
+    // 音声の事前生成とキャッシング
+    // メモリ効率を考慮した自動クリーンアップ
+}
+```
+
+#### 2. **LangChainによる高度な会話管理**
+```python
+# 各モードで独立したメモリを保持
+memory_chat = ConversationBufferMemory(memory_key="chat_history")
+memory_scenario = ConversationBufferMemory(memory_key="chat_history")
+memory_watch = ConversationBufferMemory(memory_key="chat_history")
+```
+
+#### 3. **APIキーローテーションシステム**
+```python
+# api_key_manager.py - レート制限対策
+class APIKeyManager:
+    def get_next_key(self):
+        # 使用状況に基づいて最適なキーを選択
+        # エラー時の自動クールダウン
+```
+
+#### 4. **非同期音声生成**
+- AI応答と並行して音声データを生成
+- Base64エンコードでクライアントに送信
+- ユーザーアクション時に即座に再生可能
+
+## 🎨 開発プロセスと課題解決
+
+### 直面した技術的課題と解決策
+
+#### 1. **音声合成の遅延問題**
+**課題**: AI応答生成後に音声を生成すると、ユーザーが音声再生ボタンを押すまでに遅延が発生
+
+**解決策**: 
+- AI応答のストリーミング中に並行して音声データを生成
+- Base64エンコードされた音声データをレスポンスに含める
+- クライアント側でキャッシュし、即座に再生可能に
+
+#### 2. **キャラクター音声の一貫性**
+**課題**: シナリオ中で同じキャラクターの音声が変わってしまう
+
+**解決策**:
+- シナリオごとに音声IDを固定化
+- キャラクター設定（役職・年齢・性別）から適切な音声を自動選択
+- セッション中は同一音声を維持
+
+#### 3. **メモリ管理とスケーラビリティ**
+**課題**: 音声データのキャッシュによるメモリ圧迫
+
+**解決策**:
+- LRU（Least Recently Used）方式でキャッシュサイズを制限
+- 自動クリーンアップ機能の実装
+- Redisセッションによるスケールアウトの対応
+
+## 📈 成果と学び
+
+### 技術的成果
+- **30種類以上のシナリオ**: 実践的な職場状況をカバー
+- **高度な音声合成**: 30種類の音声で没入感のある体験を実現
+- **リアルタイム通信**: SSEによる低遅延な会話体験
+- **柔軟なアーキテクチャ**: 開発環境から本番環境まで対応
+
+### 得られた知見
+1. **AIプロンプトエンジニアリング**: キャラクターの一貫性を保つためのプロンプト設計
+2. **非同期処理の重要性**: ユーザー体験を損なわない並行処理の実装
+3. **フォールバック戦略**: APIの障害に備えた代替手段の準備
+4. **メモリ効率**: 限られたリソースでの最適化技術
+
+## 🚀 今後の展望
+
+### 計画中の機能拡張
+- **ユーザー認証システム**: 個人の学習履歴を永続的に保存
+- **音声入力対応**: より自然な会話練習の実現
+- **リアルタイムフィードバック**: 会話中のアドバイス機能
+- **グループ練習機能**: 複数人でのロールプレイ対応
+- **ゲーミフィケーション**: バッジやランキングシステム
+
+### 技術的改善点
+- データベース統合による永続的なデータ管理
+- WebSocketによる双方向通信の実装
+- マイクロサービス化による機能の分離
+- CI/CDパイプラインの構築
+
+## 💻 クイックスタート
+
+### 前提条件
 - Python 3.8以上
-- Flask 2.0以上
-- インターネット接続（Google Gemini APIの利用に必須）
-- モダンブラウザ（音声読み上げ機能にはWeb Speech API対応ブラウザが必要）
+- Google Cloud アカウント（Gemini API用）
 
-## 🚀 セットアップ
-
-1. リポジトリのクローン
+### セットアップ
 ```bash
+# 1. クローン
 git clone https://github.com/CaCC-Lab/workplace-roleplay.git
 cd workplace-roleplay
-```
 
-2. 仮想環境の作成と有効化
-```bash
+# 2. 仮想環境
 python -m venv venv
-source venv/bin/activate  # Unix系
+source venv/bin/activate  # Unix/macOS
+# or
 venv\Scripts\activate     # Windows
-```
 
-3. 依存パッケージのインストール
-```bash
+# 3. 依存関係インストール
 pip install -r requirements.txt
-```
 
-4. 環境変数の設定
-```bash
+# 4. 環境変数設定
 cp .env.example .env
-# .envファイルを編集してAPIキーを設定
-```
+# .envファイルを編集してGOOGLE_API_KEYを設定
 
-5. アプリケーションの起動
-```bash
+# 5. 起動
 python app.py
 ```
 
-6. ブラウザで以下のURLにアクセス
+アプリケーションは `http://localhost:5001` で起動します。
+
+### 必須環境変数
 ```
-http://localhost:5001
-```
-
-## 📝 環境変数の設定例
-
-```
-# 基本設定
-FLASK_SECRET_KEY=your_secret_key_here
-GOOGLE_API_KEY=AI...   # Google APIキー（必須）
-                       # 以下の機能で使用されます：
-                       # - Gemini AIモデル（会話応答）
-                       # - Gemini TTS API（音声読み上げ）
-                       # - Gemini Image Generation API（画像生成、現在無効化中）
-
-# セッション設定
-SESSION_TYPE=filesystem
-# SESSION_FILE_DIR=./flask_session  # セッションファイルの保存場所（オプション）
-
-# Redisセッション（オプション、高負荷環境向け）
-# SESSION_TYPE=redis
-# REDIS_HOST=localhost
-# REDIS_PORT=6379
-# REDIS_PASSWORD=your_password
-# REDIS_DB=0
+GOOGLE_API_KEY=your_google_api_key  # Gemini API用
+FLASK_SECRET_KEY=your_secret_key    # セッション暗号化用
 ```
 
-## 📚 機能詳細
+## 📁 プロジェクト構成
 
-### シナリオロールプレイ機能
-- 初級：基本的なコミュニケーションスキル向け
-- 中級：より複雑な状況や対人関係向け
-- 上級：難しい交渉や緊張状況向け
-
-### フィードバック機能
-- 話し方の適切さの評価
-- 質問や確認の的確さの分析
-- 改善点の具体的な提案
-- 次回練習時の注目ポイント提示
-
-### Gemini専用設計
-- Google Gemini APIを使用した高品質な日本語応答
-- モデルの特性を活かした自然な会話練習
-- Gemini TTS APIによる高品質な音声読み上げ機能
-
-### 音声合成機能の特徴
-- **30種類の多様な音声タイプ**: 年齢、性別、役職に応じた自然な音声を自動選択
-- **シナリオ固定音声**: 各シナリオで一貫した音声を使用し、没入感を維持
-- **感情表現**: 同じ音声で異なる感情（喜び、困惑、疲れなど）を表現
-- **高品質音声**: WAV形式（24kHz、16ビット、モノラル）での出力
-- **音声事前生成**: AI応答と同時に音声データを生成し、クリック時に即座再生
-- **フォールバック機能**: Gemini TTS APIが利用できない場合はWeb Speech APIに自動切り替え
-
-## 🛠 開発者向け情報
-
-### ディレクトリ構成
 ```
-/
-├── static/                       # 静的ファイル
-│   ├── css/                      # CSSファイル
-│   └── js/                       # JavaScriptファイル
-│       ├── chat.js               # 雑談モード用JS
-│       ├── journal.js            # 学習記録用JS
-│       ├── model-selection.js    # モデル選択用JS
-│       ├── scenario.js           # シナリオモード用JS
-│       ├── scenarios_list.js     # シナリオ一覧用JS
-│       ├── tts-common.js         # 統一TTS管理システム
-│       └── watch.js              # 観戦モード用JS
-├── templates/                    # Flaskテンプレート
-│   ├── chat.html                 # 雑談モードページ
-│   ├── index.html                # トップページ
-│   ├── journal.html              # 学習記録ページ
-│   ├── scenario.html             # シナリオページ
-│   ├── scenarios_list.html       # シナリオ一覧ページ
-│   └── watch.html                # 観戦モードページ
-├── scenarios/                    # シナリオ関連
-│   ├── __init__.py               # シナリオロード処理
-│   └── data/                     # シナリオデータ（YAMLファイル）
-├── flask_session/                # セッションデータ保存場所
-├── app.py                        # メインアプリケーション
-├── requirements.txt              # 依存パッケージ
-├── requirements-dev.txt          # 開発用依存パッケージ
-├── azure-webapp-settings.md      # Azureデプロイガイド
-└── strength_analyzer.py          # 強み分析機能
+workplace-roleplay/
+├── 📱 app.py                    # メインアプリケーション
+├── 🧠 strength_analyzer.py      # 強み分析エンジン
+├── 🔑 api_key_manager.py        # APIキー管理システム
+├── 📚 scenarios/                # シナリオ管理
+│   └── data/                    # 30種類のYAMLシナリオ
+├── 🎨 static/                   # フロントエンド
+│   ├── js/                      # 機能別JavaScript
+│   └── css/                     # スタイルシート
+└── 🌐 templates/                # HTMLテンプレート
 ```
 
-### 開発用依存パッケージ
-```bash
-pip install -r requirements-dev.txt
-```
+## 🏆 プロジェクトのハイライト
 
-以下の開発ツールが導入されます：
-- pytest: テスト実行
-- black: コードフォーマッタ
-- flake8: リンター
-- isort: インポート順整理
-- mypy: 型チェッカー
+- **実装規模**: 約5,000行のコード（Python + JavaScript）
+- **AIモデル統合**: Google Gemini API（会話・音声・画像生成）
+- **パフォーマンス**: SSEによる低遅延ストリーミング（< 100ms）
+- **スケーラビリティ**: Redis対応によるマルチインスタンス運用可能
+- **メモリ効率**: LRUキャッシュによる効率的なリソース管理
 
-### シナリオの追加方法
-1. `scenarios/data/` ディレクトリに新しいYAMLファイルを作成（例：`scenarioXX.yaml`）
-2. 以下の形式でシナリオ情報を記述：
-```yaml
-title: シナリオのタイトル
-description: シナリオの詳細説明
-difficulty: 初級/中級/上級
-tags:
-  - タグ1
-  - タグ2
-role_info: AIは〇〇役、あなたは××
-character_setting:
-  personality: キャラクターの性格
-  speaking_style: 話し方の特徴
-  situation: 現在の状況
-  initial_approach: 最初の声かけ
-learning_points:
-  - 学習ポイント1
-  - 学習ポイント2
-feedback_points:
-  - フィードバックの観点1
-  - フィードバックの観点2
-```
+## 📝 ライセンスとコントリビューション
 
-## 🚀 Azureへのデプロイ
+このプロジェクトは[MITライセンス](LICENSE)の下で公開されています。
 
-Azure Web Appへのデプロイ方法については、`azure-webapp-settings.md`を参照してください。主な設定内容：
+### 開発への参加
+- Issue報告やプルリクエストを歓迎します
+- 開発ガイドラインは[CONTRIBUTING.md](CONTRIBUTING.md)を参照
 
-1. 必要な環境変数の設定
-2. セッションの保存方法（ファイルシステムまたはRedis）
-3. アプリケーション設定の構成方法
+## 🤝 連絡先
 
-## 🔒 プライバシーとセキュリティ
+プロジェクトに関するお問い合わせや提案がございましたら、以下までご連絡ください：
 
-- Google Gemini APIを使用する場合、会話データはGoogleのサービスに送信されます
-- 音声読み上げ機能はGemini TTS APIを使用し、テキストのみがGoogleに送信されます
-- 画像生成機能（現在無効化中）はGemini Image Generation APIを使用し、キャラクター描写のプロンプトがGoogleに送信されます
-- セッションデータは一時的にサーバーに保存され、セッション終了後に自動削除されます
-- APIキーは環境変数で管理し、ソースコードには含まれません
+- **GitHub**: [CaCC-Lab/workplace-roleplay](https://github.com/CaCC-Lab/workplace-roleplay)
+- **デモサイト**: [https://workplace-roleplay.cacc-lab.net/](https://workplace-roleplay.cacc-lab.net/)
 
-## 📄 ライセンス
+---
 
-[MITライセンス](LICENSE)
-
-## 📝 注意事項
-
-- このアプリケーションは学習・練習用途を想定しています
-- AIの応答は参考程度にお考えください
-- 実際の職場での行動指針は、所属組織の方針に従ってください
-- セキュリティの観点から、本番環境では適切なセッション管理（Redis推奨）を行ってください
-
-## 🔒 セッション設定
-
-アプリケーションはデフォルトでローカルファイルシステムにセッションデータを保存します。環境変数で設定を変更できます：
-
-### ファイルシステムセッション（デフォルト）
-```
-SESSION_TYPE=filesystem
-SESSION_FILE_DIR=/path/to/session/files  # オプション
-```
-
-### Redisセッション（スケーラブルな環境向け）
-```
-SESSION_TYPE=redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_password  # 必要な場合
-REDIS_DB=0
-```
-
-## Azure Web Appへのデプロイ
-
-Azure Web Appにデプロイする場合は、`azure-webapp-settings.md`を参照してください。
+<div align="center">
+  
+  **Built with ❤️ using Flask and Google Gemini**
+  
+  このプロジェクトは、AIを活用して誰もが安心して職場コミュニケーションを学べる環境を提供することを目指しています。
+  
+</div>
 
