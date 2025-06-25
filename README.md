@@ -306,8 +306,8 @@ workplace-roleplay/
 
 プロジェクトに関するお問い合わせや提案がございましたら、以下までご連絡ください：
 
-- **GitHub**: [CaCC-Lab/workplace-roleplay](https://github.com/CaCC-Lab/workplace-roleplay)
-- **デモサイト**: [https://workplace-roleplay.cacc-lab.net/](https://workplace-roleplay.cacc-lab.net/)
+**開発者**: CaCC-Lab
+**問い合わせ先**: https://cacc-lab.net/otoiawase/
 
 ---
 
