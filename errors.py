@@ -228,7 +228,7 @@ def handle_llm_specific_error(error: Exception, model_name: str = "Gemini") -> A
             original_error=str(error)
         )
     
-    # その他のAPI��ラー
+    # その他のAPIエラー
     return ExternalAPIError(
         service=model_name,
         message="API呼び出しに失敗しました",

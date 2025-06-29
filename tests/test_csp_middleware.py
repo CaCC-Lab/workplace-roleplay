@@ -99,7 +99,8 @@ class TestCSPMiddleware:
             
             # 除外されたページ
             response = client.get('/exempt')
-            # TODO: exemptフラグのチェック実装後にテストを更新
+            # exemptデコレータによってCSPヘッダーがバイパスされることを確認
+            assert 'Content-Security-Policy-Report-Only' not in response.headers
     
     def test_phase_configuration(self, app):
         """異なるフェーズの設定テスト"""

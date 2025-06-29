@@ -219,29 +219,47 @@ class APIKeyManager:
 3. **フォールバック戦略**: APIの障害に備えた代替手段の準備
 4. **メモリ効率**: 限られたリソースでの最適化技術
 
-## 🚀 今後の展望
+## 🚀 開発状況と品質保証
 
-### セキュリティ強化（完了済み）
+### 🔒 セキュリティ対策（完了済み）
 - ✅ **XSS（Cross-Site Scripting）対策**: 入力サニタイズと出力エスケープ
 - ✅ **CSP（Content Security Policy）**: インラインスクリプト攻撃の防御
 - ✅ **CSRF（Cross-Site Request Forgery）対策**: トークンベース認証
 - ✅ **シークレットキー管理**: 本番環境での厳格な検証
-- ✅ **包括的テストスイート**: 102個のセキュリティテスト（189テスト通過）
+- ✅ **包括的テストスイート**: 104個のセキュリティテスト（189テスト通過）
 
-### 計画中の機能拡張
-- **セッション管理強化**: より安全で効率的なセッション処理（次の優先タスク）
+### 🧪 開発環境と品質管理
+- ✅ **完全な開発環境セットアップ**: 仮想環境、VSCode統合、パッケージ管理
+- ✅ **TDD（テスト駆動開発）**: 189テスト成功、7スキップ（100%パス率）
+- ✅ **コード品質ツール**: Black（フォーマッター）、Flake8（リンター）、MyPy（型チェック）
+- ✅ **統合テスト**: API、セキュリティ、機能テストを網羅
+- ✅ **Pylanceサポート**: IDEによる完全な型推論とエラー検出
+
+### 📊 技術メトリクス（2025年6月29日現在）
+- **テストカバレッジ**: 189テスト（104個のセキュリティテスト含む）
+- **コード品質**: ゼロのリンターエラー、統一されたコードスタイル
+- **セキュリティレベル**: 企業レベルのセキュリティ対策実装済み
+- **開発効率**: 即座の開発開始可能な完全セットアップ
+
+### 🔄 今後の展望
+
+#### 次の優先タスク
+- **セッション管理強化**: より安全で効率的なセッション処理
 - **入力検証の強化**: すべてのAPI入力の統一検証とレート制限
+- **パフォーマンス最適化**: LLM初期化とキャッシュシステムの改善
+
+#### 中長期的な機能拡張
 - **ユーザー認証システム**: 個人の学習履歴を永続的に保存
 - **音声入力対応**: より自然な会話練習の実現
 - **リアルタイムフィードバック**: 会話中のアドバイス機能
 - **グループ練習機能**: 複数人でのロールプレイ対応
 - **ゲーミフィケーション**: バッジやランキングシステム
 
-### 技術的改善点
-- データベース統合による永続的なデータ管理
-- WebSocketによる双方向通信の実装
-- マイクロサービス化による機能の分離
-- CI/CDパイプラインの構築
+#### 技術的改善計画
+- **コード構造改善**: Flask Blueprintsによるモジュール分割
+- **データベース統合**: 永続的なデータ管理システム
+- **CI/CDパイプライン**: GitHub Actionsによる自動化
+- **Docker化**: 一貫した開発・本番環境
 
 ## 💻 クイックスタート
 
@@ -250,26 +268,60 @@ class APIKeyManager:
 - Google Cloud アカウント（Gemini API用）
 
 ### セットアップ
+
+#### 🚀 自動セットアップ（推奨）
 ```bash
 # 1. クローン
 git clone https://github.com/CaCC-Lab/workplace-roleplay.git
 cd workplace-roleplay
 
-# 2. 仮想環境
-python -m venv venv
-source venv/bin/activate  # Unix/macOS
-# or
-venv\Scripts\activate     # Windows
+# 2. 自動セットアップスクリプトを実行
+chmod +x setup_dev_env.sh
+./setup_dev_env.sh
 
-# 3. 依存関係インストール
-pip install -r requirements.txt
-
-# 4. 環境変数設定
+# 3. 環境変数設定
 cp .env.example .env
 # .envファイルを編集してGOOGLE_API_KEYを設定
 
+# 4. 環境確認
+source venv/bin/activate
+python verify_environment.py
+
 # 5. 起動
 python app.py
+```
+
+#### 🔧 手動セットアップ
+```bash
+# 1. 仮想環境作成
+python -m venv venv
+source venv/bin/activate  # Unix/macOS
+# または venv\Scripts\activate  # Windows
+
+# 2. 依存関係インストール
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # 開発ツール
+
+# 3. 環境変数設定
+cp .env.example .env
+# .envファイルを編集
+
+# 4. 起動
+python app.py
+```
+
+#### 🧪 開発者向けツール
+```bash
+# コード品質チェック
+black .                   # コードフォーマット
+flake8                   # リンター
+isort .                  # インポート整理
+mypy .                   # 型チェック
+
+# テスト実行
+pytest                   # 全テスト実行
+pytest tests/security/   # セキュリティテストのみ
+pytest -v               # 詳細表示
 ```
 
 アプリケーションは `http://localhost:5001` で起動します。

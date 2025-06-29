@@ -56,6 +56,10 @@ class CSPMiddleware:
     
     def _add_csp_header(self, response: Response) -> Response:
         """CSPヘッダーを追加"""
+        # CSP除外チェック
+        if hasattr(g, 'csp_exempt') and g.csp_exempt:
+            return response
+            
         # HTMLレスポンスのみに適用
         if not response.content_type or 'html' not in response.content_type:
             return response
@@ -124,11 +128,10 @@ class CSPMiddleware:
                 'user_agent': request.headers.get('User-Agent', '')
             }
             
-            # メモリ保護：制限を超える場合は古いものを削除
+            # メモリ保護：制限に達している場合は最古のものを削除
             if len(self.violations) >= self.violation_limit:
-                # 制限を超えた分だけ古いものを削除
-                excess = len(self.violations) - self.violation_limit + 1
-                self.violations = self.violations[excess:]
+                # 最古の違反を削除してスペースを確保
+                self.violations.pop(0)
             
             self.violations.append(violation)
             

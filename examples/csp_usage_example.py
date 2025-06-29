@@ -56,7 +56,7 @@ def index():
     
     <div class="demo">
         <h2>API Call Example</h2>
-        <button onclick="makeApiCall()">Make API Call</button>
+        <button id="apiCallButton">Make API Call</button>
         <div id="apiResult"></div>
         
         <script nonce="{{ csp_nonce() }}">
@@ -70,6 +70,12 @@ def index():
                     console.error('API call failed:', error);
                 }
             }
+            
+            // Add event listener for API call button
+            document.addEventListener('DOMContentLoaded', function() {
+                const apiButton = document.getElementById('apiCallButton');
+                apiButton.addEventListener('click', makeApiCall);
+            });
         </script>
     </div>
     
@@ -213,8 +219,8 @@ def csp_violations():
     
     <div>
         <h2>Actions</h2>
-        <button onclick="clearViolations()">Clear Violations</button>
-        <button onclick="location.reload()">Refresh</button>
+        <button id="clearViolationsButton">Clear Violations</button>
+        <button id="refreshButton">Refresh</button>
         
         <script nonce="{{ csp_nonce() }}">
             async function clearViolations() {
@@ -231,6 +237,14 @@ def csp_violations():
                     }
                 }
             }
+            
+            // Add event listeners to buttons using JavaScript instead of inline handlers
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('clearViolationsButton').addEventListener('click', clearViolations);
+                document.getElementById('refreshButton').addEventListener('click', function() {
+                    location.reload();
+                });
+            });
         </script>
     </div>
     

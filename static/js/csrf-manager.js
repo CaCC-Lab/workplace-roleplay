@@ -87,6 +87,34 @@ class CSRFManager {
     }
     
     /**
+     * 現在のCSRFトークンを同期的に取得（キャッシュされたトークンのみ）
+     * jQueryのbeforeSend等、同期コールバック用
+     */
+    getTokenSync() {
+        // トークンの期限が切れそうな場合は非同期でリフレッシュを開始
+        if (this.isTokenExpiring()) {
+            this.fetchToken().catch(error => {
+                console.error('Background token refresh failed:', error);
+            });
+        }
+        return this.token;
+    }
+    
+    /**
+     * jQueryリクエスト用のトークン確保（必要に応じて即座にリフレッシュ）
+     */
+    async ensureTokenForJQuery() {
+        if (!this.token || this.isTokenExpiring()) {
+            try {
+                await this.fetchToken();
+            } catch (error) {
+                console.error('Failed to refresh token for jQuery:', error);
+            }
+        }
+        return this.token;
+    }
+    
+    /**
      * トークンの有効期限が近いかチェック
      */
     isTokenExpiring() {
@@ -98,7 +126,7 @@ class CSRFManager {
      * 自動リフレッシュの設定
      */
     setupAutoRefresh() {
-        // 5分ごとにトークンをチェック
+        // 1分ごとにトークンをチェック（より頻繁に）
         setInterval(async () => {
             if (this.isTokenExpiring()) {
                 try {
@@ -107,7 +135,20 @@ class CSRFManager {
                     console.error('Auto-refresh failed:', error);
                 }
             }
-        }, 5 * 60 * 1000);
+        }, 1 * 60 * 1000);
+        
+        // ページが表示状態になった時にもトークンをチェック
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', async () => {
+                if (!document.hidden && this.isTokenExpiring()) {
+                    try {
+                        await this.fetchToken();
+                    } catch (error) {
+                        console.error('Visibility change token refresh failed:', error);
+                    }
+                }
+            });
+        }
     }
     
     /**
@@ -270,23 +311,50 @@ class CSRFManager {
 // jQuery ajaxのサポート（jQueryが利用可能な場合）
 if (typeof $ !== 'undefined' && $.ajaxSetup) {
     $(document).ready(function() {
-        // jQueryのajaxリクエストにもCSRFトークンを自動追加
-        $.ajaxSetup({
-            beforeSend: async function(xhr, settings) {
-                // CSRFManagerが利用可能で、保護されたエンドポイントの場合
-                if (window.csrfManager && 
-                    window.csrfManager.isProtectedEndpoint(settings.url) &&
-                    window.csrfManager.isModifyingRequest(settings.type)) {
-                    
-                    try {
-                        const token = await window.csrfManager.getToken();
-                        xhr.setRequestHeader('X-CSRFToken', token);
-                    } catch (error) {
-                        console.error('Failed to add CSRF token to jQuery request:', error);
+        // CSRFManagerの初期化を待ってからjQuery設定を適用
+        const setupJQueryCSRF = () => {
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    // CSRFManagerが利用可能で、保護されたエンドポイントの場合
+                    if (window.csrfManager && 
+                        window.csrfManager.isProtectedEndpoint(settings.url) &&
+                        window.csrfManager.isModifyingRequest(settings.type)) {
+                        
+                        try {
+                            const token = window.csrfManager.getTokenSync();
+                            if (token) {
+                                xhr.setRequestHeader('X-CSRFToken', token);
+                                console.log(`Added CSRF token to jQuery ${settings.type} ${settings.url}`);
+                            } else {
+                                console.warn('CSRF token not available for jQuery request, may need initialization');
+                                // トークンが利用できない場合の警告（開発時のデバッグ用）
+                            }
+                        } catch (error) {
+                            console.error('Failed to add CSRF token to jQuery request:', error);
+                        }
                     }
                 }
-            }
-        });
+            });
+        };
+        
+        // CSRFManagerが既に利用可能な場合は即座に設定
+        if (window.csrfManager) {
+            setupJQueryCSRF();
+        } else {
+            // CSRFManagerの準備ができるまで待機
+            const checkInterval = setInterval(() => {
+                if (window.csrfManager) {
+                    setupJQueryCSRF();
+                    clearInterval(checkInterval);
+                }
+            }, 100);
+            
+            // 10秒後にタイムアウト
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                console.warn('CSRFManager not available after 10 seconds, jQuery CSRF protection may not work');
+            }, 10000);
+        }
     });
 }
 
