@@ -37,7 +37,7 @@ from api_key_manager import (
     get_google_api_key,
     handle_api_error,
     record_api_usage,
-    api_key_manager
+    get_api_key_manager
 )
 
 """
@@ -2218,7 +2218,8 @@ def update_feedback_with_strength_analysis(feedback_response, session_type, scen
 def get_api_key_status():
     """APIキーの使用状況を取得"""
     try:
-        status = api_key_manager.get_status()
+        manager = get_api_key_manager()
+        status = manager.get_status()
         return jsonify(status)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

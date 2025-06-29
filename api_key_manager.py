@@ -124,8 +124,21 @@ class APIKeyManager:
         print("Daily counters reset")
 
 
-# グローバルインスタンス
-api_key_manager = APIKeyManager()
+# グローバルインスタンス（遅延初期化）
+_api_key_manager: Optional[APIKeyManager] = None
+
+
+def get_api_key_manager() -> APIKeyManager:
+    """
+    APIKeyManagerのインスタンスを取得（遅延初期化）
+    初回アクセス時にインスタンスを生成
+    """
+    global _api_key_manager
+    
+    if _api_key_manager is None:
+        _api_key_manager = APIKeyManager()
+    
+    return _api_key_manager
 
 
 def get_google_api_key() -> str:
@@ -133,7 +146,8 @@ def get_google_api_key() -> str:
     アプリケーションから呼び出す関数
     自動的に最適なAPIキーを選択して返す
     """
-    key = api_key_manager.get_next_key()
+    manager = get_api_key_manager()
+    key = manager.get_next_key()
     if not key:
         raise Exception("No available API keys")
     return key
@@ -143,11 +157,13 @@ def handle_api_error(api_key: str, error: Exception):
     """
     APIエラーが発生した際に呼び出す関数
     """
-    api_key_manager.record_error(api_key, error)
+    manager = get_api_key_manager()
+    manager.record_error(api_key, error)
 
 
 def record_api_usage(api_key: str):
     """
     API使用成功時に呼び出す関数
     """
-    api_key_manager.record_usage(api_key)
+    manager = get_api_key_manager()
+    manager.record_usage(api_key)
