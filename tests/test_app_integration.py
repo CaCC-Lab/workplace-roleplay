@@ -145,9 +145,9 @@ class TestScenarioAPI:
                                  "scenario_id": "invalid_scenario_999"
                              })
         
-        # シナリオが見つからない場合でも処理は続行される可能性があるため
-        # ステータスコードをチェック
-        assert response.status_code in [200, 400, 404]
+        # app.pyの529-530行目で無効なシナリオIDの場合は400を返す
+        assert response.status_code == 400
+        assert response.json["error"] == "無効なシナリオIDです"
     
     @patch('app.create_gemini_llm')
     def test_シナリオフィードバックが生成される(self, mock_create_llm, client):
