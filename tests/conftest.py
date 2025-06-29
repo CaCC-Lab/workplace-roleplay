@@ -63,6 +63,14 @@ def client(app):
     return app.test_client()
 
 
+# CSRF対応のテストクライアント
+@pytest.fixture
+def csrf_client(client):
+    """CSRF対応のテストクライアントフィクスチャ"""
+    from tests.helpers.csrf_helpers import CSRFTestClient
+    return CSRFTestClient(client)
+
+
 @pytest.fixture
 def runner(app):
     """Flask CLIランナーのフィクスチャ"""

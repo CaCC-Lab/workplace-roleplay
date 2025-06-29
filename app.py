@@ -26,6 +26,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 load_dotenv()
 
+# 設定モジュールのインポート
+from config import get_cached_config
+
 # 既存のimport文の下に追加
 from scenarios import load_scenarios
 from strength_analyzer import (
@@ -40,6 +43,24 @@ from api_key_manager import (
     get_api_key_manager
 )
 
+# エラーハンドリングのインポート
+from errors import (
+    AppError,
+    ValidationError,
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ExternalAPIError,
+    RateLimitError,
+    TimeoutError,
+    handle_error,
+    handle_llm_specific_error,
+    with_error_handling
+)
+
+# セキュリティ関連のインポート
+from utils.security import SecurityUtils, CSPNonce, CSRFToken, CSRFMiddleware
+
 """
 要件:
 1. Google Gemini APIを使用したAIチャット
@@ -49,23 +70,32 @@ from api_key_manager import (
 """
 
 app = Flask(__name__)
-# 環境変数からシークレットキーを取得、設定されていない場合はデフォルト値を使用
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "your_secret_key_here")  # セッション管理用のキー
+
+# Jinja2の自動エスケープを有効化（デフォルトで有効だが明示的に設定）
+app.jinja_env.autoescape = True
+
+# 設定の読み込み
+config = get_cached_config()
+
+# Flask設定の適用
+app.secret_key = config.SECRET_KEY
+app.config["DEBUG"] = config.DEBUG
+app.config["TESTING"] = config.TESTING
+app.config["WTF_CSRF_ENABLED"] = config.WTF_CSRF_ENABLED
 
 # セッション設定
-# 環境変数でセッションタイプを設定可能に（デフォルトはfilesystem）
-session_type = os.getenv("SESSION_TYPE", "filesystem")
-app.config["SESSION_TYPE"] = session_type
+app.config["SESSION_TYPE"] = config.SESSION_TYPE
+app.config["SESSION_LIFETIME"] = config.SESSION_LIFETIME_MINUTES * 60  # 秒に変換
 
 # Redisセッションの設定（SESSION_TYPE=redisの場合に使用）
-if session_type == "redis":
+if config.SESSION_TYPE == "redis":
     try:
         from redis import Redis
         app.config["SESSION_REDIS"] = Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", 6379)),
-            password=os.getenv("REDIS_PASSWORD", ""),
-            db=int(os.getenv("REDIS_DB", 0))
+            host=config.REDIS_HOST,
+            port=config.REDIS_PORT,
+            password=config.REDIS_PASSWORD,
+            db=config.REDIS_DB
         )
         print("Redisセッションストアを使用します")
     except ImportError:
@@ -74,14 +104,46 @@ if session_type == "redis":
         print("filesystemセッションにフォールバックします")
 else:
     # filesystemセッションの場合はセッションファイルのパスを指定可能に
-    session_file_dir = os.getenv("SESSION_FILE_DIR")
-    if session_file_dir:
-        if not os.path.exists(session_file_dir):
-            os.makedirs(session_file_dir)
-        app.config["SESSION_FILE_DIR"] = session_file_dir
-    print(f"{session_type}セッションストアを使用します")
+    if config.SESSION_FILE_DIR:
+        if not os.path.exists(config.SESSION_FILE_DIR):
+            os.makedirs(config.SESSION_FILE_DIR)
+        app.config["SESSION_FILE_DIR"] = config.SESSION_FILE_DIR
+    print(f"{config.SESSION_TYPE}セッションストアを使用します")
 
 Session(app)
+
+# CSRF対策ミドルウェアの初期化
+csrf = CSRFMiddleware(app)
+
+# ========== エラーハンドラーの登録 ==========
+@app.errorhandler(AppError)
+def handle_app_error(error: AppError):
+    """アプリケーション固有のエラーハンドラー"""
+    return handle_error(error)
+
+@app.errorhandler(ValidationError)
+def handle_validation_error(error: ValidationError):
+    """バリデーションエラーのハンドラー"""
+    return handle_error(error)
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    """404エラーのハンドラー"""
+    if request.path.startswith('/api/'):
+        # APIエンドポイントの場合はJSON形式で返す
+        return handle_error(NotFoundError("APIエンドポイント", request.path))
+    # 通常のページの場合は404ページを表示
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def handle_internal_error(error):
+    """500エラーのハンドラー"""
+    return handle_error(Exception("内部エラーが発生しました"))
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error: Exception):
+    """予期しないエラーのハンドラー"""
+    return handle_error(error)
 
 # カスタムJinjaフィルターの追加
 @app.template_filter('datetime')
@@ -98,16 +160,17 @@ def format_datetime(value):
         return str(value)
 
 # ========== 設定値・初期化 ==========
-# Gemini APIキー (環境変数から取得)
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY environment variable is not set")
+# Gemini APIキー (設定から取得)
+GOOGLE_API_KEY = config.GOOGLE_API_KEY
+# テスト環境ではAPIキーがなくても起動できるようにする
+if not GOOGLE_API_KEY and not config.TESTING:
+    raise ValueError("GOOGLE_API_KEY is not configured")
 
-# LLMの温度やその他パラメータは必要に応じて調整
-DEFAULT_TEMPERATURE = 0.7
+# LLMの温度やその他パラメータ
+DEFAULT_TEMPERATURE = config.DEFAULT_TEMPERATURE
 
 # デフォルトモデルの設定
-DEFAULT_MODEL = "gemini/gemini-1.5-flash"  # Gemini-1.5-flashをデフォルトに設定
+DEFAULT_MODEL = config.DEFAULT_MODEL
 
 # Gemini APIの初期化
 try:
@@ -192,11 +255,11 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
         print(f"Initializing Gemini with model: {model_name}")
         
         if not GOOGLE_API_KEY:
-            raise ValueError("GOOGLE_API_KEY is not set")
+            raise AuthenticationError("GOOGLE_API_KEY環境変数が設定されていません")
             
         # APIキーの形式を検証
         if not GOOGLE_API_KEY.startswith("AI"):
-            raise ValueError("Invalid Google API key format. Key should start with 'AI'")
+            raise ValidationError("Google APIキーの形式が無効です。'AI'で始まる必要があります", field="api_key")
         
         # APIキーをSecretStr型に変換
         api_key = SecretStr(GOOGLE_API_KEY)
@@ -214,11 +277,14 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
         # テスト呼び出しで接続確認
         test_response = llm.invoke("test")
         if not test_response:
-            raise ValueError("Failed to get response from Gemini API")
+            raise ExternalAPIError("Gemini", "APIからの応答がありません")
             
         print("Gemini model initialized successfully")
         return llm
         
+    except (AuthenticationError, ValidationError, ExternalAPIError):
+        # 既にアプリケーションエラーの場合はそのまま再スロー
+        raise
     except Exception as e:
         # 特定のエラーメッセージをチェック
         error_msg = str(e)
@@ -232,11 +298,11 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
                 # 再帰的に代替モデルで試行
                 return create_gemini_llm(fallback_model)
             except Exception as fallback_error:
-                print(f"Fallback also failed: {str(fallback_error)}")
-                raise
+                # フォールバックも失敗した場合はLLM固有のエラーに変換
+                raise handle_llm_specific_error(fallback_error, "Gemini")
         
-        print(f"Error creating Gemini model: {error_msg}")
-        raise
+        # その他のエラーはLLM固有のエラーに変換
+        raise handle_llm_specific_error(e, "Gemini")
 
 # ========== LLM生成ユーティリティ ==========
 
@@ -262,27 +328,7 @@ def chat():
     # モデル一覧の取得を削除
     return render_template("chat.html")
 
-# 新しいユーティリティ関数を追加
-def handle_llm_error(error: Exception, error_prefix="エラーが発生しました"):
-    """
-    LLM関連のエラーを共通処理するユーティリティ関数
-    
-    Args:
-        error: 発生した例外
-        error_prefix: エラーメッセージの接頭辞
-        
-    Returns:
-        (エラーメッセージ, ステータスコード)のタプル
-    """
-    error_str = str(error)
-    print(f"LLM error: {error_str}")
-    
-    # クォータ制限エラーの検出
-    if "insufficient_quota" in error_str or "429" in error_str:
-        return "APIクォータ制限に達しました。後でもう一度お試しください。", 429
-    else:
-        # その他のエラー
-        return f"{error_prefix}: {error_str}", 500
+# 既存のhandle_llm_error関数を削除（errors.pyの機能に置き換え）
 
 def create_model_and_get_response(model_name: str, messages_or_prompt, extract=True):
     """
@@ -396,72 +442,60 @@ def set_session_start_time(session_key, sub_key=None):
 # チャットエンドポイントを更新して共通関数を使用
 
 @app.route("/api/chat", methods=["POST"])
+@CSRFToken.require_csrf
 def handle_chat() -> Any:
     """
     チャットメッセージの処理
     """
-    try:
-        data = request.get_json()
-        if data is None:
-            return jsonify({"error": "Invalid JSON"}), 400
+    data = request.get_json()
+    if data is None:
+        raise ValidationError("無効なJSONデータです")
 
-        message = data.get("message", "")
-        model_name = data.get("model", DEFAULT_MODEL)
+    # 入力値のサニタイズ
+    message = SecurityUtils.sanitize_input(data.get("message", ""))
+    if not message:
+        raise ValidationError("メッセージが空です", field="message")
+        
+    model_name = data.get("model", DEFAULT_MODEL)
+    
+    # モデル名の検証
+    if not SecurityUtils.validate_model_name(model_name):
+        raise ValidationError("無効なモデル名です", field="model")
 
-        # chat_settingsの取得
-        chat_settings = session.get("chat_settings", {})
-        system_prompt = chat_settings.get("system_prompt", "")
+    # chat_settingsの取得
+    chat_settings = session.get("chat_settings", {})
+    system_prompt = chat_settings.get("system_prompt", "")
 
-        if not system_prompt:
-            return jsonify({"error": "チャットセッションが初期化されていません"}), 400
+    if not system_prompt:
+        raise ValidationError("チャットセッションが初期化されていません")
 
-        try:
-            # 会話履歴の取得と更新（共通関数使用）
-            initialize_session_history("chat_history")
+    # 会話履歴の取得と更新（共通関数使用）
+    initialize_session_history("chat_history")
 
-            # メッセージリストの作成（型を明示的に指定）
-            messages: List[BaseMessage] = []
-            messages.append(SystemMessage(content=system_prompt))
+    # メッセージリストの作成（型を明示的に指定）
+    messages: List[BaseMessage] = []
+    messages.append(SystemMessage(content=system_prompt))
 
-            # 共通関数を使用して履歴からメッセージを構築
-            add_messages_from_history(messages, session["chat_history"])
+    # 共通関数を使用して履歴からメッセージを構築
+    add_messages_from_history(messages, session["chat_history"])
 
-            # 新しいメッセージを追加
-            messages.append(HumanMessage(content=message))
+    # 新しいメッセージを追加
+    messages.append(HumanMessage(content=message))
 
-            # 共通関数を使用して応答を生成
-            try:
-                ai_message = create_model_and_get_response(model_name, messages)
-            except Exception as e:
-                # エラーハンドリング共通関数を使用
-                error_msg, status_code, fallback_result, fallback_model = handle_llm_error(
-                    e,
-                    fallback_with_local_model,
-                    {"messages_or_prompt": messages}
-                )
-                
-                if fallback_result:
-                    ai_message = fallback_result
-                else:
-                    return jsonify({"error": error_msg}), status_code
+    # 共通関数を使用して応答を生成
+    ai_message = create_model_and_get_response(model_name, messages)
 
-            # 会話履歴の更新（共通関数使用）
-            add_to_session_history("chat_history", {
-                "human": message,
-                "ai": ai_message
-            })
+    # 会話履歴の更新（共通関数使用）
+    add_to_session_history("chat_history", {
+        "human": message,
+        "ai": ai_message
+    })
 
-            return jsonify({"response": ai_message})
-
-        except Exception as e:
-            print(f"Error in chat: {str(e)}")
-            return jsonify({"error": f"エラーが発生しました: {str(e)}"}), 500
-
-    except Exception as e:
-        print(f"Error in handle_chat: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    # レスポンスをエスケープして返す
+    return jsonify({"response": SecurityUtils.escape_html(ai_message)})
 
 @app.route("/api/clear_history", methods=["POST"])
+@CSRFToken.require_csrf
 def clear_history():
     """
     会話履歴をクリアするAPI
@@ -511,6 +545,7 @@ def clear_history():
         }), 500
 
 @app.route("/api/scenario_chat", methods=["POST"])
+@CSRFToken.require_csrf
 def scenario_chat():
     """
     ロールプレイモード専用のチャットAPI
@@ -520,9 +555,16 @@ def scenario_chat():
         if data is None:
             return jsonify({"error": "Invalid JSON"}), 400
 
-        user_message = data.get("message", "")
+        # 入力値のサニタイズ
+        user_message = SecurityUtils.sanitize_input(data.get("message", ""))
         scenario_id = data.get("scenario_id", "")
         selected_model = data.get("model", DEFAULT_MODEL)
+        
+        # 入力検証
+        if not SecurityUtils.validate_scenario_id(scenario_id):
+            return jsonify({"error": "無効なシナリオIDです"}), 400
+        if not SecurityUtils.validate_model_name(selected_model):
+            return jsonify({"error": "無効なモデル名です"}), 400
         
         print(f"Received request: message={user_message}, scenario_id={scenario_id}, model={selected_model}")
         
@@ -618,15 +660,20 @@ def scenario_chat():
                 "ai": response
             }, scenario_id)
 
-            return jsonify({"response": response})
+            # レスポンスをエスケープして返す
+            return jsonify({"response": SecurityUtils.escape_html(response)})
 
         except Exception as e:
             print(f"Conversation error: {str(e)}")
-            return jsonify({"error": f"会話処理中にエラーが発生しました: {str(e)}"}), 500
+            # エラーメッセージを安全に返す
+            error_msg = SecurityUtils.get_safe_error_message(e)
+            return jsonify({"error": f"会話処理中にエラーが発生しました: {error_msg}"}), 500
 
     except Exception as e:
         print(f"General error: {str(e)}")
-        return jsonify({"error": f"予期せぬエラーが発生しました: {str(e)}"}), 500
+        # エラーメッセージを安全に返す
+        error_msg = SecurityUtils.get_safe_error_message(e)
+        return jsonify({"error": f"予期せぬエラーが発生しました: {error_msg}"}), 500
 
 @app.route("/api/scenario_clear", methods=["POST"])
 def clear_scenario_history():
@@ -653,10 +700,11 @@ def clear_scenario_history():
     except Exception as e:
         print(f"Error clearing scenario history: {str(e)}")
         return jsonify({
-            "error": f"履歴のクリアに失敗しました: {str(e)}"
+            "error": f"履歴のクリアに失敗しました: {SecurityUtils.get_safe_error_message(e)}"
         }), 500
 
 @app.route("/api/watch/start", methods=["POST"])
+@CSRFToken.require_csrf
 def start_watch():
     """会話観戦モードの開始"""
     try:
@@ -664,11 +712,19 @@ def start_watch():
         if not data:
             return jsonify({"error": "Invalid request"}), 400
 
+        # 入力値のサニタイズと検証
         model_a = data.get("model_a")
         model_b = data.get("model_b")
-        partner_type = data.get("partner_type")
-        situation = data.get("situation")
-        topic = data.get("topic")
+        
+        # モデル名の検証
+        if not SecurityUtils.validate_model_name(model_a):
+            return jsonify({"error": "無効なモデルA名です"}), 400
+        if not SecurityUtils.validate_model_name(model_b):
+            return jsonify({"error": "無効なモデルB名です"}), 400
+            
+        partner_type = SecurityUtils.sanitize_input(data.get("partner_type", ""))
+        situation = SecurityUtils.sanitize_input(data.get("situation", ""))
+        topic = SecurityUtils.sanitize_input(data.get("topic", ""))
 
         # セッションの初期化（共通関数使用）
         clear_session_history("watch_history")
@@ -708,6 +764,7 @@ def start_watch():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/watch/next", methods=["POST"])
+@CSRFToken.require_csrf
 def next_watch_message() -> Any:
     """次の発言を生成"""
     try:
@@ -968,18 +1025,27 @@ def get_all_available_models():
         # Geminiモデル取得
         gemini_models = get_available_gemini_models()
         
+        # 文字列リストから辞書リストに変換
+        model_dicts = []
+        for model_id in gemini_models:
+            model_dicts.append({
+                "id": model_id,
+                "name": model_id.split('/')[-1],  # gemini/xxx -> xxx
+                "provider": "gemini"
+            })
+        
         return {
-            "models": gemini_models,
+            "models": model_dicts,
             "categories": {
-                "gemini": gemini_models
+                "gemini": model_dicts
             }
         }
     except Exception as e:
         print(f"Error fetching models: {str(e)}")
         # 基本的なモデルリストでフォールバック
         basic_models = [
-            "gemini/gemini-1.5-pro",
-            "gemini/gemini-1.5-flash"
+            {"id": "gemini/gemini-1.5-pro", "name": "gemini-1.5-pro", "provider": "gemini"},
+            {"id": "gemini/gemini-1.5-flash", "name": "gemini-1.5-flash", "provider": "gemini"}
         ]
         return {
             "models": basic_models,
@@ -1097,6 +1163,7 @@ def add_messages_from_history(messages: List[BaseMessage], history, max_entries=
 
 # シナリオフィードバック関数を更新
 @app.route("/api/scenario_feedback", methods=["POST"])
+@CSRFToken.require_csrf
 def get_scenario_feedback():
     """シナリオの会話履歴に基づくフィードバックを生成"""
     data = request.get_json()
@@ -1194,6 +1261,7 @@ def get_scenario_feedback():
 
 # 雑談フィードバック関数も更新
 @app.route("/api/chat_feedback", methods=["POST"])
+@CSRFToken.require_csrf
 def get_chat_feedback():
     """雑談練習のフィードバックを生成（ユーザーの発言に焦点を当てる）"""
     try:
@@ -2227,5 +2295,10 @@ def get_api_key_status():
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":
-    # デバッグモードで実行（本番環境では debug=False にしてください）
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    # 設定に基づいてサーバーを起動
+    app.run(
+        debug=config.DEBUG,
+        host=config.HOST,
+        port=config.PORT,
+        use_reloader=config.HOT_RELOAD
+    )

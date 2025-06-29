@@ -55,7 +55,9 @@ async function startConversation() {
         }
     } catch (err) {
         console.error("Error:", err);
-        displayMessage("エラーが発生しました: " + err.message, "error-message");
+        // エラーメッセージも安全に表示
+        const safeErrorMsg = err.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        displayMessage("エラーが発生しました: " + safeErrorMsg, "error-message");
     } finally {
         loadingDiv.style.display = 'none';
         startButton.disabled = false;
@@ -100,7 +102,9 @@ async function sendMessage() {
         }
     } catch (err) {
         console.error("Error:", err);
-        displayMessage("エラーが発生しました: " + err.message, "error-message");
+        // エラーメッセージも安全に表示
+        const safeErrorMsg = err.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        displayMessage("エラーが発生しました: " + safeErrorMsg, "error-message");
     }
 }
 
@@ -214,7 +218,9 @@ async function clearHistory() {
         displayMessage("会話履歴がクリアされました", "system-message");
     } catch (err) {
         console.error("Error:", err);
-        displayMessage("エラーが発生しました: " + err.message, "error-message");
+        // エラーメッセージも安全に表示
+        const safeErrorMsg = err.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        displayMessage("エラーが発生しました: " + safeErrorMsg, "error-message");
     }
 }
 
@@ -227,10 +233,16 @@ function displayMessage(text, className, enableTTS = false) {
     const messageContainer = document.createElement("div");
     messageContainer.className = "message-container";
     
-    // テキスト部分
+    // テキスト部分（XSS対策のためtextContentを使用）
     const textSpan = document.createElement("span");
     textSpan.className = "message-text";
-    textSpan.textContent = text;
+    // サーバー側でエスケープ済みのテキストをアンエスケープ
+    const unescapedText = text.replace(/&lt;/g, '<')
+                             .replace(/&gt;/g, '>')
+                             .replace(/&quot;/g, '"')
+                             .replace(/&#x27;/g, "'")
+                             .replace(/&amp;/g, '&');
+    textSpan.textContent = unescapedText;
     messageContainer.appendChild(textSpan);
     
     // TTSボタンを追加（AIのメッセージのみ）
