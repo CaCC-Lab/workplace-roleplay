@@ -12,6 +12,21 @@ import uuid
 db = SQLAlchemy()
 
 
+class DifficultyLevel(enum.Enum):
+    """シナリオ難易度"""
+    BEGINNER = "初級"
+    INTERMEDIATE = "中級"
+    ADVANCED = "上級"
+    UNKNOWN = "不明"
+
+
+class SessionType(enum.Enum):
+    """練習セッションの種類"""
+    SCENARIO = "scenario"      # シナリオモード
+    FREE_TALK = "free_talk"    # 雑談モード
+    WATCH = "watch"            # 観戦モード
+
+
 class User(db.Model):
     """ユーザーアカウント情報"""
     __tablename__ = 'users'
@@ -39,7 +54,14 @@ class Scenario(db.Model):
     yaml_id = db.Column(db.String(100), unique=True, nullable=False, index=True)
     title = db.Column(db.String(200), nullable=False)
     summary = db.Column(db.Text, nullable=True)
-    difficulty = db.Column(db.String(20), nullable=True)  # 初級、中級、上級
+    difficulty = db.Column(
+        db.Enum(DifficultyLevel, 
+                name="difficulty_level_enum",
+                values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        server_default=DifficultyLevel.UNKNOWN.value,
+        default=DifficultyLevel.UNKNOWN
+    )
     category = db.Column(db.String(50), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
@@ -49,13 +71,6 @@ class Scenario(db.Model):
     
     def __repr__(self):
         return f'<Scenario {self.title}>'
-
-
-class SessionType(enum.Enum):
-    """練習セッションの種類"""
-    SCENARIO = "scenario"      # シナリオモード
-    FREE_TALK = "free_talk"    # 雑談モード
-    WATCH = "watch"            # 観戦モード
 
 
 class PracticeSession(db.Model):

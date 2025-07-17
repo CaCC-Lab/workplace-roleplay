@@ -68,6 +68,17 @@ from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnect
 from database import init_database, create_initial_data
 from models import db, User
 
+# サービスレイヤーのインポート（循環インポート解決）
+from services import (
+    ScenarioService,
+    SessionService,
+    ConversationService,
+    UserService,
+    get_or_create_practice_session,
+    add_conversation_log,
+    get_conversation_history
+)
+
 """
 要件:
 1. Google Gemini APIを使用したAIチャット
@@ -700,7 +711,7 @@ def scenario_chat():
                 selected_model
             )
             if practice_session:
-                history = get_db_history(practice_session.id)
+                history = get_conversation_history(practice_session)
         else:
             # 【セッション利用】未認証ユーザー
             initialize_session_history("scenario_history", scenario_id)
@@ -749,7 +760,7 @@ def scenario_chat():
             # 履歴の保存
             if g.user and practice_session:
                 # 【DB保存】
-                add_db_log(practice_session, user_message if user_message else "[シナリオ開始]", response)
+                add_conversation_log(practice_session, user_message if user_message else "[シナリオ開始]", response)
             else:
                 # 【セッション保存】
                 add_to_session_history("scenario_history", {
@@ -1260,114 +1271,16 @@ def add_messages_from_history(messages: List[BaseMessage], history, max_entries=
 
 
 # ========== データベース操作のヘルパー関数 ==========
-def get_or_create_practice_session(user_id: int, session_type: str, scenario_id: str = None, ai_model: str = None) -> 'PracticeSession':
-    """
-    進行中の練習セッションを取得、または新規作成する。
-    データベースが利用できない場合はNoneを返す。
-    """
-    if not app.config.get('DATABASE_AVAILABLE', False):
-        return None
-        
-    from models import PracticeSession, SessionType
-    from database import db
-    
-    # 既存のアクティブなセッションを検索
-    session_query = PracticeSession.query.filter_by(
-        user_id=user_id,
-        session_type=SessionType(session_type),
-        is_completed=False
-    )
-    
-    if scenario_id:
-        # シナリオモードの場合
-        from database import get_or_create_scenario
-        from scenarios import scenarios
-        scenario = get_or_create_scenario(scenario_id, scenarios.get(scenario_id))
-        if scenario:
-            session_query = session_query.filter_by(scenario_id=scenario.id)
-    
-    practice_session = session_query.order_by(PracticeSession.started_at.desc()).first()
-    
-    if not practice_session:
-        # 新規セッションを作成
-        practice_session = PracticeSession(
-            user_id=user_id,
-            session_type=SessionType(session_type),
-            scenario_id=scenario.id if scenario_id and scenario else None,
-            ai_model=ai_model
-        )
-        db.session.add(practice_session)
-        db.session.commit()
-    
-    return practice_session
+# この関数は services.py に移動されました。
+# 直接 services.get_or_create_practice_session() を使用してください。
 
 
-def get_db_history(practice_session_id: int) -> List[Dict[str, str]]:
-    """
-    データベースから会話履歴を取得し、セッションと同じ形式に変換する。
-    """
-    if not app.config.get('DATABASE_AVAILABLE', False):
-        return []
-        
-    from models import ConversationLog
-    
-    logs = ConversationLog.query.filter_by(
-        session_id=practice_session_id
-    ).order_by(ConversationLog.timestamp.asc()).all()
-    
-    history = []
-    current_pair = {}
-    
-    for log in logs:
-        if log.speaker == 'user':
-            if current_pair:  # 前のペアがある場合は追加
-                history.append(current_pair)
-                current_pair = {}
-            current_pair['human'] = log.message
-        elif log.speaker == 'ai':
-            current_pair['ai'] = log.message
-            if current_pair:  # AIの応答があれば追加
-                history.append(current_pair)
-                current_pair = {}
-    
-    # 最後のペアが残っている場合
-    if current_pair:
-        history.append(current_pair)
-    
-    return history
+# この関数は services.py に移動されました。
+# 直接 services.get_conversation_history() を使用してください。
 
 
-def add_db_log(practice_session: 'PracticeSession', user_message: str, ai_response: str):
-    """
-    データベースに会話ログを追加する。
-    """
-    if not app.config.get('DATABASE_AVAILABLE', False) or not practice_session:
-        return
-        
-    from models import ConversationLog
-    from database import db
-    
-    # ユーザーメッセージを保存
-    if user_message:
-        user_log = ConversationLog(
-            session_id=practice_session.id,
-            speaker='user',
-            message=user_message,
-            message_type='text'
-        )
-        db.session.add(user_log)
-    
-    # AI応答を保存
-    if ai_response:
-        ai_log = ConversationLog(
-            session_id=practice_session.id,
-            speaker='ai',
-            message=ai_response,
-            message_type='text'
-        )
-        db.session.add(ai_log)
-    
-    db.session.commit()
+# この関数は services.py に移動されました。
+# 直接 services.add_conversation_log() を使用してください。
 
 # シナリオフィードバック関数を更新
 @app.route("/api/scenario_feedback", methods=["POST"])
@@ -1388,20 +1301,27 @@ def get_scenario_feedback():
     
     if g.user:
         # 【DB利用】最新のアクティブなセッションから履歴を取得
-        from models import PracticeSession, SessionType, Scenario
-        from database import get_or_create_scenario
-        
-        scenario = get_or_create_scenario(scenario_id, scenario_data)
-        if scenario:
-            practice_session = PracticeSession.query.filter_by(
-                user_id=g.user.id,
-                session_type=SessionType.SCENARIO,
-                scenario_id=scenario.id,
-                is_completed=False
-            ).order_by(PracticeSession.started_at.desc()).first()
+        try:
+            # シナリオ情報を取得
+            scenario = ScenarioService.get_by_yaml_id(scenario_id)
+            if not scenario:
+                # YAMLから新規作成
+                ScenarioService.sync_from_yaml()
+                scenario = ScenarioService.get_by_yaml_id(scenario_id)
             
-            if practice_session:
-                history = get_db_history(practice_session.id)
+            if scenario:
+                # 最新のアクティブなセッションを取得
+                practice_session = get_or_create_practice_session(
+                    user_id=g.user.id,
+                    session_type='scenario',
+                    scenario_id=scenario_id
+                )
+                
+                if practice_session:
+                    history = get_conversation_history(practice_session)
+        except Exception as e:
+            print(f"データベース履歴取得エラー: {e}")
+            history = []
     else:
         # 【セッション利用】
         if "scenario_history" not in session or scenario_id not in session["scenario_history"]:

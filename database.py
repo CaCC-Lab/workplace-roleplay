@@ -31,6 +31,22 @@ def get_database_uri():
         return f"postgresql://{db_user}@{db_host}:{db_port}/{db_name}"
 
 
+def get_safe_database_uri():
+    """ログ出力用にパスワードをマスクしたデータベースURIを取得"""
+    # 環境変数から各パラメータを取得
+    db_host = os.getenv('DB_HOST', 'localhost')
+    db_port = os.getenv('DB_PORT', '5432')
+    db_name = os.getenv('DB_NAME', 'workplace_roleplay')
+    db_user = os.getenv('DB_USER', 'postgres')
+    db_password = os.getenv('DB_PASSWORD', '')
+    
+    # パスワードをマスクしたURI を構築
+    if db_password:
+        return f"postgresql://{db_user}:***@{db_host}:{db_port}/{db_name}"
+    else:
+        return f"postgresql://{db_user}@{db_host}:{db_port}/{db_name}"
+
+
 def check_database_connection(uri):
     """データベース接続をテスト"""
     try:
@@ -80,45 +96,114 @@ def init_database(app: Flask):
 
 def create_initial_data(app: Flask):
     """初期データを作成（シナリオ情報の同期など）"""
-    from scenarios import load_scenarios
-    from models import Scenario
-    
     with app.app_context():
         try:
-            # 既存のシナリオをチェック
-            existing_scenarios = {s.yaml_id: s for s in Scenario.query.all()}
-            
-            # YAMLファイルからシナリオを読み込み
-            yaml_scenarios = load_scenarios()
-            
-            # 新しいシナリオを追加
-            added_count = 0
-            for yaml_id, scenario_data in yaml_scenarios.items():
-                if yaml_id not in existing_scenarios:
-                    new_scenario = Scenario(
-                        yaml_id=yaml_id,
-                        title=scenario_data.get('title', ''),
-                        summary=scenario_data.get('summary', ''),
-                        difficulty=scenario_data.get('difficulty', ''),
-                        category=scenario_data.get('tags', ['その他'])[0] if scenario_data.get('tags') else 'その他'
-                    )
-                    db.session.add(new_scenario)
-                    added_count += 1
-            
-            if added_count > 0:
-                db.session.commit()
-                logger.info(f"✅ {added_count}個の新しいシナリオをデータベースに追加しました")
-            else:
-                logger.info("ℹ️ 新しいシナリオはありません")
-                
+            # シナリオデータをYAMLファイルから読み込んで同期
+            sync_scenarios_from_yaml()
+            logger.info("✅ 初期データの作成が完了しました")
         except Exception as e:
             logger.error(f"初期データ作成エラー: {str(e)}")
             db.session.rollback()
 
 
-# データベースヘルパー関数
+def sync_scenarios_from_yaml():
+    """
+    scenarios/data/ ディレクトリ内のYAMLファイルからシナリオを読み込み、
+    データベースと同期する。
+    - 既存のシナリオは更新
+    - 新しいシナリオは追加
+    """
+    import yaml
+    from models import Scenario, DifficultyLevel
+    
+    scenario_dir = os.path.join(os.path.dirname(__file__), 'scenarios', 'data')
+    if not os.path.isdir(scenario_dir):
+        logger.warning(f"Warning: Scenario directory not found at {scenario_dir}")
+        return
+
+    updated_count = 0
+    added_count = 0
+    
+    for filename in os.listdir(scenario_dir):
+        if filename.endswith('.yaml') or filename.endswith('.yml'):
+            filepath = os.path.join(scenario_dir, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = yaml.safe_load(f)
+
+                yaml_id = data.get('id')
+                if not yaml_id:
+                    continue
+
+                # difficultyをEnumに変換。存在しない場合は UNKNOWN
+                difficulty_str = data.get('difficulty', '不明')
+                try:
+                    difficulty_enum = DifficultyLevel(difficulty_str)
+                except ValueError:
+                    difficulty_enum = DifficultyLevel.UNKNOWN
+
+                # カテゴリを抽出
+                category = _extract_category(data)
+
+                # データベースで既存のシナリオを検索
+                scenario = Scenario.query.filter_by(yaml_id=yaml_id).first()
+
+                if scenario:
+                    # 既存シナリオの更新
+                    scenario.title = data.get('title', '')
+                    scenario.summary = data.get('summary', '')
+                    scenario.difficulty = difficulty_enum
+                    scenario.category = category
+                    updated_count += 1
+                else:
+                    # 新規シナリオの作成
+                    scenario = Scenario(
+                        yaml_id=yaml_id,
+                        title=data.get('title', ''),
+                        summary=data.get('summary', ''),
+                        difficulty=difficulty_enum,
+                        category=category
+                    )
+                    db.session.add(scenario)
+                    added_count += 1
+
+            except Exception as e:
+                logger.warning(f"Warning: Error processing {filename}: {e}")
+                continue
+
+    if updated_count > 0 or added_count > 0:
+        db.session.commit()
+        logger.info(f"✅ シナリオの同期が完了しました (追加: {added_count}, 更新: {updated_count})")
+    else:
+        logger.info("ℹ️ 同期対象のシナリオはありませんでした")
+
+
+def _extract_category(scenario_data):
+    """シナリオデータからカテゴリを抽出する"""
+    tags = scenario_data.get('tags', [])
+    return tags[0] if tags else 'その他'
+
+
+# ========== 非推奨関数（services.pyに移行済み） ==========
+# これらの関数は services.py のサービスレイヤーに移行されました。
+# 新しいコードでは services.py の対応する関数を使用してください。
+
+# DEPRECATED: 代わりに ScenarioService.get_by_yaml_id() と ScenarioService.sync_from_yaml() を使用
 def get_or_create_scenario(yaml_id, scenario_data=None):
-    """シナリオを取得または作成"""
+    """
+    【非推奨】シナリオを取得または作成
+    
+    移行先:
+    - ScenarioService.get_by_yaml_id(yaml_id)
+    - ScenarioService.sync_from_yaml() (一括同期の場合)
+    """
+    import warnings
+    warnings.warn(
+        "get_or_create_scenario() は非推奨です。services.ScenarioService を使用してください。",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    
     from models import Scenario
     
     scenario = Scenario.query.filter_by(yaml_id=yaml_id).first()
@@ -136,8 +221,20 @@ def get_or_create_scenario(yaml_id, scenario_data=None):
     return scenario
 
 
+# DEPRECATED: 代わりに SessionService.create_session() を使用
 def create_practice_session(user_id, session_type, scenario_id=None, ai_model=None):
-    """新しい練習セッションを作成"""
+    """
+    【非推奨】新しい練習セッションを作成
+    
+    移行先: SessionService.create_session()
+    """
+    import warnings
+    warnings.warn(
+        "create_practice_session() は非推奨です。services.SessionService.create_session() を使用してください。",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    
     from models import PracticeSession, SessionType
     
     session = PracticeSession(
@@ -152,8 +249,20 @@ def create_practice_session(user_id, session_type, scenario_id=None, ai_model=No
     return session
 
 
+# DEPRECATED: 代わりに ConversationService.add_log() を使用
 def add_conversation_log(session_id, speaker, message, message_type='text'):
-    """会話ログを追加"""
+    """
+    【非推奨】会話ログを追加
+    
+    移行先: ConversationService.add_log()
+    """
+    import warnings
+    warnings.warn(
+        "add_conversation_log() は非推奨です。services.ConversationService.add_log() を使用してください。",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    
     from models import ConversationLog
     
     log = ConversationLog(
