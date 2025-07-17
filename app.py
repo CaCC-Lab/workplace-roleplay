@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, stream_with_context
+from flask import Flask, render_template, request, jsonify, session, stream_with_context, g
 from flask_session import Session
 import requests
 import os
@@ -63,6 +63,10 @@ from utils.security import SecurityUtils, CSPNonce, CSRFToken, CSRFMiddleware
 
 # Redis関連のインポート
 from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnectionError
+
+# データベース関連のインポート
+from database import init_database, create_initial_data
+from models import db, User
 
 """
 要件:
@@ -156,6 +160,16 @@ redis_session_manager = initialize_session_store()
 
 Session(app)
 
+# データベースの初期化
+database_available = init_database(app)
+if database_available:
+    # データベースが利用可能な場合、初期データを作成
+    with app.app_context():
+        try:
+            create_initial_data(app)
+        except Exception as e:
+            print(f"⚠️ 初期データ作成エラー: {e}")
+
 # CSRF対策ミドルウェアの初期化
 csrf = CSRFMiddleware(app)
 
@@ -188,6 +202,24 @@ def handle_internal_error(error):
 def handle_unexpected_error(error: Exception):
     """予期しないエラーのハンドラー"""
     return handle_error(error)
+
+# リクエスト前処理
+@app.before_request
+def load_logged_in_user():
+    """
+    リクエストの前に、セッション情報からユーザーを特定し、
+    g.userに格納する。データベースが利用できない場合はNone。
+    """
+    user_id = session.get('user_id')
+    
+    if user_id is None or not app.config.get('DATABASE_AVAILABLE', False):
+        g.user = None
+    else:
+        # データベースからユーザー情報を取得
+        g.user = User.query.get(user_id)
+        # ユーザーが存在しない場合（セッションだけ残っている場合）も考慮
+        if g.user is None:
+            session.pop('user_id', None)
 
 # カスタムJinjaフィルターの追加
 @app.template_filter('datetime')
@@ -655,11 +687,27 @@ def scenario_chat():
 - 必要に応じて適度な困難さを提示
 """
         
-        # セッション初期化（共通関数使用）
-        initialize_session_history("scenario_history", scenario_id)
+        # データベースとセッションのハイブリッド処理
+        history = []
+        practice_session = None
         
+        if g.user:
+            # 【DB利用】認証済みユーザー
+            practice_session = get_or_create_practice_session(
+                g.user.id, 
+                "scenario", 
+                scenario_id,
+                selected_model
+            )
+            if practice_session:
+                history = get_db_history(practice_session.id)
+        else:
+            # 【セッション利用】未認証ユーザー
+            initialize_session_history("scenario_history", scenario_id)
+            history = session["scenario_history"][scenario_id]
+            
         # 初回メッセージの場合はセッション開始時間を記録
-        if len(session["scenario_history"].get(scenario_id, [])) == 0:
+        if len(history) == 0:
             set_session_start_time("scenario", scenario_id)
 
         try:
@@ -668,10 +716,10 @@ def scenario_chat():
             messages.append(SystemMessage(content=system_prompt))
             
             # 共通関数を使用して履歴からメッセージを構築
-            add_messages_from_history(messages, session["scenario_history"][scenario_id])
+            add_messages_from_history(messages, history)
 
             # 新しいメッセージの処理
-            if len(session["scenario_history"][scenario_id]) == 0:
+            if len(history) == 0:
                 # 初回メッセージの場合
                 prompt = f"""\
 最初の声掛けとして、{scenario_data["character_setting"]["initial_approach"]}という設定で
@@ -698,11 +746,16 @@ def scenario_chat():
                 else:
                     response = f"申し訳ありません。{error_msg}"
 
-            # セッションに履歴を保存（共通関数使用）
-            add_to_session_history("scenario_history", {
-                "human": user_message if user_message else "[シナリオ開始]",
-                "ai": response
-            }, scenario_id)
+            # 履歴の保存
+            if g.user and practice_session:
+                # 【DB保存】
+                add_db_log(practice_session, user_message if user_message else "[シナリオ開始]", response)
+            else:
+                # 【セッション保存】
+                add_to_session_history("scenario_history", {
+                    "human": user_message if user_message else "[シナリオ開始]",
+                    "ai": response
+                }, scenario_id)
 
             # レスポンスをエスケープして返す
             return jsonify({"response": SecurityUtils.escape_html(response)})
@@ -1205,6 +1258,117 @@ def add_messages_from_history(messages: List[BaseMessage], history, max_entries=
     
     return messages
 
+
+# ========== データベース操作のヘルパー関数 ==========
+def get_or_create_practice_session(user_id: int, session_type: str, scenario_id: str = None, ai_model: str = None) -> 'PracticeSession':
+    """
+    進行中の練習セッションを取得、または新規作成する。
+    データベースが利用できない場合はNoneを返す。
+    """
+    if not app.config.get('DATABASE_AVAILABLE', False):
+        return None
+        
+    from models import PracticeSession, SessionType
+    from database import db
+    
+    # 既存のアクティブなセッションを検索
+    session_query = PracticeSession.query.filter_by(
+        user_id=user_id,
+        session_type=SessionType(session_type),
+        is_completed=False
+    )
+    
+    if scenario_id:
+        # シナリオモードの場合
+        from database import get_or_create_scenario
+        from scenarios import scenarios
+        scenario = get_or_create_scenario(scenario_id, scenarios.get(scenario_id))
+        if scenario:
+            session_query = session_query.filter_by(scenario_id=scenario.id)
+    
+    practice_session = session_query.order_by(PracticeSession.started_at.desc()).first()
+    
+    if not practice_session:
+        # 新規セッションを作成
+        practice_session = PracticeSession(
+            user_id=user_id,
+            session_type=SessionType(session_type),
+            scenario_id=scenario.id if scenario_id and scenario else None,
+            ai_model=ai_model
+        )
+        db.session.add(practice_session)
+        db.session.commit()
+    
+    return practice_session
+
+
+def get_db_history(practice_session_id: int) -> List[Dict[str, str]]:
+    """
+    データベースから会話履歴を取得し、セッションと同じ形式に変換する。
+    """
+    if not app.config.get('DATABASE_AVAILABLE', False):
+        return []
+        
+    from models import ConversationLog
+    
+    logs = ConversationLog.query.filter_by(
+        session_id=practice_session_id
+    ).order_by(ConversationLog.timestamp.asc()).all()
+    
+    history = []
+    current_pair = {}
+    
+    for log in logs:
+        if log.speaker == 'user':
+            if current_pair:  # 前のペアがある場合は追加
+                history.append(current_pair)
+                current_pair = {}
+            current_pair['human'] = log.message
+        elif log.speaker == 'ai':
+            current_pair['ai'] = log.message
+            if current_pair:  # AIの応答があれば追加
+                history.append(current_pair)
+                current_pair = {}
+    
+    # 最後のペアが残っている場合
+    if current_pair:
+        history.append(current_pair)
+    
+    return history
+
+
+def add_db_log(practice_session: 'PracticeSession', user_message: str, ai_response: str):
+    """
+    データベースに会話ログを追加する。
+    """
+    if not app.config.get('DATABASE_AVAILABLE', False) or not practice_session:
+        return
+        
+    from models import ConversationLog
+    from database import db
+    
+    # ユーザーメッセージを保存
+    if user_message:
+        user_log = ConversationLog(
+            session_id=practice_session.id,
+            speaker='user',
+            message=user_message,
+            message_type='text'
+        )
+        db.session.add(user_log)
+    
+    # AI応答を保存
+    if ai_response:
+        ai_log = ConversationLog(
+            session_id=practice_session.id,
+            speaker='ai',
+            message=ai_response,
+            message_type='text'
+        )
+        db.session.add(ai_log)
+    
+    db.session.commit()
+
 # シナリオフィードバック関数を更新
 @app.route("/api/scenario_feedback", methods=["POST"])
 @CSRFToken.require_csrf
@@ -1218,12 +1382,34 @@ def get_scenario_feedback():
     if not scenario_id or scenario_id not in scenarios:
         return jsonify({"error": "無効なシナリオIDです"}), 400
 
-    # 会話履歴を取得
-    if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
-        return jsonify({"error": "会話履歴が見つかりません"}), 404
-
-    history = session["scenario_history"][scenario_id]
+    # 会話履歴を取得（ハイブリッド処理）
+    history = []
     scenario_data = scenarios[scenario_id]
+    
+    if g.user:
+        # 【DB利用】最新のアクティブなセッションから履歴を取得
+        from models import PracticeSession, SessionType, Scenario
+        from database import get_or_create_scenario
+        
+        scenario = get_or_create_scenario(scenario_id, scenario_data)
+        if scenario:
+            practice_session = PracticeSession.query.filter_by(
+                user_id=g.user.id,
+                session_type=SessionType.SCENARIO,
+                scenario_id=scenario.id,
+                is_completed=False
+            ).order_by(PracticeSession.started_at.desc()).first()
+            
+            if practice_session:
+                history = get_db_history(practice_session.id)
+    else:
+        # 【セッション利用】
+        if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
+            return jsonify({"error": "会話履歴が見つかりません"}), 404
+        history = session["scenario_history"][scenario_id]
+    
+    if not history:
+        return jsonify({"error": "会話履歴が空です"}), 404
 
     # フィードバック生成用のプロンプト
     feedback_prompt = f"""\
