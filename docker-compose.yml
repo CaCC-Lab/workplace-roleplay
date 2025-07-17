@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: workplace-roleplay-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: workplace-roleplay-redis-test
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly no --maxmemory 64mb
+    profiles:
+      - test
+
+volumes:
+  redis-data:
+    driver: local
