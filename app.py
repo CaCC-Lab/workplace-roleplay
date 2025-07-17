@@ -128,7 +128,11 @@ def initialize_session_store():
         app.config["SESSION_TYPE"] = "filesystem"
         if config.SESSION_FILE_DIR:
             if not os.path.exists(config.SESSION_FILE_DIR):
-                os.makedirs(config.SESSION_FILE_DIR)
+                try:
+                    os.makedirs(config.SESSION_FILE_DIR, exist_ok=True)
+                except (OSError, PermissionError) as e:
+                    print(f"⚠️ セッションディレクトリ作成失敗: {config.SESSION_FILE_DIR} - {str(e)}")
+                    config.SESSION_FILE_DIR = "./flask_session"
             app.config["SESSION_FILE_DIR"] = config.SESSION_FILE_DIR
         else:
             app.config["SESSION_FILE_DIR"] = "./flask_session"
