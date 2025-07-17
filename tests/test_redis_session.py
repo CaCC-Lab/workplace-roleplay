@@ -1,12 +1,10 @@
 # tests/test_redis_session.py
 import pytest
-import os
 import time
 import redis
 from flask import Flask, session
 from flask_session import Session
-from unittest.mock import Mock, patch
-import json
+from unittest.mock import patch
 
 class TestRedisSessionIntegration:
     """Redis統合セッション管理のテストスイート - TDDアプローチ"""
@@ -159,7 +157,7 @@ class TestRedisSessionIntegration:
     def test_session_expiration(self, app_with_redis):
         """セッション有効期限のテスト"""
         # Arrange - 短い有効期限を設定
-        app_with_redis.config['PERMANENT_SESSION_LIFETIME'] = 1  # 1秒
+        app_with_redis.config['PERMANENT_SESSION_LIFETIME'] = 0.1  # 0.1秒
         client = app_with_redis.test_client()
         
         # Act
@@ -171,8 +169,8 @@ class TestRedisSessionIntegration:
         response1 = client.get('/get_session/temp_data')
         assert response1.data.decode() == 'expires_soon'
         
-        # 2秒待機
-        time.sleep(2)
+        # 0.2秒待機（テスト効率化）
+        time.sleep(0.2)
         
         # Assert - セッションが期限切れになっている
         response2 = client.get('/get_session/temp_data')

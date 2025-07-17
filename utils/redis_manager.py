@@ -23,9 +23,9 @@ class RedisSessionManager:
     - どうすればよいか（How）
     """
     
-    def __init__(self, 
-                 host: str = None, 
-                 port: int = None, 
+    def __init__(self,
+                 host: Optional[str] = None,
+                 port: Optional[int] = None,
                  db: int = 0,
                  fallback_enabled: bool = True):
         """

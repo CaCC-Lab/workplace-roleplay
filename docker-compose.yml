@@ -10,6 +10,8 @@ services:
       - redis-data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     restart: unless-stopped
+    networks:
+      - workplace-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -23,9 +25,15 @@ services:
     ports:
       - "6380:6379"
     command: redis-server --appendonly no --maxmemory 64mb
+    networks:
+      - workplace-net
     profiles:
       - test
 
 volumes:
   redis-data:
     driver: local
+
+networks:
+  workplace-net:
+    driver: bridge
