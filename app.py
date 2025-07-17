@@ -61,6 +61,9 @@ from errors import (
 # セキュリティ関連のインポート
 from utils.security import SecurityUtils, CSPNonce, CSRFToken, CSRFMiddleware
 
+# Redis関連のインポート
+from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnectionError
+
 """
 要件:
 1. Google Gemini APIを使用したAIチャット
@@ -87,28 +90,65 @@ app.config["WTF_CSRF_ENABLED"] = config.WTF_CSRF_ENABLED
 app.config["SESSION_TYPE"] = config.SESSION_TYPE
 app.config["SESSION_LIFETIME"] = config.SESSION_LIFETIME_MINUTES * 60  # 秒に変換
 
-# Redisセッションの設定（SESSION_TYPE=redisの場合に使用）
-if config.SESSION_TYPE == "redis":
+# Redis統合セッション管理の初期化
+def initialize_session_store():
+    """セッションストアの初期化（Redis優先、フォールバック対応）"""
     try:
-        from redis import Redis
-        app.config["SESSION_REDIS"] = Redis(
-            host=config.REDIS_HOST,
-            port=config.REDIS_PORT,
-            password=config.REDIS_PASSWORD,
-            db=config.REDIS_DB
-        )
-        print("Redisセッションストアを使用します")
-    except ImportError:
-        print("警告: Redisパッケージがインストールされていません。pip install redisを実行してください。")
-        app.config["SESSION_TYPE"] = "filesystem"  # フォールバック
-        print("filesystemセッションにフォールバックします")
-else:
-    # filesystemセッションの場合はセッションファイルのパスを指定可能に
-    if config.SESSION_FILE_DIR:
-        if not os.path.exists(config.SESSION_FILE_DIR):
-            os.makedirs(config.SESSION_FILE_DIR)
-        app.config["SESSION_FILE_DIR"] = config.SESSION_FILE_DIR
-    print(f"{config.SESSION_TYPE}セッションストアを使用します")
+        # Redis設定を試行
+        if config.SESSION_TYPE == "redis":
+            redis_manager = RedisSessionManager(
+                host=config.REDIS_HOST,
+                port=config.REDIS_PORT,
+                db=config.REDIS_DB,
+                fallback_enabled=True
+            )
+            
+            # Redis接続確認
+            health = redis_manager.health_check()
+            
+            if health['connected']:
+                # Redis設定をFlaskに適用
+                redis_config = SessionConfig.get_redis_config(os.getenv('FLASK_ENV'))
+                app.config.update(redis_config)
+                app.config["SESSION_REDIS"] = redis_manager._client
+                
+                print("✅ Redisセッションストアを使用します")
+                print(f"   接続先: {redis_manager.host}:{redis_manager.port}")
+                return redis_manager
+            else:
+                print(f"⚠️ Redis接続失敗: {health.get('error', 'Unknown error')}")
+                if redis_manager.has_fallback():
+                    print("   フォールバック機能が有効です")
+                    return redis_manager
+                else:
+                    raise RedisConnectionError("Redis接続失敗、フォールバック無効")
+        
+        # Filesystem フォールバック
+        print("📁 Filesystemセッションにフォールバックします")
+        app.config["SESSION_TYPE"] = "filesystem"
+        if config.SESSION_FILE_DIR:
+            if not os.path.exists(config.SESSION_FILE_DIR):
+                os.makedirs(config.SESSION_FILE_DIR)
+            app.config["SESSION_FILE_DIR"] = config.SESSION_FILE_DIR
+        else:
+            app.config["SESSION_FILE_DIR"] = "./flask_session"
+            
+        return None
+        
+    except ImportError as e:
+        print(f"❌ Redis依存関係エラー: {str(e)}")
+        print("   対処法: pip install redis を実行してください")
+        app.config["SESSION_TYPE"] = "filesystem"
+        app.config["SESSION_FILE_DIR"] = "./flask_session"
+        return None
+    except Exception as e:
+        print(f"❌ セッション初期化エラー: {str(e)}")
+        app.config["SESSION_TYPE"] = "filesystem"
+        app.config["SESSION_FILE_DIR"] = "./flask_session"
+        return None
+
+# セッションマネージャーの初期化
+redis_session_manager = initialize_session_store()
 
 Session(app)
 
@@ -2291,6 +2331,105 @@ def get_api_key_status():
         return jsonify(status)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ========== セッション管理・監視 ==========
+@app.route("/api/session/health", methods=["GET"])
+def session_health_check():
+    """セッションストアの健全性チェック"""
+    try:
+        if redis_session_manager:
+            health = redis_session_manager.health_check()
+            connection_info = redis_session_manager.get_connection_info()
+            
+            return jsonify({
+                "status": "healthy" if health['connected'] else "degraded",
+                "session_store": "redis" if health['connected'] else "fallback",
+                "details": {
+                    "redis_connected": health['connected'],
+                    "fallback_active": health['fallback_active'],
+                    "connection_info": connection_info,
+                    "error": health.get('error')
+                }
+            })
+        else:
+            return jsonify({
+                "status": "healthy",
+                "session_store": "filesystem",
+                "details": {
+                    "redis_connected": False,
+                    "fallback_active": False,
+                    "session_dir": app.config.get("SESSION_FILE_DIR", "./flask_session")
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": f"セッション健全性チェックエラー: {str(e)}"
+        }), 500
+
+
+@app.route("/api/session/info", methods=["GET"])
+def session_info():
+    """現在のセッション情報を取得"""
+    try:
+        session_data = {
+            "session_id": session.get('_id', 'N/A'),
+            "session_keys": list(session.keys()),
+            "session_type": app.config.get("SESSION_TYPE", "unknown"),
+            "permanent": session.permanent,
+            "has_chat_history": 'chat_history' in session,
+            "has_scenario_history": 'scenario_chat_history' in session,
+            "current_scenario": session.get('current_scenario_id'),
+            "model_choice": session.get('model_choice', 'N/A')
+        }
+        
+        # セッションサイズの概算
+        import sys
+        session_size = sys.getsizeof(str(dict(session)))
+        session_data["estimated_size_bytes"] = session_size
+        
+        return jsonify(session_data)
+        
+    except Exception as e:
+        return jsonify({"error": f"セッション情報取得エラー: {str(e)}"}), 500
+
+
+@app.route("/api/session/clear", methods=["POST"])
+@CSRFToken.require_csrf
+def clear_session_data():
+    """セッションデータのクリア"""
+    try:
+        data = request.json or {}
+        clear_type = data.get("type", "all")
+        
+        if clear_type == "all":
+            session.clear()
+            message = "全セッションデータをクリアしました"
+        elif clear_type == "chat":
+            session.pop('chat_history', None)
+            message = "チャット履歴をクリアしました"
+        elif clear_type == "scenario":
+            session.pop('scenario_chat_history', None)
+            session.pop('current_scenario_id', None)
+            message = "シナリオ履歴をクリアしました"
+        elif clear_type == "watch":
+            session.pop('watch_history', None)
+            message = "観戦履歴をクリアしました"
+        else:
+            return jsonify({"error": "無効なクリアタイプです"}), 400
+        
+        return jsonify({
+            "status": "success",
+            "message": message,
+            "cleared_type": clear_type
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"セッションクリアエラー: {str(e)}"
+        }), 500
 
 
 # ========== メイン起動 ==========
