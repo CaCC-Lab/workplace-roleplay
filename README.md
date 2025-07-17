@@ -101,6 +101,7 @@
 - **Flask 2.0+**: 軽量で柔軟なWebフレームワーク
 - **LangChain**: AIモデルとの対話管理、メモリ管理
 - **Flask-Session**: セッション管理（ファイルシステム/Redis対応）
+- **Redis**: スケーラブルなセッション管理（自動フォールバック機能付き）
 - **PyYAML**: シナリオデータの管理
 
 ### AI/機械学習
@@ -133,8 +134,8 @@
                                 ▼                        ▼
                        ┌──────────────────┐     ┌─────────────────┐
                        │                  │     │                 │
-                       │ Session Storage  │     │  Gemini TTS     │
-                       │ (File/Redis)     │     │     API         │
+                       │  Redis Session   │     │  Gemini TTS     │
+                       │ (Fallback: File) │     │     API         │
                        │                  │     │                 │
                        └──────────────────┘     └─────────────────┘
 ```
@@ -176,6 +177,15 @@ class APIKeyManager:
 - AI応答と並行して音声データを生成
 - Base64エンコードでクライアントに送信
 - ユーザーアクション時に即座に再生可能
+
+#### 5. **Redis統合セッション管理**
+```python
+# redis_manager.py - 自動フォールバック機能
+class RedisSessionManager:
+    def __init__(self, fallback_enabled=True):
+        # Redis接続失敗時は自動的にファイルシステムへ
+        # エラーメッセージは3要素形式（What/Why/How）
+```
 
 ## 🎨 開発プロセスと課題解決
 
@@ -226,17 +236,18 @@ class APIKeyManager:
 - ✅ **CSP（Content Security Policy）**: インラインスクリプト攻撃の防御
 - ✅ **CSRF（Cross-Site Request Forgery）対策**: トークンベース認証
 - ✅ **シークレットキー管理**: 本番環境での厳格な検証
-- ✅ **包括的テストスイート**: 104個のセキュリティテスト（189テスト通過）
+- ✅ **セッション管理強化**: Redis統合と自動フォールバック機能
+- ✅ **包括的テストスイート**: 115個のセキュリティテスト（200テスト通過）
 
 ### 🧪 開発環境と品質管理
 - ✅ **完全な開発環境セットアップ**: 仮想環境、VSCode統合、パッケージ管理
-- ✅ **TDD（テスト駆動開発）**: 189テスト成功、7スキップ（100%パス率）
+- ✅ **TDD（テスト駆動開発）**: 200テスト成功、7スキップ（100%パス率）
 - ✅ **コード品質ツール**: Black（フォーマッター）、Flake8（リンター）、MyPy（型チェック）
 - ✅ **統合テスト**: API、セキュリティ、機能テストを網羅
 - ✅ **Pylanceサポート**: IDEによる完全な型推論とエラー検出
 
-### 📊 技術メトリクス（2025年6月29日現在）
-- **テストカバレッジ**: 189テスト（104個のセキュリティテスト含む）
+### 📊 技術メトリクス（2025年7月17日現在）
+- **テストカバレッジ**: 200テスト（115個のセキュリティテスト含む）
 - **コード品質**: ゼロのリンターエラー、統一されたコードスタイル
 - **セキュリティレベル**: 企業レベルのセキュリティ対策実装済み
 - **開発効率**: 即座の開発開始可能な完全セットアップ
@@ -244,9 +255,10 @@ class APIKeyManager:
 ### 🔄 今後の展望
 
 #### 次の優先タスク
-- **セッション管理強化**: より安全で効率的なセッション処理
+- ✅ **セッション管理強化**: Redis統合による安全で効率的なセッション処理（完了）
+- **データベース統合**: PostgreSQLによるデータ永続化
+- **認証システム**: ユーザー登録とログイン機能
 - **入力検証の強化**: すべてのAPI入力の統一検証とレート制限
-- **パフォーマンス最適化**: LLM初期化とキャッシュシステムの改善
 
 #### 中長期的な機能拡張
 - **ユーザー認証システム**: 個人の学習履歴を永続的に保存
@@ -266,6 +278,7 @@ class APIKeyManager:
 ### 前提条件
 - Python 3.8以上
 - Google Cloud アカウント（Gemini API用）
+- Redis（オプション - セッション管理の高速化）
 
 ### セットアップ
 
@@ -283,11 +296,14 @@ chmod +x setup_dev_env.sh
 cp .env.example .env
 # .envファイルを編集してGOOGLE_API_KEYを設定
 
-# 4. 環境確認
+# 4. Redis起動（オプション）
+docker-compose up -d redis
+
+# 5. 環境確認
 source venv/bin/activate
 python verify_environment.py
 
-# 5. 起動
+# 6. 起動
 python app.py
 ```
 
@@ -330,6 +346,8 @@ pytest -v               # 詳細表示
 ```
 GOOGLE_API_KEY=your_google_api_key  # Gemini API用
 FLASK_SECRET_KEY=your_secret_key    # セッション暗号化用
+REDIS_HOST=localhost                # Redis接続（オプション）
+REDIS_PORT=6379                     # Redisポート（オプション）
 ```
 
 ## 📁 プロジェクト構成
@@ -339,12 +357,16 @@ workplace-roleplay/
 ├── 📱 app.py                    # メインアプリケーション
 ├── 🧠 strength_analyzer.py      # 強み分析エンジン
 ├── 🔑 api_key_manager.py        # APIキー管理システム
+├── 🔄 utils/                    # ユーティリティモジュール
+│   └── redis_manager.py         # Redis統合セッション管理
 ├── 📚 scenarios/                # シナリオ管理
 │   └── data/                    # 30種類のYAMLシナリオ
 ├── 🎨 static/                   # フロントエンド
 │   ├── js/                      # 機能別JavaScript
 │   └── css/                     # スタイルシート
-└── 🌐 templates/                # HTMLテンプレート
+├── 🌐 templates/                # HTMLテンプレート
+├── 🧪 tests/                    # テストスイート
+└── 🐳 docker-compose.yml        # Redis環境構築
 ```
 
 ## 🏆 プロジェクトのハイライト
@@ -354,6 +376,8 @@ workplace-roleplay/
 - **パフォーマンス**: SSEによる低遅延ストリーミング（< 100ms）
 - **スケーラビリティ**: Redis対応によるマルチインスタンス運用可能
 - **メモリ効率**: LRUキャッシュによる効率的なリソース管理
+- **セッション管理**: Redis統合と自動フォールバック機能
+- **包括的テスト**: 200のテストケースで品質保証
 
 ## 📝 ライセンスとコントリビューション
 
