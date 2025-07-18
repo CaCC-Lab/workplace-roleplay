@@ -30,8 +30,46 @@ services:
     profiles:
       - test
 
+  postgres:
+    image: postgres:15-alpine
+    container_name: workplace-roleplay-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: workplace_roleplay
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=ja_JP.UTF-8"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - workplace-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: workplace-roleplay-postgres-test
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: workplace_roleplay_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_test_password
+    networks:
+      - workplace-net
+    profiles:
+      - test
+
 volumes:
   redis-data:
+    driver: local
+  postgres-data:
     driver: local
 
 networks:

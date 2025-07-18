@@ -315,16 +315,34 @@ source venv/bin/activate  # Unix/macOS
 # または venv\Scripts\activate  # Windows
 
 # 2. 依存関係インストール
-pip install -r requirements.txt
-pip install -r requirements-dev.txt  # 開発ツール
+pip install -r requirements.txt       # 開発環境用（psycopg2-binary使用）
+# または
+pip install -r requirements-prod.txt  # 本番環境用（psycopg2使用）
+pip install -r requirements-dev.txt   # 開発ツール
 
 # 3. 環境変数設定
 cp .env.example .env
 # .envファイルを編集
 
-# 4. 起動
+# 4. PostgreSQLセットアップ（オプション）
+# データベースを使用する場合
+createdb workplace_roleplay
+# または既存のPostgreSQLサーバーで実行:
+# psql -U postgres -c "CREATE DATABASE workplace_roleplay;"
+
+# 5. データベースマイグレーション（初回のみ）
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
+
+# 6. 起動
 python app.py
 ```
+
+#### 📝 PostgreSQLアダプターについて
+- **開発環境**: `psycopg2-binary` - インストールが簡単で開発に便利
+- **本番環境**: `psycopg2` - コンパイルが必要だがパフォーマンスと安定性が向上
+- 本番環境では `requirements-prod.txt` を使用してください
 
 #### 🧪 開発者向けツール
 ```bash

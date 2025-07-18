@@ -1,0 +1,30 @@
+# Production requirements for workplace-roleplay
+# This file uses psycopg2 instead of psycopg2-binary for better performance and stability
+
+flask
+flask-session
+requests
+python-dotenv
+langchain>=0.1.0
+langchain-core>=0.1.0
+google-generativeai>=0.3.0
+langchain-google-genai>=0.0.3
+google-cloud-aiplatform>=1.36.0
+google-api-core>=2.15.0
+google-genai>=0.1.0
+redis
+pydub>=0.25.1
+Pillow>=9.0.0
+pydantic>=1.10.0
+pydantic-settings>=2.0.0
+Flask-SQLAlchemy>=3.0.0
+
+# PostgreSQL adapter for production
+# Using psycopg2 (compiled version) instead of psycopg2-binary
+# This provides better performance and is recommended by PostgreSQL team
+psycopg2>=2.9.0
+
+Flask-Migrate>=4.0.0
+
+# Production-specific packages
+gunicorn>=20.1.0  # Production WSGI server

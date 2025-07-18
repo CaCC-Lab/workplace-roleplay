@@ -14,3 +14,16 @@ pydub>=0.25.1
 Pillow>=9.0.0
 pydantic>=1.10.0
 pydantic-settings>=2.0.0
+Flask-SQLAlchemy>=3.0.0
+
+# PostgreSQL adapter
+# Note: psycopg2-binary is used here for development convenience.
+# For production environments, it's recommended to use psycopg2 (without -binary)
+# which requires compilation but provides better performance and stability.
+# To use psycopg2 in production:
+#   pip install psycopg2
+# Or if you need to specify build dependencies:
+#   pip install psycopg2 --no-binary psycopg2
+psycopg2-binary>=2.9.0
+
+Flask-Migrate>=4.0.0
