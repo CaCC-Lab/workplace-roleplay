@@ -196,7 +196,15 @@ csrf = CSRFMiddleware(app)
 # Flask-Login ユーザーローダー
 @login_manager.user_loader
 def load_user(user_id):
-    """セッションからユーザーを読み込む"""
+    """
+    ユーザーIDから対応するユーザーオブジェクトをデータベースから取得し、セッション管理のために返します。
+    
+    Parameters:
+        user_id (str): セッションから取得したユーザーID
+    
+    Returns:
+        User: 該当するユーザーオブジェクト。存在しない場合はNoneを返します。
+    """
     from models import User
     return User.query.get(int(user_id))
 
@@ -207,7 +215,9 @@ app.register_blueprint(auth_bp)
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)
 def handle_app_error(error: AppError):
-    """アプリケーション固有のエラーハンドラー"""
+    """
+    アプリケーション固有のエラーを処理し、標準化されたエラーレスポンスを返します。
+    """
     return handle_error(error)
 
 @app.errorhandler(ValidationError)
@@ -553,12 +563,12 @@ def set_session_start_time(session_key, sub_key=None):
 @CSRFToken.require_csrf
 def handle_chat() -> Any:
     """
-    チャットメッセージの処理
-    セキュリティ機能統合済み：
-    - 入力検証とサニタイゼーション
-    - XSS/SQLインジェクション対策
-    - レート制限（IP・ユーザーベース）
-    - セキュリティヘッダー
+    ユーザーからのチャットメッセージを受け取り、AIモデルによる応答を生成して返します。
+    
+    入力データはセキュリティ対策済みで処理され、モデル名やチャットセッションの検証、会話履歴の管理を行った上で、AI応答を生成します。応答はHTMLエスケープされてJSON形式で返されます。
+    
+    Returns:
+        レスポンス（JSON形式）: AIによる応答テキスト（HTMLエスケープ済み）を含むJSONオブジェクト
     """
     # サニタイズされたデータを使用（@secure_endpointで処理済み）
     message = request.sanitized_data['message']

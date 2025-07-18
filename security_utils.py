@@ -48,7 +48,15 @@ class InputValidator:
     
     @staticmethod
     def sanitize_html(text):
-        """HTMLエスケープによるXSS対策"""
+        """
+        入力テキストをHTMLエスケープし、既知のXSS攻撃パターンを除去します。
+        
+        Parameters:
+            text (str): サニタイズ対象の文字列
+        
+        Returns:
+            str: XSS対策済みのサニタイズ済み文字列
+        """
         if not isinstance(text, str):
             return text
         
@@ -63,7 +71,15 @@ class InputValidator:
     
     @staticmethod
     def sanitize_sql(text):
-        """SQLインジェクション対策"""
+        """
+        入力文字列からSQLインジェクション攻撃に利用される可能性のあるパターンを除去します。
+        
+        Parameters:
+            text (str): サニタイズ対象の文字列
+        
+        Returns:
+            str: 危険なSQLパターンが除去されたサニタイズ済み文字列
+        """
         if not isinstance(text, str):
             return text
         
@@ -76,7 +92,15 @@ class InputValidator:
     
     @staticmethod
     def validate_message_length(message):
-        """メッセージ長の検証"""
+        """
+        メッセージが文字列であり、許容される最小・最大長の範囲内かを検証します。
+        
+        Parameters:
+            message (str): 検証対象のメッセージ
+        
+        Returns:
+            tuple: (bool, str|None) メッセージが有効な場合は (True, None)、無効な場合は (False, エラーメッセージ)
+        """
         if not isinstance(message, str):
             return False, "Message must be a string"
         
@@ -90,7 +114,15 @@ class InputValidator:
     
     @staticmethod
     def validate_json_input(data):
-        """JSON入力の検証"""
+        """
+        JSONデータが有効であり、必須フィールド「message」を含むか検証します。
+        
+        Parameters:
+            data: 検証対象のJSON文字列または辞書。
+        
+        Returns:
+            tuple: (検証結果の真偽値, エラーメッセージまたはNone, パース済みデータまたはNone)
+        """
         try:
             if isinstance(data, str):
                 parsed_data = json.loads(data)
@@ -110,7 +142,15 @@ class InputValidator:
     
     @staticmethod
     def sanitize_input(message):
-        """包括的な入力サニタイゼーション"""
+        """
+        入力メッセージに対してHTMLエスケープ、SQLインジェクション対策、余分な空白の除去を行い、安全な文字列として返します。
+        
+        Parameters:
+            message (str): サニタイズ対象の入力メッセージ
+        
+        Returns:
+            str: サニタイズ済みの安全な文字列
+        """
         # HTMLエスケープ
         sanitized = InputValidator.sanitize_html(message)
         
@@ -128,6 +168,9 @@ class RateLimiter:
     
     def __init__(self):
         # IPベースのレート制限追跡
+        """
+        RateLimiterのインスタンスを初期化し、IPアドレスおよびユーザーIDごとのリクエスト履歴とレート制限値を設定します。
+        """
         self.ip_requests = defaultdict(list)
         # ユーザーベースのレート制限追跡
         self.user_requests = defaultdict(list)
@@ -138,13 +181,30 @@ class RateLimiter:
         self.TIME_WINDOW = 60   # 時間窓（秒）
     
     def _cleanup_old_requests(self, request_list, time_window):
-        """古いリクエスト記録をクリーンアップ"""
+        """
+        指定された時間枠より古いリクエストのタイムスタンプをリストから除外し、最新のリストを返します。
+        
+        Parameters:
+            request_list (list): リクエストのタイムスタンプのリスト。
+            time_window (float): 許容される時間枠（秒単位）。
+        
+        Returns:
+            list: 時間枠内に収まるリクエストのタイムスタンプのリスト。
+        """
         current_time = time.time()
         return [req_time for req_time in request_list 
                 if current_time - req_time < time_window]
     
     def check_ip_rate_limit(self, ip_address):
-        """IPベースのレート制限チェック"""
+        """
+        指定されたIPアドレスに対して、1分間あたりのリクエスト数が制限を超えていないかを判定します。
+        
+        Parameters:
+            ip_address (str): チェック対象のクライアントIPアドレス。
+        
+        Returns:
+            tuple: (bool, str|None) — レート制限内ならTrueとNone、超過時はFalseとエラーメッセージを返します。
+        """
         current_time = time.time()
         
         # 古いリクエストをクリーンアップ
@@ -161,7 +221,17 @@ class RateLimiter:
         return True, None
     
     def check_user_rate_limit(self, user_id):
-        """ユーザーベースのレート制限チェック"""
+        """
+        指定されたユーザーIDに対して、1分間あたりのリクエスト数が上限を超えていないかを判定します。
+        
+        ユーザーIDが指定されていない場合（未認証ユーザー）は、ユーザーベースのレート制限をスキップします。
+        
+        Parameters:
+            user_id: レート制限を適用するユーザーの識別子
+        
+        Returns:
+            (bool, str or None): レート制限内であればTrueとNone、超過時はFalseとエラーメッセージを返します。
+        """
         if not user_id:
             return True, None  # 未認証ユーザーはIPベースのみ
         
@@ -186,9 +256,18 @@ rate_limiter = RateLimiter()
 
 
 def validate_and_sanitize_input(f):
-    """入力検証とサニタイゼーションのデコレータ"""
+    """
+    Flaskエンドポイント用のデコレータで、リクエストのJSON入力を検証・サニタイズし、不正なデータの場合は400エラーを返します。
+    
+    リクエストが有効なJSONかつ`message`フィールドを含み、かつ長さ制約を満たす場合のみ、サニタイズ済みデータを`request.sanitized_data`に格納して処理を継続します。不正な場合はエラーメッセージ付きのJSONレスポンスを返します。
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        """
+        リクエストのJSON入力を検証・サニタイズし、サニタイズ済みデータをrequestオブジェクトに格納してから元の関数を実行します。
+        
+        リクエストがapplication/jsonでない場合やJSONパース・検証・メッセージ長チェックに失敗した場合は、400エラーのJSONレスポンスを返します。サニタイズ後のメッセージと元のメッセージはrequest.sanitized_dataに格納されます。
+        """
         try:
             # リクエストデータの取得
             if request.content_type == 'application/json':
@@ -231,10 +310,19 @@ def validate_and_sanitize_input(f):
 
 
 def rate_limit_check(f):
-    """レート制限チェックのデコレータ"""
+    """
+    IPアドレスおよびユーザーIDに基づくレート制限を適用するFlaskデコレータ。
+    
+    リクエストごとにIPアドレスとユーザーIDのレート制限をチェックし、制限を超えた場合はHTTP 429エラーを返します。
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # IPアドレスの取得
+        """
+        クライアントのIPアドレスおよびユーザーIDに基づいてレート制限を適用し、制限を超えた場合はHTTP 429エラーを返します。
+        
+        IPアドレスごとに1分間あたり5回、ユーザーごとに1分間あたり10回までリクエストを許可します。いずれかの制限を超えた場合、エラーメッセージとともにリクエストを拒否します。
+        """
         ip_address = request.environ.get('REMOTE_ADDR', 'unknown')
         
         # IPベースのレート制限チェック
@@ -254,9 +342,18 @@ def rate_limit_check(f):
 
 
 def security_headers(f):
-    """セキュリティヘッダーを追加するデコレータ"""
+    """
+    HTTPレスポンスに主要なセキュリティヘッダーを付与するFlask用デコレータ。
+    
+    このデコレータを適用したエンドポイントのレスポンスに、クリックジャッキングやXSS、MIMEタイプスニッフィングなどを防ぐためのセキュリティヘッダーを自動的に追加します。
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        """
+        HTTPレスポンスに主要なセキュリティヘッダーを追加します。
+        
+        この関数は、Flaskレスポンスオブジェクトに各種セキュリティヘッダーを付与し、クリックジャッキングやXSS、MIMEタイプスニッフィングなどの攻撃リスクを低減します。
+        """
         response = f(*args, **kwargs)
         
         # セキュリティヘッダーの追加
@@ -274,12 +371,17 @@ def security_headers(f):
 
 # セキュリティ機能を統合したデコレータ
 def secure_endpoint(f):
-    """すべてのセキュリティ機能を適用するデコレータ"""
+    """
+    入力検証、サニタイズ、レートリミット、セキュリティヘッダー付与をすべて適用するFlaskエンドポイント用の複合デコレータ。
+    """
     @wraps(f)
     @security_headers
     @rate_limit_check
     @validate_and_sanitize_input
     def decorated_function(*args, **kwargs):
+        """
+        指定された関数 `f` を引数とともに呼び出し、その結果を返します。
+        """
         return f(*args, **kwargs)
     
     return decorated_function

@@ -20,7 +20,12 @@ if not init_database(app):
     sys.exit(1)
 
 def create_user_table():
-    """ユーザーテーブルを作成"""
+    """
+    データベースにユーザーテーブル（users）が存在しない場合に新規作成します。
+    
+    Returns:
+        bool: テーブル作成に成功した場合はTrue、失敗した場合はFalseを返します。既にテーブルが存在する場合もTrueを返します。
+    """
     with app.app_context():
         try:
             # テーブルの存在確認

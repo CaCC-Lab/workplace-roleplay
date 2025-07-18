@@ -38,13 +38,21 @@ class RegistrationForm(FlaskForm):
     submit = SubmitField('登録')
     
     def validate_username(self, username):
-        """ユーザー名の重複チェック"""
+        """
+        ユーザー名が既に登録されていないかを検証します。
+        
+        既存のユーザー名と重複している場合は、ValidationError を発生させます。
+        """
         user = User.query.filter_by(username=username.data).first()
         if user:
             raise ValidationError('このユーザー名は既に使用されています')
     
     def validate_email(self, email):
-        """メールアドレスの重複チェック"""
+        """
+        登録フォームで入力されたメールアドレスが既に使用されていないかを検証します。
+        
+        既存のユーザーと重複する場合はValidationErrorを発生させます。
+        """
         user = User.query.filter_by(email=email.data).first()
         if user:
             raise ValidationError('このメールアドレスは既に使用されています')

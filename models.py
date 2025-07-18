@@ -44,16 +44,32 @@ class User(UserMixin, db.Model):
     sessions = db.relationship('PracticeSession', back_populates='user', lazy='dynamic', cascade="all, delete-orphan")
     
     def __repr__(self):
+        """
+        ユーザー名を含むUserオブジェクトの文字列表現を返します。
+        """
         return f'<User {self.username}>'
     
     def set_password(self, password):
-        """パスワードをハッシュ化して保存"""
+        """
+        指定されたパスワードをハッシュ化し、ユーザーのパスワードハッシュとして保存します。
+        
+        Parameters:
+            password (str): ハッシュ化するプレーンテキストのパスワード
+        """
         from flask_bcrypt import Bcrypt
         bcrypt = Bcrypt()
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
     
     def check_password(self, password):
-        """パスワードを検証"""
+        """
+        指定されたパスワードが保存されているハッシュと一致するか検証します。
+        
+        Parameters:
+            password (str): 検証するプレーンテキストのパスワード
+        
+        Returns:
+            bool: パスワードが一致する場合はTrue、一致しない場合はFalse
+        """
         from flask_bcrypt import Bcrypt
         bcrypt = Bcrypt()
         return bcrypt.check_password_hash(self.password_hash, password)

@@ -18,7 +18,13 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """ログイン画面"""
+    """
+    ユーザーのログイン処理を行い、認証に成功した場合はリダイレクトします。
+    
+    ユーザー名またはメールアドレスとパスワードで認証を行い、アカウントが有効な場合のみログインします。  
+    認証失敗やアカウント無効時はエラーメッセージを表示し、再度ログイン画面へリダイレクトします。  
+    認証成功時は「次へ」パラメータが安全な場合はそのページへ、そうでなければトップページへリダイレクトします。
+    """
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
@@ -55,7 +61,13 @@ def login():
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """ユーザー登録画面"""
+    """
+    新規ユーザーの登録を処理し、登録フォームの表示や登録完了後のリダイレクトを行います。
+    
+    ユーザーが既に認証済みの場合はトップページへリダイレクトします。  
+    フォームが有効に送信された場合は新しいユーザーを作成し、データベースに保存します。  
+    登録成功時はログインページへリダイレクトし、失敗時はエラーメッセージを表示します。
+    """
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
@@ -87,7 +99,9 @@ def register():
 @auth_bp.route('/logout')
 @login_required
 def logout():
-    """ログアウト"""
+    """
+    現在ログイン中のユーザーをログアウトし、トップページへリダイレクトします。
+    """
     username = current_user.username
     logout_user()
     logger.info(f"ユーザーログアウト: {username}")
