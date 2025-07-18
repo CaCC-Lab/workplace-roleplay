@@ -7,7 +7,7 @@ app.pyから循環インポートを排除するためのレイヤー
 import logging
 from typing import Optional, List, Dict, Any
 from sqlalchemy.exc import SQLAlchemyError
-from models import db, Scenario, PracticeSession, ConversationLog, User, SessionType, DifficultyLevel
+from models import db, Scenario, PracticeSession, ConversationLog, User, SessionType
 from errors import NotFoundError, AppError, ValidationError
 from database import sync_scenarios_from_yaml
 
@@ -31,7 +31,7 @@ class ScenarioService:
                 message="シナリオの取得中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
     
     @staticmethod
     def get_by_yaml_id(yaml_id: str) -> Optional[Scenario]:
@@ -44,7 +44,7 @@ class ScenarioService:
                 message="シナリオの取得中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
     
     @staticmethod
     def get_all(is_active: bool = True) -> List[Scenario]:
@@ -60,7 +60,7 @@ class ScenarioService:
                 message="シナリオ一覧の取得中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
     
     @staticmethod
     def sync_from_yaml():
@@ -73,7 +73,7 @@ class ScenarioService:
                 message="シナリオの同期中にエラーが発生しました",
                 code="SYNC_ERROR",
                 status_code=500
-            )
+            ) from e
 
 
 class SessionService:
@@ -91,8 +91,8 @@ class SessionService:
             # セッションタイプの検証
             try:
                 session_type_enum = SessionType(session_type)
-            except ValueError:
-                raise ValidationError(f"無効なセッションタイプです: {session_type}")
+            except ValueError as e:
+                raise ValidationError(f"無効なセッションタイプです: {session_type}") from e
             
             # シナリオIDの検証（指定された場合）
             if scenario_id:
@@ -123,7 +123,7 @@ class SessionService:
                 message="練習セッションの作成中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
     
     @staticmethod
     def get_session_by_id(session_id: int) -> PracticeSession:
@@ -139,7 +139,7 @@ class SessionService:
                 message="練習セッションの取得中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
     
     @staticmethod
     def get_user_sessions(user_id: int, limit: int = 10) -> List[PracticeSession]:
@@ -154,7 +154,7 @@ class SessionService:
                 message="ユーザーセッション履歴の取得中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
 
 
 class ConversationService:
@@ -170,8 +170,8 @@ class ConversationService:
     ) -> ConversationLog:
         """会話ログを追加"""
         try:
-            # セッションの存在確認
-            session = SessionService.get_session_by_id(session_id)
+            # セッションの存在確認（存在しない場合は例外が発生）
+            SessionService.get_session_by_id(session_id)
             
             log = ConversationLog(
                 session_id=session_id,
@@ -195,7 +195,7 @@ class ConversationService:
                 message="会話ログの保存中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
     
     @staticmethod
     def get_session_logs(session_id: int, limit: Optional[int] = None) -> List[ConversationLog]:
@@ -212,7 +212,7 @@ class ConversationService:
                 message="会話ログの取得中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
 
 
 class UserService:
@@ -232,7 +232,7 @@ class UserService:
                 message="ユーザーの取得中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
     
     @staticmethod
     def create_user(username: str, email: str, password_hash: str) -> User:
@@ -271,7 +271,7 @@ class UserService:
                 message="ユーザーの作成中にデータベースエラーが発生しました",
                 code="DATABASE_ERROR",
                 status_code=500
-            )
+            ) from e
 
 
 # ヘルパー関数（従来のdatabase.pyから移行）

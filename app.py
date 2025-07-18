@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, stream_with_context, g
+from flask import Flask, render_template, request, jsonify, session, g
 from flask_session import Session
 import requests
 import os
@@ -66,14 +66,11 @@ from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnect
 
 # データベース関連のインポート
 from database import init_database, create_initial_data
-from models import db, User
+from models import User
 
 # サービスレイヤーのインポート（循環インポート解決）
 from services import (
     ScenarioService,
-    SessionService,
-    ConversationService,
-    UserService,
     get_or_create_practice_session,
     add_conversation_log,
     get_conversation_history

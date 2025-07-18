@@ -302,6 +302,13 @@ def save_strength_analysis(session_id, analysis_result, feedback_text=None):
         analysis.problem_solving, analysis.assertiveness, analysis.flexibility
     ]) / 6.0
     
+    # バリデーション実行
+    try:
+        analysis.validate_skill_scores()
+    except ValueError as e:
+        logger.error(f"スキルスコアのバリデーションエラー: {e}")
+        raise
+    
     db.session.add(analysis)
     db.session.commit()
     

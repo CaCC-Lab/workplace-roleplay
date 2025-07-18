@@ -146,6 +146,21 @@ class StrengthAnalysis(db.Model):
     def __repr__(self):
         return f'<StrengthAnalysis for session {self.session_id}>'
     
+    def validate_skill_scores(self):
+        """スキルスコアが0.0から1.0の範囲内であることを検証"""
+        skills = {
+            'empathy': self.empathy,
+            'clarity': self.clarity,
+            'listening': self.listening,
+            'problem_solving': self.problem_solving,
+            'assertiveness': self.assertiveness,
+            'flexibility': self.flexibility
+        }
+        
+        for skill_name, score in skills.items():
+            if score is not None and not (0.0 <= score <= 1.0):
+                raise ValueError(f"スキル '{skill_name}' の値が範囲外です: {score} (0.0-1.0の範囲である必要があります)")
+    
     def get_top_strengths(self, top_n=3):
         """上位の強みを取得"""
         strengths = {
