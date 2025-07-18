@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, jsonify, session, g
+from flask import Flask, render_template, request, jsonify, session, g, redirect, url_for
 from flask_session import Session
+from flask_login import LoginManager, login_required, current_user
+from flask_bcrypt import Bcrypt
 import requests
 import os
 from typing import Optional, Dict, List, Tuple, Any
@@ -15,12 +17,12 @@ from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
-from langchain_core.runnables import RunnableWithMessageHistory
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import StrOutputParser
-import google.generativeai as genai
-from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_core.runnables import RunnableWithMessageHistory
+# from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+# from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+# from langchain_core.output_parsers import StrOutputParser
+# import google.generativeai as genai
+# from langchain_google_genai import ChatGoogleGenerativeAI
 
 # 環境変数の読み込み
 from dotenv import load_dotenv
@@ -60,6 +62,7 @@ from errors import (
 
 # セキュリティ関連のインポート
 from utils.security import SecurityUtils, CSPNonce, CSRFToken, CSRFMiddleware
+from security_utils import secure_endpoint
 
 # Redis関連のインポート
 from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnectionError
@@ -97,6 +100,15 @@ app.secret_key = config.SECRET_KEY
 app.config["DEBUG"] = config.DEBUG
 app.config["TESTING"] = config.TESTING
 app.config["WTF_CSRF_ENABLED"] = config.WTF_CSRF_ENABLED
+
+# Flask-Login と Flask-Bcrypt の初期化
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
+login_manager.login_message = 'このページにアクセスするにはログインが必要です'
+login_manager.login_message_category = 'info'
+
+bcrypt = Bcrypt(app)
 
 # セッション設定
 app.config["SESSION_TYPE"] = config.SESSION_TYPE
@@ -180,6 +192,17 @@ if database_available:
 
 # CSRF対策ミドルウェアの初期化
 csrf = CSRFMiddleware(app)
+
+# Flask-Login ユーザーローダー
+@login_manager.user_loader
+def load_user(user_id):
+    """セッションからユーザーを読み込む"""
+    from models import User
+    return User.query.get(int(user_id))
+
+# 認証Blueprintの登録
+from auth import auth_bp
+app.register_blueprint(auth_bp)
 
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)
@@ -526,20 +549,22 @@ def set_session_start_time(session_key, sub_key=None):
 # チャットエンドポイントを更新して共通関数を使用
 
 @app.route("/api/chat", methods=["POST"])
+@secure_endpoint  # 統合されたセキュリティ機能
 @CSRFToken.require_csrf
 def handle_chat() -> Any:
     """
     チャットメッセージの処理
+    セキュリティ機能統合済み：
+    - 入力検証とサニタイゼーション
+    - XSS/SQLインジェクション対策
+    - レート制限（IP・ユーザーベース）
+    - セキュリティヘッダー
     """
+    # サニタイズされたデータを使用（@secure_endpointで処理済み）
+    message = request.sanitized_data['message']
+    
+    # 追加のリクエストデータを取得
     data = request.get_json()
-    if data is None:
-        raise ValidationError("無効なJSONデータです")
-
-    # 入力値のサニタイズ
-    message = SecurityUtils.sanitize_input(data.get("message", ""))
-    if not message:
-        raise ValidationError("メッセージが空です", field="message")
-        
     model_name = data.get("model", DEFAULT_MODEL)
     
     # モデル名の検証

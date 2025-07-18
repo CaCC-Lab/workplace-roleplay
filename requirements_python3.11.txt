@@ -1,0 +1,29 @@
+# Python 3.11対応版 requirements.txt
+flask==2.3.3
+flask-session==0.5.0
+requests==2.31.0
+python-dotenv==1.0.0
+langchain==0.0.350
+google-generativeai==0.3.2
+redis==5.0.1
+pydub==0.25.1
+Pillow==10.1.0
+pydantic==2.5.0
+Flask-SQLAlchemy==3.1.1
+
+# PostgreSQL adapter
+psycopg2-binary==2.9.9
+
+# 認証関連
+Flask-Migrate==4.0.5
+Flask-Login==0.6.3
+Flask-Bcrypt==1.0.1
+Flask-WTF==1.2.1
+WTForms==3.1.1
+email-validator==2.1.0.post1
+
+# 開発ツール（オプション）
+black==23.12.1
+flake8==6.1.0
+pytest==7.4.3
+beautifulsoup4==4.12.2
