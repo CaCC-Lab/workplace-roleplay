@@ -33,6 +33,69 @@ h1 {
     text-align: center;
 }
 
+/* 認証ヘッダースタイル */
+.header-with-auth {
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    margin-bottom: 20px;
+}
+
+.header-with-auth h1 {
+    background-color: transparent;
+    padding: 0;
+    margin: 0;
+}
+
+.auth-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.user-info {
+    margin-right: 10px;
+}
+
+.auth-link {
+    color: white;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.auth-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.auth-link.login {
+    background-color: rgba(52, 152, 219, 0.8);
+}
+
+.auth-link.login:hover {
+    background-color: rgba(52, 152, 219, 1);
+}
+
+.auth-link.register {
+    background-color: rgba(46, 204, 113, 0.8);
+}
+
+.auth-link.register:hover {
+    background-color: rgba(46, 204, 113, 1);
+}
+
+.auth-link.logout {
+    background-color: rgba(231, 76, 60, 0.8);
+}
+
+.auth-link.logout:hover {
+    background-color: rgba(231, 76, 60, 1);
+}
+
 #chat-messages {
     height: 400px;
     overflow-y: auto;

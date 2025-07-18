@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - ページが見つかりません</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .error-container {
+            max-width: 600px;
+            margin: 100px auto;
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .error-code {
+            font-size: 72px;
+            color: #e74c3c;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            font-size: 24px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .error-description {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .error-link {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .error-link:hover {
+            background-color: #2980b9;
+        }
+        
+        .error-link.secondary {
+            background-color: #95a5a6;
+        }
+        
+        .error-link.secondary:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-code">404</div>
+        <div class="error-message">ページが見つかりません</div>
+        <div class="error-description">
+            申し訳ございません。お探しのページは存在しないか、移動した可能性があります。
+        </div>
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="error-link">
+                ホームに戻る
+            </a>
+            <a href="javascript:history.back()" class="error-link secondary">
+                前のページに戻る
+            </a>
+        </div>
+    </div>
+</body>
+</html>

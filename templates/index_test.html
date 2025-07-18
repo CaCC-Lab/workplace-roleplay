@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>認証システムテスト - 職場ロールプレイ練習アプリ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .auth-header {
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .auth-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .auth-link {
+            text-decoration: none;
+            color: #666;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .auth-link.login {
+            background-color: #2196F3;
+            color: white;
+        }
+        .auth-link.logout {
+            background-color: #f44336;
+            color: white;
+        }
+        .auth-link:hover {
+            opacity: 0.8;
+        }
+        .user-info {
+            color: #666;
+            font-weight: 500;
+        }
+        .main-content {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .test-info {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        .test-info h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        .test-info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .test-info code {
+            background-color: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .links-section {
+            margin-top: 40px;
+        }
+        .test-link {
+            display: inline-block;
+            margin: 10px;
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .test-link:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-comments"></i> 職場ロールプレイ練習
+            </div>
+            <div class="auth-links">
+                {% if current_user.is_authenticated %}
+                    <span class="user-info">
+                        <i class="fas fa-user"></i> {{ current_user.username }}
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="auth-link logout">
+                        <i class="fas fa-sign-out-alt"></i> ログアウト
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="auth-link login">
+                        <i class="fas fa-sign-in-alt"></i> ログイン
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <h1>認証システムテストページ</h1>
+            
+            {% if current_user.is_authenticated %}
+                <p>ようこそ、<strong>{{ current_user.username }}</strong> さん！</p>
+                <p>認証システムは正常に動作しています。</p>
+                
+                <div class="links-section">
+                    <a href="{{ url_for('protected') }}" class="test-link">
+                        <i class="fas fa-lock"></i> 保護されたページへ
+                    </a>
+                </div>
+            {% else %}
+                <p>認証システムのテストページです。</p>
+                <p>ログインして機能を確認してください。</p>
+            {% endif %}
+            
+            <div class="test-info">
+                <h3>テスト用アカウント</h3>
+                <ul>
+                    <li>ユーザー名: <code>testuser1</code> / パスワード: <code>testpass123</code></li>
+                    <li>ユーザー名: <code>testuser2</code> / パスワード: <code>testpass456</code></li>
+                </ul>
+                <p>※ これらのアカウントはメモリ上にのみ存在し、サーバー再起動で初期化されます。</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

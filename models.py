@@ -4,6 +4,7 @@
 PostgreSQLを使用してユーザーデータ、学習履歴、会話ログを永続化
 """
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 import enum
@@ -27,7 +28,7 @@ class SessionType(enum.Enum):
     WATCH = "watch"            # 観戦モード
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     """ユーザーアカウント情報"""
     __tablename__ = 'users'
     
@@ -44,6 +45,18 @@ class User(db.Model):
     
     def __repr__(self):
         return f'<User {self.username}>'
+    
+    def set_password(self, password):
+        """パスワードをハッシュ化して保存"""
+        from flask_bcrypt import Bcrypt
+        bcrypt = Bcrypt()
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+    
+    def check_password(self, password):
+        """パスワードを検証"""
+        from flask_bcrypt import Bcrypt
+        bcrypt = Bcrypt()
+        return bcrypt.check_password_hash(self.password_hash, password)
 
 
 class Scenario(db.Model):
