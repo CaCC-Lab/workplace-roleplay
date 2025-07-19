@@ -34,3 +34,42 @@ feedback_points:
   - 助けてもらうことは恥ずかしいことじゃありません
   - 感謝を伝えられるあなたは、既に素敵な人です
   - 一つ一つの「ありがとう」が、あなたの成長の証です
+scenario_analysis:
+  typical_responses:
+  - pattern: 遠慮型
+    description: 申し訳なさを前面に出す
+    example: すみません、すみません、申し訳ないです
+    underlying_feeling: 助けてもらうことへの罪悪感
+  - pattern: 最小限型
+    description: 最低限の言葉で済ませる
+    example: '...ども...'
+    underlying_feeling: 感謝の表現への照れ、不慣れ
+  - pattern: 説明過多型
+    description: 状況を詳しく説明しすぎる
+    example: 本当にすみません、私がドジで、いつもこうで...
+    underlying_feeling: 自己否定、過度な責任感
+self_reflection_prompts:
+- この場面で、あなたはどう感じましたか？
+- なぜそのような対応を選びましたか？
+- 相手はどう感じたと思いますか？
+- もし同じ場面に遭遇したら、どう対応したいですか？
+alternative_approaches:
+- approach: シンプルな感謝
+  example: ありがとうございます。助かりました
+  benefit: 素直な感謝は相手も受け取りやすい
+  practice_point: 「すみません」より「ありがとう」を使う
+- approach: 具体的な感謝
+  example: 手伝ってくれてありがとうございます。一人だと大変でした
+  benefit: 何に感謝しているか伝わりやすい
+  practice_point: 助かった具体的な点を一つ伝える
+- approach: 前向きな感謝
+  example: ありがとうございます！おかげで早く片付きそうです
+  benefit: ポジティブな雰囲気を作れる
+  practice_point: 感謝と一緒に良い結果を伝える
+skill_focus:
+  primary: 感謝の表現
+  secondary:
+  - 適切な言葉選び
+  - 感情の表現
+  - 相互援助の意識
+  workplace_relevance: チームワークと信頼関係の構築

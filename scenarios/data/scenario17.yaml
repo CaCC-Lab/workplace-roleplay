@@ -1,7 +1,6 @@
 id: 17
 title: チーム内での役割分担と責任の明確化
-description: 新しいプロジェクトが始まりますが、チームメンバーの役割分担が曖昧で、誰が何をやるのかが不明確です。効率的に作業を進めるために、各メンバーの強みを活かした適切な役割分担を決める必要があります。
-  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: 新しいプロジェクトが始まりますが、チームメンバーの役割分担が曖昧で、誰が何をやるのかが不明確です。効率的に作業を進めるために、各メンバーの強みを活かした適切な役割分担を決める必要があります。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: advanced
 tags:
 - チーム運営
@@ -41,3 +40,42 @@ feedback_points:
   - 今日の練習が、明日の実践につながります
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
+scenario_analysis:
+  typical_responses:
+  - pattern: 過剰謝罪型
+    description: 必要以上に謝り続ける
+    example: 本当にすみません、すみません、申し訳ございません...
+    underlying_feeling: 強い罪悪感、自己否定
+  - pattern: 防御型
+    description: 言い訳を並べて自己防衛
+    example: いや、それは私じゃなくて...システムが...
+    underlying_feeling: 責任を認めることへの恐怖
+  - pattern: フリーズ型
+    description: 何も言えずに固まってしまう
+    example: '...（無言）...'
+    underlying_feeling: パニック、思考停止
+self_reflection_prompts:
+- この場面で、あなたはどう感じましたか？
+- なぜそのような対応を選びましたか？
+- 相手はどう感じたと思いますか？
+- もし同じ場面に遭遇したら、どう対応したいですか？
+alternative_approaches:
+- approach: 適切な謝罪
+  example: ご迷惑をおかけして申し訳ございません。まず状況を確認させていただけますか
+  benefit: 誠実さを示しつつ冷静に対処できる
+  practice_point: 謝罪と状況確認のバランス
+- approach: 解決志向
+  example: 申し訳ございません。今後このようなことがないよう、〇〇という対策を取ります
+  benefit: 前向きな印象を与えられる
+  practice_point: 謝罪だけでなく改善策も示す
+- approach: 共感的対応
+  example: お気持ちお察しします。私も同じ立場なら困ってしまいます
+  benefit: 相手の感情を受け止められる
+  practice_point: 相手の立場に立って考える
+skill_focus:
+  primary: クレーム対応
+  secondary:
+  - 傾聴力
+  - 感情コントロール
+  - 解決志向
+  workplace_relevance: クレーム対応は職場での信頼関係構築の基礎

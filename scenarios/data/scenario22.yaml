@@ -1,7 +1,6 @@
 id: 22
 title: 社内政治への対応と中立的な立場の維持
-description: 部門間で対立が発生しており、あなたはその間に立つ立場にいます。両方の部門から自分たちの味方になるよう圧力をかけられていますが、プロジェクトの成功のために中立的な立場を維持する必要があります。
-  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: 部門間で対立が発生しており、あなたはその間に立つ立場にいます。両方の部門から自分たちの味方になるよう圧力をかけられていますが、プロジェクトの成功のために中立的な立場を維持する必要があります。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: intermediate
 tags:
 - 社内政治
@@ -41,3 +40,42 @@ feedback_points:
   - 今日の練習が、明日の実践につながります
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
+scenario_analysis:
+  typical_responses:
+  - pattern: 最小限応答型
+    description: 必要最小限の返事だけ
+    example: はい。そうですね。
+    underlying_feeling: 会話を早く終わらせたい
+  - pattern: 話題回避型
+    description: 別の話題に逸らそうとする
+    example: そういえば、別の件ですが...
+    underlying_feeling: 苦手な話題から逃げたい
+  - pattern: 同調過多型
+    description: 相手に過度に同調する
+    example: 本当にその通りです！私もそう思います！
+    underlying_feeling: 認められたい、好かれたい
+self_reflection_prompts:
+- この場面で、あなたはどう感じましたか？
+- なぜそのような対応を選びましたか？
+- 相手はどう感じたと思いますか？
+- もし同じ場面に遭遇したら、どう対応したいですか？
+alternative_approaches:
+- approach: 自然な応答
+  example: なるほど、それは大変でしたね
+  benefit: 無理のない会話ができる
+  practice_point: 素直な反応を大切にする
+- approach: 質問返し
+  example: それについて、もう少し詳しく教えていただけますか
+  benefit: 会話を深められる
+  practice_point: 相手に興味を示す
+- approach: 共感表現
+  example: 私も似たような経験があります
+  benefit: 親近感を作れる
+  practice_point: 共通点を見つける
+skill_focus:
+  primary: リモートコミュニケーション
+  secondary:
+  - 明確な表現
+  - テキスト力
+  - タイミング
+  workplace_relevance: リモートコミュニケーションは職場での信頼関係構築の基礎

@@ -1,7 +1,6 @@
 id: 11
 title: リモートワークでの効果的なコミュニケーション
-description: 全社がリモートワーク体制になり、チーム内のコミュニケーションが希薄になっています。重要な情報共有が漏れたり、認識齟齬が発生しています。オンライン環境での効果的な連携方法を確立する必要があります。
-  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: 全社がリモートワーク体制になり、チーム内のコミュニケーションが希薄になっています。重要な情報共有が漏れたり、認識齟齬が発生しています。オンライン環境での効果的な連携方法を確立する必要があります。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: intermediate
 tags:
 - リモートワーク
@@ -41,3 +40,42 @@ feedback_points:
   - 今日の練習が、明日の実践につながります
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
+scenario_analysis:
+  typical_responses:
+  - pattern: 小声型
+    description: 声が小さくて聞き取れない
+    example: （ぼそぼそ）...だと思います...
+    underlying_feeling: 自信のなさ、注目されることへの恐怖
+  - pattern: 早口型
+    description: 緊張で早口になり内容が伝わらない
+    example: えーっとですねこれはつまりその...
+    underlying_feeling: 早く終わらせたい、緊張
+  - pattern: 過剰準備型
+    description: 資料を読み上げるだけで終わる
+    example: 資料の通りですが、1ページ目から...
+    underlying_feeling: 失敗への恐怖、完璧主義
+self_reflection_prompts:
+- この場面で、あなたはどう感じましたか？
+- なぜそのような対応を選びましたか？
+- 相手はどう感じたと思いますか？
+- もし同じ場面に遭遇したら、どう対応したいですか？
+alternative_approaches:
+- approach: 構造化発表
+  example: 3つのポイントでお話しします。1つ目は...
+  benefit: 聞き手にも自分にも分かりやすい
+  practice_point: 話す内容を整理してから話す
+- approach: 対話型発表
+  example: まず現状について皆さんの認識を確認したいのですが...
+  benefit: 一方的でなく双方向のコミュニケーション
+  practice_point: 聞き手を巻き込む
+- approach: ビジュアル活用
+  example: この図を見ていただくと分かりやすいと思います
+  benefit: 言葉だけでなく視覚的に伝えられる
+  practice_point: 資料を効果的に使う
+skill_focus:
+  primary: プレゼンテーション力
+  secondary:
+  - 構成力
+  - 話術
+  - 資料作成
+  workplace_relevance: プレゼンテーション力は職場での信頼関係構築の基礎

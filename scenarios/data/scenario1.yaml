@@ -34,3 +34,42 @@ feedback_points:
   - 緊張するのは当たり前。みんな最初は同じように感じています
   - 今日の小さな挨拶が、明日の大きな自信につながります
   - 完璧じゃなくていい。あなたらしさが一番大切です
+scenario_analysis:
+  typical_responses:
+  - pattern: 回避型
+    description: 視線を合わせず、小さな声で返事
+    example: （下を向いて）...はい...
+    underlying_feeling: 緊張、自信のなさ
+  - pattern: 形式的型
+    description: 決まった言葉だけで対応
+    example: おはようございます（それ以上話さない）
+    underlying_feeling: これ以上の会話への不安
+  - pattern: 過剰適応型
+    description: 相手に合わせようと頑張りすぎる
+    example: お、おはようございます！はい、暖かいですね！そうですね！
+    underlying_feeling: 相手に嫌われたくない気持ち
+self_reflection_prompts:
+- この場面で、あなたはどう感じましたか？
+- なぜそのような対応を選びましたか？
+- 相手はどう感じたと思いますか？
+- もし同じ場面に遭遇したら、どう対応したいですか？
+alternative_approaches:
+- approach: 自然な挨拶
+  example: おはようございます。（一呼吸おいて）暖かいですね
+  benefit: 無理のない範囲で会話を続けられる
+  practice_point: 相手と同じトーンで返すことから始める
+- approach: 素直な反応
+  example: おはようございます。月曜日はちょっと眠いです
+  benefit: 自分の状態を正直に伝えることで親近感が生まれる
+  practice_point: 完璧でない自分を見せても大丈夫
+- approach: 共感的な返答
+  example: おはようございます。本当に、今日は過ごしやすそうですね
+  benefit: 相手の話題に乗ることで自然な会話になる
+  practice_point: 相手の言葉を少し言い換えて返す
+skill_focus:
+  primary: 基本的な挨拶
+  secondary:
+  - アイコンタクト
+  - 声の大きさ
+  - 自然な会話の始め方
+  workplace_relevance: 職場での第一印象と人間関係の基礎

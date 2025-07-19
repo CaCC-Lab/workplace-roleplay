@@ -1,7 +1,6 @@
 id: 8
 title: 締切直前での優先順位調整と交渉
-description: 重要な案件の締切が明日に迫っていますが、別の緊急案件も同時に入ってきました。両方とも重要で、どちらも妥協できないと言われています。上司と交渉して現実的な解決策を見つける必要があります。
-  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: 重要な案件の締切が明日に迫っていますが、別の緊急案件も同時に入ってきました。両方とも重要で、どちらも妥協できないと言われています。上司と交渉して現実的な解決策を見つける必要があります。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: beginner
 tags:
 - 優先順位
@@ -41,3 +40,42 @@ feedback_points:
   - 今日の練習が、明日の実践につながります
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
+scenario_analysis:
+  typical_responses:
+  - pattern: 過度な責任感型
+    description: 全てを完璧に教えようとして混乱を招く
+    example: えっと、まず...あ、その前に...いや、これも大事で...
+    underlying_feeling: 相手に申し訳ない、失敗したくない
+  - pattern: 回避型
+    description: 教えることを避けて他の人に任せようとする
+    example: 私より〇〇さんの方が詳しいので...
+    underlying_feeling: 自信のなさ、責任を負いたくない
+  - pattern: 威圧型
+    description: 緊張から必要以上に厳しくなる
+    example: 前も言いましたよね？ちゃんと聞いてました？
+    underlying_feeling: 不安を隠すための防御反応
+self_reflection_prompts:
+- この場面で、あなたはどう感じましたか？
+- なぜそのような対応を選びましたか？
+- 相手はどう感じたと思いますか？
+- もし同じ場面に遭遇したら、どう対応したいですか？
+alternative_approaches:
+- approach: 段階的説明
+  example: まず一番大事なポイントから説明しますね。これができたら次に進みましょう
+  benefit: 相手の理解度に合わせて進められる
+  practice_point: 一度に全部教えようとしない
+- approach: 共感的指導
+  example: 私も最初は同じところで迷いました。一緒に確認していきましょう
+  benefit: 相手の不安を和らげながら教えられる
+  practice_point: 自分の経験を交えて親近感を作る
+- approach: 確認型指導
+  example: ここまでで分からないところはありますか？遠慮なく聞いてくださいね
+  benefit: 相手の理解度を確認しながら進められる
+  practice_point: 質問しやすい雰囲気を作る
+skill_focus:
+  primary: 引き継ぎ力
+  secondary:
+  - 整理力
+  - 説明力
+  - 確認力
+  workplace_relevance: 引き継ぎ力は職場での信頼関係構築の基礎

@@ -1,7 +1,6 @@
 id: 20
 title: 他部署との情報連携と協力体制構築
-description: 新製品開発プロジェクトで、開発部門、マーケティング部門、製造部門の連携が必要です。各部署が異なる優先事項を持っており、情報共有も不十分です。効果的な協力体制を構築する必要があります。
-  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: 新製品開発プロジェクトで、開発部門、マーケティング部門、製造部門の連携が必要です。各部署が異なる優先事項を持っており、情報共有も不十分です。効果的な協力体制を構築する必要があります。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: advanced
 tags:
 - 部署連携
@@ -41,3 +40,42 @@ feedback_points:
   - 今日の練習が、明日の実践につながります
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
+scenario_analysis:
+  typical_responses:
+  - pattern: 即承諾型
+    description: 相手の要求を全て受け入れてしまう
+    example: はい、分かりました。それで大丈夫です。
+    underlying_feeling: 対立を避けたい、嫌われたくない
+  - pattern: 先延ばし型
+    description: 決断を避けて曖昧にする
+    example: ちょっと確認してからでもいいですか...
+    underlying_feeling: 決断への不安、責任回避
+  - pattern: 過度な譲歩型
+    description: 自分を犠牲にして相手に合わせる
+    example: 私が我慢すれば済むことなので...
+    underlying_feeling: 自己犠牲、自己価値の低さ
+self_reflection_prompts:
+- この場面で、あなたはどう感じましたか？
+- なぜそのような対応を選びましたか？
+- 相手はどう感じたと思いますか？
+- もし同じ場面に遭遇したら、どう対応したいですか？
+alternative_approaches:
+- approach: Win-Win探索
+  example: お互いにメリットがある方法を一緒に考えませんか
+  benefit: 対立ではなく協力関係を作れる
+  practice_point: 相手の利益も考慮する
+- approach: 条件提示
+  example: その条件でしたら、こちらは〇〇していただければ可能です
+  benefit: 一方的な譲歩を避けられる
+  practice_point: give and takeを意識する
+- approach: 時間確保
+  example: 重要な件なので、一度持ち帰って検討させていただけますか
+  benefit: 冷静に判断する時間を作れる
+  practice_point: 即断を避ける勇気
+skill_focus:
+  primary: 期限交渉
+  secondary:
+  - 現実的判断
+  - 説明力
+  - 代替案提示
+  workplace_relevance: 期限交渉は職場での信頼関係構築の基礎
