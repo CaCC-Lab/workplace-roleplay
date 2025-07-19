@@ -412,6 +412,12 @@
                     // audioElements[soundType].src = audioSources[soundType];
                     console.log(`Playing ${soundType} sound (simulation)`);
                 }
+                
+                // エラーハンドリングを追加
+                audioElements[soundType].onerror = function(e) {
+                    console.error(`Failed to load ${soundType} audio:`, e);
+                    showNotification(`${getSoundName(soundType)}の読み込みに失敗しました`, 'error');
+                };
             }
             
             const volumeSlider = document.querySelector(`[data-sound="${soundType}"] .volume-slider`);
@@ -422,7 +428,10 @@
             }
             
             // 実際の音源がある場合はplayを呼び出す
-            // audioElements[soundType].play();
+            // audioElements[soundType].play().catch(e => {
+            //     console.error(`Failed to play ${soundType}:`, e);
+            //     showNotification(`${getSoundName(soundType)}の再生に失敗しました`, 'error');
+            // });
         }
 
         function stopSound(soundType) {
@@ -529,6 +538,59 @@
             document.getElementById('timerDisplay').textContent = 
                 `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
+
+        // ヘルパー関数
+        function getSoundName(soundType) {
+            const names = {
+                'rain': '雨音',
+                'ocean': '波の音',
+                'forest': '森の音',
+                'cafe': 'カフェの雑音',
+                'white-noise': 'ホワイトノイズ',
+                'fire': '焚き火の音'
+            };
+            return names[soundType] || soundType;
+        }
+
+        // 通知表示関数
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'error' ? '#f44336' : '#4CAF50'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 4px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // アニメーション定義
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
