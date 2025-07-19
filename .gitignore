@@ -36,4 +36,26 @@ Thumbs.db
 *~
 .pytest_cache/
 .coverage
-htmlcov/ 
+htmlcov/
+
+# Node.js関連
+node_modules/
+package-lock.json
+package.json
+
+# Playwright関連
+playwright-report/
+test-results/
+playwright.config.js
+test-results-summary.json
+
+# テストファイル
+COMPLETE_TEST_EVIDENCE.md
+FINAL_TEST_REPORT.md
+HONEST_TEST_REALITY_REPORT.md
+UPDATED_COMPLETE_TEST_EVIDENCE.md
+app_simple.py
+fix_dependencies.py
+
+# バッチスクリプト
+improve_scenarios_batch.py 

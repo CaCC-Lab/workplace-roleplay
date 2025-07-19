@@ -4,10 +4,13 @@ requests
 python-dotenv
 # 🚨 セキュリティ修正: langchain 0.0.27には重大な脆弱性（CVE-2023-46229, CVE-2023-36281等）が存在
 # 最新版にアップデート - SSRF、RCE、SQLインジェクション脆弱性を修正
-langchain==0.3.69
+langchain==0.3.26
 langchain-core==0.3.69
-langchain-google-genai==0.0.11
-google-generativeai==0.8.3
+langchain-community==0.3.27
+langchain-google-genai==2.1.8
+langchain-text-splitters==0.3.8
+google-generativeai==0.8.5
+google-ai-generativelanguage==0.6.15
 redis==5.1.1
 pydub==0.25.1
 Pillow==10.4.0
