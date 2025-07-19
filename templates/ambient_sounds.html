@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>環境音 - 職場コミュニケーション練習アプリ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+        .sounds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .sound-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .sound-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .sound-card.active {
+            background: #e7f3ff;
+            border-color: #4682B4;
+        }
+        .sound-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .sound-name {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .sound-description {
+            font-size: 14px;
+            color: #666;
+        }
+        .volume-control {
+            margin-top: 15px;
+            display: none;
+        }
+        .sound-card.active .volume-control {
+            display: block;
+        }
+        .volume-slider {
+            width: 100%;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #4682B4;
+            cursor: pointer;
+        }
+        .volume-slider::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #4682B4;
+            cursor: pointer;
+            border: none;
+        }
+        .controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .control-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        .control-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        .control-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .stop-button {
+            background-color: #f44336;
+        }
+        .stop-button:hover {
+            background-color: #d32f2f;
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+        .master-volume {
+            max-width: 400px;
+            margin: 0 auto 30px;
+            text-align: center;
+        }
+        .master-volume-label {
+            color: #555;
+            font-weight: 500;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .timer-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .timer-display {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .timer-preset {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .timer-preset:hover {
+            background: #e7f3ff;
+            border-color: #4682B4;
+        }
+        .timer-preset.active {
+            background: #4682B4;
+            color: white;
+            border-color: #4682B4;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .tips {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .tips h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        .tips ul {
+            color: #555;
+            line-height: 1.8;
+        }
+        .loading-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #4682B4;
+            transform: scaleX(0);
+            transform-origin: left;
+        }
+        .sound-card.active .loading-wave {
+            animation: wave 2s ease-in-out infinite;
+        }
+        @keyframes wave {
+            0% { transform: scaleX(0); }
+            50% { transform: scaleX(1); }
+            100% { transform: scaleX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>環境音でリラックス</h1>
+        <p class="subtitle">集中力を高め、リラックスした状態を作る環境音を選んでください</p>
+
+        <div class="timer-section">
+            <div class="timer-display" id="timerDisplay">00:00</div>
+            <div class="timer-controls">
+                <button class="timer-preset" data-minutes="5">5分</button>
+                <button class="timer-preset" data-minutes="10">10分</button>
+                <button class="timer-preset" data-minutes="15">15分</button>
+                <button class="timer-preset" data-minutes="30">30分</button>
+                <button class="timer-preset" data-minutes="60">60分</button>
+            </div>
+            <button class="control-button" id="timerButton" onclick="toggleTimer()">タイマー開始</button>
+        </div>
+
+        <div class="master-volume">
+            <label class="master-volume-label">全体音量</label>
+            <input type="range" class="volume-slider" id="masterVolume" min="0" max="100" value="50">
+        </div>
+
+        <div class="sounds-grid">
+            <div class="sound-card" data-sound="rain">
+                <div class="loading-wave"></div>
+                <div class="sound-icon">🌧️</div>
+                <div class="sound-name">雨音</div>
+                <div class="sound-description">穏やかな雨の音でリラックス</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="sound-card" data-sound="ocean">
+                <div class="loading-wave"></div>
+                <div class="sound-icon">🌊</div>
+                <div class="sound-name">波の音</div>
+                <div class="sound-description">海辺の波音で心を落ち着かせる</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="sound-card" data-sound="forest">
+                <div class="loading-wave"></div>
+                <div class="sound-icon">🌲</div>
+                <div class="sound-name">森の音</div>
+                <div class="sound-description">鳥のさえずりと木々の音</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="sound-card" data-sound="cafe">
+                <div class="loading-wave"></div>
+                <div class="sound-icon">☕</div>
+                <div class="sound-name">カフェの雑音</div>
+                <div class="sound-description">適度な雑音で集中力アップ</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="sound-card" data-sound="white-noise">
+                <div class="loading-wave"></div>
+                <div class="sound-icon">📻</div>
+                <div class="sound-name">ホワイトノイズ</div>
+                <div class="sound-description">集中力向上と雑音マスキング</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="sound-card" data-sound="fire">
+                <div class="loading-wave"></div>
+                <div class="sound-icon">🔥</div>
+                <div class="sound-name">焚き火の音</div>
+                <div class="sound-description">暖かく落ち着く焚き火の音</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-button stop-button" onclick="stopAllSounds()">すべて停止</button>
+        </div>
+
+        <div class="tips">
+            <h3>使い方のヒント</h3>
+            <ul>
+                <li>複数の音を組み合わせて、お気に入りの環境を作れます</li>
+                <li>各音の音量を調整して、最適なバランスを見つけましょう</li>
+                <li>練習前や休憩時間に使用すると効果的です</li>
+                <li>タイマーを設定して、集中時間を管理できます</li>
+            </ul>
+        </div>
+
+        <a href="/" class="back-link">← ホームに戻る</a>
+    </div>
+
+    <script>
+        // 音源の管理
+        const audioSources = {
+            rain: 'https://www.soundjay.com/misc/rain-03.mp3',
+            ocean: 'https://www.soundjay.com/misc/ocean-wave-1.mp3',
+            forest: 'https://www.soundjay.com/misc/forest-1.mp3',
+            cafe: 'https://www.soundjay.com/misc/cafe-1.mp3',
+            'white-noise': 'https://www.soundjay.com/misc/white-noise-1.mp3',
+            fire: 'https://www.soundjay.com/misc/fire-1.mp3'
+        };
+
+        const audioElements = {};
+        let masterVolume = 0.5;
+        let timerInterval;
+        let timerSeconds = 0;
+        let timerRunning = false;
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            // サウンドカードのクリックイベント
+            document.querySelectorAll('.sound-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (!e.target.classList.contains('volume-slider')) {
+                        toggleSound(this);
+                    }
+                });
+            });
+
+            // 音量スライダーのイベント
+            document.querySelectorAll('.sound-card .volume-slider').forEach(slider => {
+                slider.addEventListener('input', function(e) {
+                    e.stopPropagation();
+                    const soundType = this.closest('.sound-card').dataset.sound;
+                    updateSoundVolume(soundType, this.value / 100);
+                });
+            });
+
+            // マスター音量スライダー
+            document.getElementById('masterVolume').addEventListener('input', function() {
+                masterVolume = this.value / 100;
+                updateAllVolumes();
+            });
+
+            // タイマープリセット
+            document.querySelectorAll('.timer-preset').forEach(button => {
+                button.addEventListener('click', function() {
+                    const minutes = parseInt(this.dataset.minutes);
+                    setTimer(minutes);
+                    document.querySelectorAll('.timer-preset').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+
+        function toggleSound(card) {
+            const soundType = card.dataset.sound;
+            
+            if (card.classList.contains('active')) {
+                stopSound(soundType);
+                card.classList.remove('active');
+            } else {
+                playSound(soundType);
+                card.classList.add('active');
+            }
+        }
+
+        function playSound(soundType) {
+            if (!audioElements[soundType]) {
+                // 注意: 実際の実装では、適切な音源URLを使用する必要があります
+                // ここではダミーの音源を作成しています
+                audioElements[soundType] = new Audio();
+                audioElements[soundType].loop = true;
+                
+                // Web Audio APIを使用してホワイトノイズを生成（例）
+                if (soundType === 'white-noise') {
+                    createWhiteNoise(soundType);
+                } else {
+                    // 実際の音源ファイルがある場合はここでURLを設定
+                    // audioElements[soundType].src = audioSources[soundType];
+                    console.log(`Playing ${soundType} sound (simulation)`);
+                }
+            }
+            
+            const volumeSlider = document.querySelector(`[data-sound="${soundType}"] .volume-slider`);
+            const volume = (volumeSlider.value / 100) * masterVolume;
+            
+            if (audioElements[soundType].volume !== undefined) {
+                audioElements[soundType].volume = volume;
+            }
+            
+            // 実際の音源がある場合はplayを呼び出す
+            // audioElements[soundType].play();
+        }
+
+        function stopSound(soundType) {
+            if (audioElements[soundType]) {
+                // audioElements[soundType].pause();
+                console.log(`Stopping ${soundType} sound`);
+            }
+        }
+
+        function stopAllSounds() {
+            document.querySelectorAll('.sound-card.active').forEach(card => {
+                const soundType = card.dataset.sound;
+                stopSound(soundType);
+                card.classList.remove('active');
+            });
+        }
+
+        function updateSoundVolume(soundType, volume) {
+            if (audioElements[soundType] && audioElements[soundType].volume !== undefined) {
+                audioElements[soundType].volume = volume * masterVolume;
+            }
+        }
+
+        function updateAllVolumes() {
+            document.querySelectorAll('.sound-card.active').forEach(card => {
+                const soundType = card.dataset.sound;
+                const volumeSlider = card.querySelector('.volume-slider');
+                updateSoundVolume(soundType, volumeSlider.value / 100);
+            });
+        }
+
+        // Web Audio APIを使用したホワイトノイズ生成（デモ用）
+        function createWhiteNoise(soundType) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const bufferSize = 4096;
+            const whiteNoise = audioContext.createScriptProcessor(bufferSize, 1, 1);
+            
+            whiteNoise.onaudioprocess = function(e) {
+                const output = e.outputBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+            };
+            
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.1;
+            
+            whiteNoise.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // オーディオ要素の代わりにgainNodeを保存
+            audioElements[soundType] = { gainNode, context: audioContext };
+        }
+
+        // タイマー機能
+        function setTimer(minutes) {
+            timerSeconds = minutes * 60;
+            updateTimerDisplay();
+        }
+
+        function toggleTimer() {
+            if (timerRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            if (timerSeconds === 0) {
+                setTimer(15); // デフォルト15分
+            }
+            
+            timerRunning = true;
+            document.getElementById('timerButton').textContent = 'タイマー停止';
+            
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0) {
+                    timerSeconds--;
+                    updateTimerDisplay();
+                } else {
+                    completeTimer();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            timerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('timerButton').textContent = 'タイマー再開';
+        }
+
+        function completeTimer() {
+            timerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('timerButton').textContent = 'タイマー開始';
+            stopAllSounds();
+            alert('タイマーが終了しました。お疲れさまでした！');
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            document.getElementById('timerDisplay').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>

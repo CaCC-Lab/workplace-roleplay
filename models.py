@@ -187,6 +187,94 @@ class StrengthAnalysis(db.Model):
         return sorted(strengths.items(), key=lambda x: x[1], reverse=True)[:top_n]
 
 
+class Achievement(db.Model):
+    """アチーブメント（達成記録）"""
+    __tablename__ = 'achievements'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    icon = db.Column(db.String(50), nullable=True)  # アイコン名またはUnicode絵文字
+    category = db.Column(db.String(50), nullable=False)  # 'practice', 'consistency', 'skill', 'special'
+    threshold_type = db.Column(db.String(50), nullable=False)  # 'count', 'streak', 'score', 'custom'
+    threshold_value = db.Column(db.Integer, nullable=False)
+    points = db.Column(db.Integer, default=10, nullable=False)  # ポイント報酬
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    
+    # リレーションシップ
+    user_achievements = db.relationship('UserAchievement', back_populates='achievement', lazy='dynamic')
+    
+    def __repr__(self):
+        return f'<Achievement {self.name}>'
+
+
+class UserAchievement(db.Model):
+    """ユーザーのアチーブメント獲得記録"""
+    __tablename__ = 'user_achievements'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    achievement_id = db.Column(db.Integer, db.ForeignKey('achievements.id'), nullable=False, index=True)
+    unlocked_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    progress = db.Column(db.Integer, default=0, nullable=False)  # 進捗（例：3/5回完了）
+    
+    # リレーションシップ
+    user = db.relationship('User', backref=db.backref('achievements', lazy='dynamic'))
+    achievement = db.relationship('Achievement', back_populates='user_achievements')
+    
+    # 複合ユニーク制約（同じアチーブメントを複数回獲得しない）
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'achievement_id', name='_user_achievement_uc'),
+    )
+    
+    def __repr__(self):
+        return f'<UserAchievement {self.user_id}:{self.achievement_id}>'
+
+
+class UserPreferences(db.Model):
+    """ユーザー設定"""
+    __tablename__ = 'user_preferences'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    
+    # 表示設定
+    theme = db.Column(db.String(20), default='light', nullable=False)  # 'light', 'dark', 'auto'
+    font_size = db.Column(db.String(20), default='medium', nullable=False)  # 'small', 'medium', 'large'
+    language = db.Column(db.String(10), default='ja', nullable=False)
+    
+    # 音声設定
+    voice_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    voice_speed = db.Column(db.Float, default=1.0, nullable=False)  # 0.5-2.0
+    voice_pitch = db.Column(db.Float, default=1.0, nullable=False)  # 0.5-2.0
+    voice_volume = db.Column(db.Float, default=0.8, nullable=False)  # 0.0-1.0
+    
+    # リラックス機能設定
+    breathing_guide_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    breathing_duration = db.Column(db.Integer, default=60, nullable=False)  # 秒単位
+    ambient_sound_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    ambient_sound_type = db.Column(db.String(50), default='nature', nullable=True)
+    
+    # 通知設定
+    achievement_notifications = db.Column(db.Boolean, default=True, nullable=False)
+    practice_reminders = db.Column(db.Boolean, default=False, nullable=False)
+    reminder_time = db.Column(db.Time, nullable=True)  # リマインダーの時刻
+    
+    # その他の設定
+    show_encouragement = db.Column(db.Boolean, default=True, nullable=False)  # 励ましメッセージ表示
+    difficulty_preference = db.Column(db.String(20), default='auto', nullable=False)  # 'easy', 'normal', 'hard', 'auto'
+    
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    
+    # リレーションシップ
+    user = db.relationship('User', backref=db.backref('preferences', uselist=False))
+    
+    def __repr__(self):
+        return f'<UserPreferences for user {self.user_id}>'
+
+
 # インデックスの追加（パフォーマンス最適化）
 from sqlalchemy import Index
 

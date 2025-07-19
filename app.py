@@ -468,6 +468,27 @@ def chat():
     # モデル一覧の取得を削除
     return render_template("chat.html")
 
+@app.route("/breathing")
+def breathing_guide():
+    """
+    深呼吸ガイドページ
+    """
+    return render_template("breathing_guide.html")
+
+@app.route("/ambient")
+def ambient_sounds():
+    """
+    環境音ページ
+    """
+    return render_template("ambient_sounds.html")
+
+@app.route("/growth")
+def growth_tracker():
+    """
+    成長記録ページ
+    """
+    return render_template("growth_tracker.html")
+
 def fallback_with_local_model(fallback_model="gemini-1.5-flash", **kwargs):
     """
     フォールバック関数：ローカルモデルで処理を続行
