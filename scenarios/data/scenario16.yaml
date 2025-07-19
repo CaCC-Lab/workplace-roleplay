@@ -41,19 +41,19 @@ feedback_points:
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
 scenario_analysis:
-  typical_responses:
+  考えられる反応のバリエーション:
   - pattern: 過剰謝罪型
     description: 必要以上に謝り続ける
     example: 本当にすみません、すみません、申し訳ございません...
-    underlying_feeling: 強い罪悪感、自己否定
+    背景にある気持ち: 強い罪悪感、自己否定
   - pattern: 防御型
     description: 言い訳を並べて自己防衛
     example: いや、それは私じゃなくて...システムが...
-    underlying_feeling: 責任を認めることへの恐怖
+    背景にある気持ち: 責任を認めることへの恐怖
   - pattern: フリーズ型
     description: 何も言えずに固まってしまう
     example: '...（無言）...'
-    underlying_feeling: パニック、思考停止
+    背景にある気持ち: パニック、思考停止
 self_reflection_prompts:
 - この場面で、あなたはどう感じましたか？
 - なぜそのような対応を選びましたか？

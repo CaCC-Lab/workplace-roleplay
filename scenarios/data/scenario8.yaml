@@ -41,19 +41,19 @@ feedback_points:
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
 scenario_analysis:
-  typical_responses:
+  考えられる反応のバリエーション:
   - pattern: 過度な責任感型
     description: 全てを完璧に教えようとして混乱を招く
     example: えっと、まず...あ、その前に...いや、これも大事で...
-    underlying_feeling: 相手に申し訳ない、失敗したくない
+    背景にある気持ち: 相手に申し訳ない、失敗したくない
   - pattern: 回避型
     description: 教えることを避けて他の人に任せようとする
     example: 私より〇〇さんの方が詳しいので...
-    underlying_feeling: 自信のなさ、責任を負いたくない
+    背景にある気持ち: 自信のなさ、責任を負いたくない
   - pattern: 威圧型
     description: 緊張から必要以上に厳しくなる
     example: 前も言いましたよね？ちゃんと聞いてました？
-    underlying_feeling: 不安を隠すための防御反応
+    背景にある気持ち: 不安を隠すための防御反応
 self_reflection_prompts:
 - この場面で、あなたはどう感じましたか？
 - なぜそのような対応を選びましたか？

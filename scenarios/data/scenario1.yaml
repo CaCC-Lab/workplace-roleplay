@@ -35,19 +35,19 @@ feedback_points:
   - 今日の小さな挨拶が、明日の大きな自信につながります
   - 完璧じゃなくていい。あなたらしさが一番大切です
 scenario_analysis:
-  typical_responses:
+  考えられる反応のバリエーション:
   - pattern: 回避型
     description: 視線を合わせず、小さな声で返事
     example: （下を向いて）...はい...
-    underlying_feeling: 緊張、自信のなさ
+    背景にある気持ち: 緊張、自信のなさ
   - pattern: 形式的型
     description: 決まった言葉だけで対応
     example: おはようございます（それ以上話さない）
-    underlying_feeling: これ以上の会話への不安
+    背景にある気持ち: これ以上の会話への不安
   - pattern: 過剰適応型
     description: 相手に合わせようと頑張りすぎる
     example: お、おはようございます！はい、暖かいですね！そうですね！
-    underlying_feeling: 相手に嫌われたくない気持ち
+    背景にある気持ち: 相手に嫌われたくない気持ち
 self_reflection_prompts:
 - この場面で、あなたはどう感じましたか？
 - なぜそのような対応を選びましたか？

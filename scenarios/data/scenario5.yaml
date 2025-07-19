@@ -35,11 +35,11 @@ feedback_points:
   - 少しずつ慣れていけば大丈夫
   - 今日の小さな会話も、大切な経験値になっています
 scenario_analysis:
-  typical_responses:
+  考えられる反応のバリエーション:
   - pattern: 一般的な反応
     description: このシナリオでよく見られる反応
     example: 具体的な例
-    underlying_feeling: 背景にある感情
+    背景にある気持ち: 背景にある感情
 self_reflection_prompts:
 - この場面で、あなたはどう感じましたか？
 - なぜそのような対応を選びましたか？

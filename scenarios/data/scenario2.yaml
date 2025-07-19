@@ -35,19 +35,19 @@ feedback_points:
   - 感謝を伝えられるあなたは、既に素敵な人です
   - 一つ一つの「ありがとう」が、あなたの成長の証です
 scenario_analysis:
-  typical_responses:
+  考えられる反応のバリエーション:
   - pattern: 遠慮型
     description: 申し訳なさを前面に出す
     example: すみません、すみません、申し訳ないです
-    underlying_feeling: 助けてもらうことへの罪悪感
+    背景にある気持ち: 助けてもらうことへの罪悪感
   - pattern: 最小限型
     description: 最低限の言葉で済ませる
     example: '...ども...'
-    underlying_feeling: 感謝の表現への照れ、不慣れ
+    背景にある気持ち: 感謝の表現への照れ、不慣れ
   - pattern: 説明過多型
     description: 状況を詳しく説明しすぎる
     example: 本当にすみません、私がドジで、いつもこうで...
-    underlying_feeling: 自己否定、過度な責任感
+    背景にある気持ち: 自己否定、過度な責任感
 self_reflection_prompts:
 - この場面で、あなたはどう感じましたか？
 - なぜそのような対応を選びましたか？

@@ -35,11 +35,11 @@ feedback_points:
   - 質問することは、あなたが真剣に取り組んでいる証拠
   - 今日の勇気ある一歩を、自分で褒めてあげてください
 scenario_analysis:
-  typical_responses:
+  考えられる反応のバリエーション:
   - pattern: 一般的な反応
     description: このシナリオでよく見られる反応
     example: 具体的な例
-    underlying_feeling: 背景にある感情
+    背景にある気持ち: 背景にある感情
 self_reflection_prompts:
 - この場面で、あなたはどう感じましたか？
 - なぜそのような対応を選びましたか？

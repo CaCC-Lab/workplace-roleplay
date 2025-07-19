@@ -41,19 +41,19 @@ feedback_points:
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
 scenario_analysis:
-  typical_responses:
+  考えられる反応のバリエーション:
   - pattern: 小声型
     description: 声が小さくて聞き取れない
     example: （ぼそぼそ）...だと思います...
-    underlying_feeling: 自信のなさ、注目されることへの恐怖
+    背景にある気持ち: 自信のなさ、注目されることへの恐怖
   - pattern: 早口型
     description: 緊張で早口になり内容が伝わらない
     example: えーっとですねこれはつまりその...
-    underlying_feeling: 早く終わらせたい、緊張
+    背景にある気持ち: 早く終わらせたい、緊張
   - pattern: 過剰準備型
     description: 資料を読み上げるだけで終わる
     example: 資料の通りですが、1ページ目から...
-    underlying_feeling: 失敗への恐怖、完璧主義
+    背景にある気持ち: 失敗への恐怖、完璧主義
 self_reflection_prompts:
 - この場面で、あなたはどう感じましたか？
 - なぜそのような対応を選びましたか？

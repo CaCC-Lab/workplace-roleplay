@@ -41,19 +41,19 @@ feedback_points:
   - 完璧でなくていい。少しずつ成長していけば十分です
   - 自分に優しくすることも、大切なスキルです
 scenario_analysis:
-  typical_responses:
+  考えられる反応のバリエーション:
   - pattern: 最小限応答型
     description: 必要最小限の返事だけ
     example: はい。そうですね。
-    underlying_feeling: 会話を早く終わらせたい
+    背景にある気持ち: 会話を早く終わらせたい
   - pattern: 話題回避型
     description: 別の話題に逸らそうとする
     example: そういえば、別の件ですが...
-    underlying_feeling: 苦手な話題から逃げたい
+    背景にある気持ち: 苦手な話題から逃げたい
   - pattern: 同調過多型
     description: 相手に過度に同調する
     example: 本当にその通りです！私もそう思います！
-    underlying_feeling: 認められたい、好かれたい
+    背景にある気持ち: 認められたい、好かれたい
 self_reflection_prompts:
 - この場面で、あなたはどう感じましたか？
 - なぜそのような対応を選びましたか？
