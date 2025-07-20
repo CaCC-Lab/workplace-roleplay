@@ -94,11 +94,13 @@ from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnect
 
 # データベース関連のインポート
 from database import init_database, create_initial_data
-from models import User
+from models import User, db
 
 # サービスレイヤーのインポート（循環インポート解決）
 from services import (
     ScenarioService,
+    StrengthAnalysisService,
+    AchievementService,
     get_or_create_practice_session,
     add_conversation_log,
     get_conversation_history
@@ -207,13 +209,6 @@ Session(app)
 
 # データベースの初期化
 database_available = init_database(app)
-if database_available:
-    # データベースが利用可能な場合、初期データを作成
-    with app.app_context():
-        try:
-            create_initial_data(app)
-        except Exception as e:
-            print(f"⚠️ 初期データ作成エラー: {e}")
 
 # CSRF対策ミドルウェアの初期化
 csrf = CSRFMiddleware(app)
@@ -2544,6 +2539,7 @@ def analyze_strengths():
 def update_feedback_with_strength_analysis(feedback_response, session_type, scenario_id=None):
     """
     既存のフィードバックレスポンスに強み分析を追加するヘルパー関数
+    データベースへの保存とアチーブメントチェックも行う
     """
     try:
         # 会話履歴を取得
@@ -2565,6 +2561,70 @@ def update_feedback_with_strength_analysis(feedback_response, session_type, scen
                 "scores": scores,
                 "top_strengths": top_strengths
             }
+            
+            # データベースが利用可能で、ユーザーがログインしている場合
+            if app.config.get('DATABASE_AVAILABLE') and hasattr(g, 'current_user') and g.current_user:
+                try:
+                    # 練習セッションを取得または作成
+                    session_obj = get_or_create_practice_session(
+                        user_id=g.current_user.id,
+                        scenario_id=scenario_id,
+                        session_type="SCENARIO" if scenario_id else "FREE_TALK"
+                    )
+                    
+                    if session_obj:
+                        # 強み分析を保存
+                        analysis = StrengthAnalysisService.save_analysis(
+                            session_id=session_obj.id,
+                            analysis_result=scores,
+                            feedback_text=feedback_response.get("feedback", "")
+                        )
+                        
+                        # セッションを完了としてマーク
+                        session_obj.is_completed = True
+                        session_obj.ended_at = db.func.now()
+                        db.session.commit()
+                        
+                        # アチーブメントチェック
+                        unlocked_achievements = []
+                        
+                        # セッション完了アチーブメント
+                        unlocked = AchievementService.check_and_unlock_achievements(
+                            user_id=g.current_user.id,
+                            event_type='session_completed',
+                            event_data={'session_id': session_obj.id}
+                        )
+                        unlocked_achievements.extend(unlocked)
+                        
+                        # シナリオ完了アチーブメント
+                        if scenario_id:
+                            unlocked = AchievementService.check_and_unlock_achievements(
+                                user_id=g.current_user.id,
+                                event_type='scenario_completed',
+                                event_data={'scenario_id': scenario_id}
+                            )
+                            unlocked_achievements.extend(unlocked)
+                        
+                        # アチーブメント情報をレスポンスに追加
+                        if unlocked_achievements:
+                            feedback_response["unlocked_achievements"] = [
+                                {
+                                    "name": achievement.name,
+                                    "description": achievement.description,
+                                    "icon": achievement.icon,
+                                    "points": achievement.points
+                                }
+                                for achievement in unlocked_achievements
+                            ]
+                        
+                        # 合計ポイントを追加
+                        total_points = AchievementService.get_total_points(g.current_user.id)
+                        feedback_response["total_points"] = total_points
+                        
+                except Exception as e:
+                    print(f"Error saving strength analysis to database: {str(e)}")
+                    # データベースエラーがあってもフィードバックは返す
+                    
     except Exception as e:
         print(f"Error adding strength analysis to feedback: {str(e)}")
     
@@ -2680,6 +2740,16 @@ def clear_session_data():
         return jsonify({
             "error": f"セッションクリアエラー: {str(e)}"
         }), 500
+
+
+# ========== CLIコマンド ==========
+@app.cli.command("init-db")
+def init_db_command():
+    """データベースをクリアし、初期データを作成します。"""
+    db.drop_all()
+    db.create_all()
+    create_initial_data(app)
+    print("✅ データベースが初期化されました。")
 
 
 # ========== メイン起動 ==========

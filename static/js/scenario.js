@@ -62,13 +62,28 @@ messageInput.addEventListener('keypress', function(e) {
     }
 });
 
-// 初期メッセージの取得
-window.addEventListener('load', async () => {
+// CSRFManagerの初期化を待って初期メッセージを取得
+async function waitForCSRFAndInitialize() {
     try {
+        // CSRFManagerの初期化を待つ
+        let attempts = 0;
+        const maxAttempts = 50; // 5秒間待機
+        
+        while (!window.csrfManager?.token && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (!window.csrfManager?.token) {
+            console.warn('CSRF token not available, continuing without it');
+        }
+        
         const selectedModel = localStorage.getItem('selectedModel');
         if (!selectedModel) {
             throw new Error("モデルが選択されていません。トップページでモデルを選択してください。");
         }
+        
+        console.log('Sending initial scenario request with CSRF protection...');
         
         const response = await fetch("/api/scenario_chat", {
             method: "POST",
@@ -96,6 +111,12 @@ window.addEventListener('load', async () => {
         console.error("Error:", err);
         displayMessage("エラーが発生しました: " + err.message, "error-message");
     }
+}
+
+// 初期メッセージの取得（CSRFManager初期化後）
+window.addEventListener('load', () => {
+    // 少し遅延させてCSRFManagerの初期化を確実に待つ
+    setTimeout(waitForCSRFAndInitialize, 500);
 });
 
 clearButton.addEventListener('click', clearScenarioHistory);

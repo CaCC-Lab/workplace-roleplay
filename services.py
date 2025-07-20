@@ -7,7 +7,7 @@ app.pyから循環インポートを排除するためのレイヤー
 import logging
 from typing import Optional, List, Dict, Any
 from sqlalchemy.exc import SQLAlchemyError
-from models import db, Scenario, PracticeSession, ConversationLog, User, SessionType
+from models import db, Scenario, PracticeSession, ConversationLog, User, SessionType, StrengthAnalysis, Achievement, UserAchievement
 from errors import NotFoundError, AppError, ValidationError
 from database import sync_scenarios_from_yaml
 
@@ -272,6 +272,510 @@ class UserService:
                 code="DATABASE_ERROR",
                 status_code=500
             ) from e
+
+
+class StrengthAnalysisService:
+    """強み分析・成長記録関連のビジネスロジック"""
+    
+    @staticmethod
+    def save_analysis(
+        session_id: int,
+        analysis_result: Dict[str, float],
+        feedback_text: Optional[str] = None
+    ) -> StrengthAnalysis:
+        """強み分析結果を保存"""
+        try:
+            # セッションの存在確認
+            session = SessionService.get_session_by_id(session_id)
+            
+            # 既存の分析結果があれば更新、なければ新規作成
+            analysis = StrengthAnalysis.query.filter_by(session_id=session_id).first()
+            
+            if not analysis:
+                analysis = StrengthAnalysis(session_id=session_id)
+            
+            # スコアを更新
+            analysis.empathy = analysis_result.get('empathy', 0.0)
+            analysis.clarity = analysis_result.get('clarity', 0.0)
+            analysis.listening = analysis_result.get('listening', 0.0)
+            analysis.problem_solving = analysis_result.get('problem_solving', 0.0)
+            analysis.assertiveness = analysis_result.get('assertiveness', 0.0)
+            analysis.flexibility = analysis_result.get('flexibility', 0.0)
+            
+            # フィードバックと改善提案
+            analysis.feedback_text = feedback_text
+            analysis.overall_score = sum([
+                analysis.empathy, analysis.clarity, analysis.listening,
+                analysis.problem_solving, analysis.assertiveness, analysis.flexibility
+            ]) / 6.0
+            
+            # 改善提案をJSON形式で保存
+            analysis.improvement_suggestions = {
+                'strengths': StrengthAnalysisService._identify_strengths(analysis_result),
+                'areas_for_improvement': StrengthAnalysisService._identify_improvements(analysis_result),
+                'next_steps': StrengthAnalysisService._suggest_next_steps(analysis_result)
+            }
+            
+            # バリデーション実行
+            try:
+                analysis.validate_skill_scores()
+            except ValueError as e:
+                logger.error(f"スキルスコアのバリデーションエラー: {e}")
+                raise ValidationError(str(e))
+            
+            db.session.add(analysis)
+            db.session.commit()
+            
+            # アチーブメントチェック（バックグラウンドタスクとして実行可能）
+            if session.user_id:
+                StrengthAnalysisService._check_achievements(session.user_id, analysis)
+            
+            logger.info(f"強み分析保存完了: Session {session_id}")
+            return analysis
+            
+        except AppError:
+            db.session.rollback()
+            raise
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            logger.error(f"強み分析保存エラー: {e}")
+            raise AppError(
+                message="強み分析の保存中にデータベースエラーが発生しました",
+                code="DATABASE_ERROR",
+                status_code=500
+            ) from e
+    
+    @staticmethod
+    def get_user_analyses(user_id: int, limit: int = 10) -> List[StrengthAnalysis]:
+        """ユーザーの強み分析履歴を取得"""
+        try:
+            return db.session.query(StrengthAnalysis)\
+                .join(PracticeSession)\
+                .filter(PracticeSession.user_id == user_id)\
+                .order_by(StrengthAnalysis.created_at.desc())\
+                .limit(limit).all()
+        except SQLAlchemyError as e:
+            logger.error(f"強み分析履歴取得エラー (User ID: {user_id}): {e}")
+            raise AppError(
+                message="強み分析履歴の取得中にデータベースエラーが発生しました",
+                code="DATABASE_ERROR",
+                status_code=500
+            ) from e
+    
+    @staticmethod
+    def get_skill_progress(user_id: int) -> Dict[str, List[Dict[str, Any]]]:
+        """ユーザーのスキル別進捗を取得"""
+        try:
+            analyses = StrengthAnalysisService.get_user_analyses(user_id, limit=30)
+            
+            # スキル別の時系列データを構築
+            skills = ['empathy', 'clarity', 'listening', 'problem_solving', 'assertiveness', 'flexibility']
+            progress = {skill: [] for skill in skills}
+            
+            for analysis in reversed(analyses):  # 古い順に並び替え
+                for skill in skills:
+                    progress[skill].append({
+                        'date': analysis.created_at.isoformat(),
+                        'score': getattr(analysis, skill),
+                        'session_id': analysis.session_id
+                    })
+            
+            return progress
+            
+        except AppError:
+            raise
+        except Exception as e:
+            logger.error(f"スキル進捗取得エラー: {e}")
+            raise AppError(
+                message="スキル進捗の取得中にエラーが発生しました",
+                code="PROGRESS_ERROR",
+                status_code=500
+            ) from e
+    
+    @staticmethod
+    def get_average_scores(user_id: int) -> Dict[str, float]:
+        """ユーザーのスキル別平均スコアを取得"""
+        try:
+            from sqlalchemy import func
+            
+            # 最新10件の分析結果から平均を計算
+            subquery = db.session.query(StrengthAnalysis)\
+                .join(PracticeSession)\
+                .filter(PracticeSession.user_id == user_id)\
+                .order_by(StrengthAnalysis.created_at.desc())\
+                .limit(10).subquery()
+            
+            averages = db.session.query(
+                func.avg(subquery.c.empathy).label('empathy'),
+                func.avg(subquery.c.clarity).label('clarity'),
+                func.avg(subquery.c.listening).label('listening'),
+                func.avg(subquery.c.problem_solving).label('problem_solving'),
+                func.avg(subquery.c.assertiveness).label('assertiveness'),
+                func.avg(subquery.c.flexibility).label('flexibility'),
+                func.avg(subquery.c.overall_score).label('overall')
+            ).first()
+            
+            return {
+                'empathy': float(averages.empathy or 0),
+                'clarity': float(averages.clarity or 0),
+                'listening': float(averages.listening or 0),
+                'problem_solving': float(averages.problem_solving or 0),
+                'assertiveness': float(averages.assertiveness or 0),
+                'flexibility': float(averages.flexibility or 0),
+                'overall': float(averages.overall or 0)
+            }
+            
+        except SQLAlchemyError as e:
+            logger.error(f"平均スコア取得エラー: {e}")
+            raise AppError(
+                message="平均スコアの取得中にデータベースエラーが発生しました",
+                code="DATABASE_ERROR",
+                status_code=500
+            ) from e
+    
+    @staticmethod
+    def _identify_strengths(scores: Dict[str, float]) -> List[str]:
+        """高スコアのスキルを特定"""
+        strengths = []
+        skill_names = {
+            'empathy': '共感力',
+            'clarity': '明確な伝達',
+            'listening': '傾聴力',
+            'problem_solving': '問題解決力',
+            'assertiveness': '自己主張',
+            'flexibility': '柔軟性'
+        }
+        
+        for skill, score in scores.items():
+            if skill in skill_names and score >= 0.8:
+                strengths.append(skill_names[skill])
+        
+        return strengths
+    
+    @staticmethod
+    def _identify_improvements(scores: Dict[str, float]) -> List[str]:
+        """改善が必要なスキルを特定"""
+        improvements = []
+        skill_names = {
+            'empathy': '共感力',
+            'clarity': '明確な伝達',
+            'listening': '傾聴力',
+            'problem_solving': '問題解決力',
+            'assertiveness': '自己主張',
+            'flexibility': '柔軟性'
+        }
+        
+        for skill, score in scores.items():
+            if skill in skill_names and score < 0.6:
+                improvements.append(skill_names[skill])
+        
+        return improvements
+    
+    @staticmethod
+    def _suggest_next_steps(scores: Dict[str, float]) -> List[str]:
+        """次のステップの提案"""
+        suggestions = []
+        
+        # 最も低いスキルを特定
+        min_skill = min(scores, key=scores.get)
+        
+        suggestions_map = {
+            'empathy': '相手の気持ちを想像する練習をしましょう',
+            'clarity': '要点を整理してから話す練習をしましょう',
+            'listening': '相手の話を最後まで聞く練習をしましょう',
+            'problem_solving': '問題を段階的に分析する練習をしましょう',
+            'assertiveness': '自分の意見を明確に伝える練習をしましょう',
+            'flexibility': '異なる視点を受け入れる練習をしましょう'
+        }
+        
+        if min_skill in suggestions_map:
+            suggestions.append(suggestions_map[min_skill])
+        
+        # 全体的なスコアが高い場合は上級シナリオを推奨
+        overall_avg = sum(scores.values()) / len(scores)
+        if overall_avg >= 0.8:
+            suggestions.append('上級シナリオに挑戦してみましょう')
+        
+        return suggestions
+    
+    @staticmethod
+    def _check_achievements(user_id: int, analysis: StrengthAnalysis):
+        """分析結果に基づいてアチーブメントをチェック"""
+        try:
+            # スキル系アチーブメントのチェック
+            skill_achievements = {
+                'skill_empathy': analysis.empathy,
+                'skill_clarity': analysis.clarity,
+                'skill_listening': analysis.listening
+            }
+            
+            for threshold_type, score in skill_achievements.items():
+                if score >= 0.8:  # 80%以上
+                    # 該当するアチーブメントを検索
+                    achievement = Achievement.query.filter_by(
+                        threshold_type=threshold_type,
+                        is_active=True
+                    ).first()
+                    
+                    if achievement:
+                        # ユーザーのアチーブメント進捗を更新
+                        user_achievement = UserAchievement.query.filter_by(
+                            user_id=user_id,
+                            achievement_id=achievement.id
+                        ).first()
+                        
+                        if not user_achievement:
+                            user_achievement = UserAchievement(
+                                user_id=user_id,
+                                achievement_id=achievement.id,
+                                progress=0
+                            )
+                            db.session.add(user_achievement)
+                        
+                        # 進捗を更新
+                        user_achievement.progress += 1
+                        
+                        # 閾値に達したら解除
+                        if user_achievement.progress >= achievement.threshold_value and not user_achievement.unlocked_at:
+                            user_achievement.unlocked_at = db.func.now()
+                            logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+            
+            db.session.commit()
+            
+        except Exception as e:
+            logger.error(f"アチーブメントチェックエラー: {e}")
+            # アチーブメントチェックの失敗は分析保存を妨げない
+
+
+class AchievementService:
+    """アチーブメント関連のビジネスロジック"""
+    
+    @staticmethod
+    def get_user_achievements(user_id: int, unlocked_only: bool = False) -> List[Dict[str, Any]]:
+        """ユーザーのアチーブメント情報を取得"""
+        try:
+            query = db.session.query(
+                Achievement,
+                UserAchievement
+            ).outerjoin(
+                UserAchievement,
+                db.and_(
+                    Achievement.id == UserAchievement.achievement_id,
+                    UserAchievement.user_id == user_id
+                )
+            ).filter(Achievement.is_active == True)
+            
+            if unlocked_only:
+                query = query.filter(UserAchievement.unlocked_at.isnot(None))
+            
+            results = query.all()
+            
+            achievements = []
+            for achievement, user_achievement in results:
+                achievements.append({
+                    'id': achievement.id,
+                    'name': achievement.name,
+                    'description': achievement.description,
+                    'icon': achievement.icon,
+                    'category': achievement.category,
+                    'points': achievement.points,
+                    'threshold_value': achievement.threshold_value,
+                    'progress': user_achievement.progress if user_achievement else 0,
+                    'unlocked': bool(user_achievement and user_achievement.unlocked_at),
+                    'unlocked_at': user_achievement.unlocked_at.isoformat() if user_achievement and user_achievement.unlocked_at else None
+                })
+            
+            return achievements
+            
+        except SQLAlchemyError as e:
+            logger.error(f"アチーブメント取得エラー: {e}")
+            raise AppError(
+                message="アチーブメントの取得中にデータベースエラーが発生しました",
+                code="DATABASE_ERROR",
+                status_code=500
+            ) from e
+    
+    @staticmethod
+    def check_and_unlock_achievements(user_id: int, event_type: str, event_data: Dict[str, Any]) -> List[Achievement]:
+        """イベントに基づいてアチーブメントをチェックし、解除する"""
+        try:
+            unlocked_achievements = []
+            
+            # イベントタイプに応じてチェック
+            if event_type == 'session_completed':
+                unlocked = AchievementService._check_session_achievements(user_id, event_data)
+                unlocked_achievements.extend(unlocked)
+            
+            elif event_type == 'scenario_completed':
+                unlocked = AchievementService._check_scenario_achievements(user_id, event_data)
+                unlocked_achievements.extend(unlocked)
+            
+            elif event_type == 'skill_improved':
+                # StrengthAnalysisServiceから呼ばれる場合は既にチェック済み
+                pass
+            
+            return unlocked_achievements
+            
+        except Exception as e:
+            logger.error(f"アチーブメントチェックエラー: {e}")
+            return []
+    
+    @staticmethod
+    def _check_session_achievements(user_id: int, event_data: Dict[str, Any]) -> List[Achievement]:
+        """セッション完了系のアチーブメントをチェック"""
+        unlocked = []
+        
+        try:
+            # セッション数カウント
+            session_count = PracticeSession.query.filter_by(
+                user_id=user_id,
+                is_completed=True
+            ).count()
+            
+            # セッションカウント系アチーブメント
+            count_achievements = Achievement.query.filter_by(
+                threshold_type='session_count',
+                is_active=True
+            ).all()
+            
+            for achievement in count_achievements:
+                if session_count >= achievement.threshold_value:
+                    if AchievementService._unlock_achievement(user_id, achievement.id):
+                        unlocked.append(achievement)
+            
+            # 時間帯別アチーブメント
+            from datetime import datetime
+            current_hour = datetime.now().hour
+            
+            if 6 <= current_hour < 9:
+                morning_achievement = Achievement.query.filter_by(
+                    threshold_type='morning_practice',
+                    is_active=True
+                ).first()
+                if morning_achievement and AchievementService._unlock_achievement(user_id, morning_achievement.id):
+                    unlocked.append(morning_achievement)
+            
+            elif current_hour >= 22:
+                night_achievement = Achievement.query.filter_by(
+                    threshold_type='night_practice',
+                    is_active=True
+                ).first()
+                if night_achievement and AchievementService._unlock_achievement(user_id, night_achievement.id):
+                    unlocked.append(night_achievement)
+            
+            # 週末練習
+            if datetime.now().weekday() >= 5:  # 土日
+                weekend_achievement = Achievement.query.filter_by(
+                    threshold_type='weekend_practice',
+                    is_active=True
+                ).first()
+                if weekend_achievement and AchievementService._unlock_achievement(user_id, weekend_achievement.id):
+                    unlocked.append(weekend_achievement)
+            
+            return unlocked
+            
+        except Exception as e:
+            logger.error(f"セッションアチーブメントチェックエラー: {e}")
+            return unlocked
+    
+    @staticmethod
+    def _check_scenario_achievements(user_id: int, event_data: Dict[str, Any]) -> List[Achievement]:
+        """シナリオ完了系のアチーブメントをチェック"""
+        unlocked = []
+        
+        try:
+            # シナリオ完了数カウント
+            completed_scenarios = db.session.query(
+                db.func.count(db.distinct(PracticeSession.scenario_id))
+            ).filter(
+                PracticeSession.user_id == user_id,
+                PracticeSession.is_completed == True,
+                PracticeSession.scenario_id.isnot(None)
+            ).scalar()
+            
+            # シナリオ完了系アチーブメント
+            scenario_achievements = Achievement.query.filter(
+                Achievement.threshold_type.in_(['scenario_complete', 'unique_scenarios', 'all_scenarios']),
+                Achievement.is_active == True
+            ).all()
+            
+            for achievement in scenario_achievements:
+                if achievement.threshold_type == 'scenario_complete' and completed_scenarios >= 1:
+                    if AchievementService._unlock_achievement(user_id, achievement.id):
+                        unlocked.append(achievement)
+                
+                elif achievement.threshold_type == 'unique_scenarios' and completed_scenarios >= achievement.threshold_value:
+                    if AchievementService._unlock_achievement(user_id, achievement.id):
+                        unlocked.append(achievement)
+                
+                elif achievement.threshold_type == 'all_scenarios':
+                    total_scenarios = Scenario.query.filter_by(is_active=True).count()
+                    if completed_scenarios >= total_scenarios:
+                        if AchievementService._unlock_achievement(user_id, achievement.id):
+                            unlocked.append(achievement)
+            
+            return unlocked
+            
+        except Exception as e:
+            logger.error(f"シナリオアチーブメントチェックエラー: {e}")
+            return unlocked
+    
+    @staticmethod
+    def _unlock_achievement(user_id: int, achievement_id: int) -> bool:
+        """アチーブメントを解除（既に解除済みの場合はFalse）"""
+        try:
+            user_achievement = UserAchievement.query.filter_by(
+                user_id=user_id,
+                achievement_id=achievement_id
+            ).first()
+            
+            if not user_achievement:
+                user_achievement = UserAchievement(
+                    user_id=user_id,
+                    achievement_id=achievement_id,
+                    progress=1,
+                    unlocked_at=db.func.now()
+                )
+                db.session.add(user_achievement)
+                db.session.commit()
+                
+                achievement = Achievement.query.get(achievement_id)
+                logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                return True
+            
+            elif not user_achievement.unlocked_at:
+                user_achievement.unlocked_at = db.func.now()
+                db.session.commit()
+                
+                achievement = Achievement.query.get(achievement_id)
+                logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"アチーブメント解除エラー: {e}")
+            db.session.rollback()
+            return False
+    
+    @staticmethod
+    def get_total_points(user_id: int) -> int:
+        """ユーザーの獲得ポイント合計を取得"""
+        try:
+            total = db.session.query(
+                db.func.sum(Achievement.points)
+            ).join(
+                UserAchievement
+            ).filter(
+                UserAchievement.user_id == user_id,
+                UserAchievement.unlocked_at.isnot(None)
+            ).scalar()
+            
+            return int(total or 0)
+            
+        except SQLAlchemyError as e:
+            logger.error(f"ポイント合計取得エラー: {e}")
+            return 0
 
 
 # ヘルパー関数（従来のdatabase.pyから移行）

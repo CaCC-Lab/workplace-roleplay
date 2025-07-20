@@ -100,6 +100,10 @@ def create_initial_data(app: Flask):
         try:
             # シナリオデータをYAMLファイルから読み込んで同期
             sync_scenarios_from_yaml()
+            
+            # アチーブメントの初期データを作成
+            create_initial_achievements()
+            
             logger.info("✅ 初期データの作成が完了しました")
         except Exception as e:
             logger.error(f"初期データ作成エラー: {str(e)}")
@@ -134,6 +138,9 @@ def sync_scenarios_from_yaml():
                 yaml_id = data.get('id')
                 if not yaml_id:
                     continue
+                
+                # yaml_idを文字列に変換（YAMLファイルで整数の場合があるため）
+                yaml_id = str(yaml_id)
 
                 # difficultyをEnumに変換。存在しない場合は UNKNOWN
                 difficulty_str = data.get('difficulty', '不明')
@@ -184,6 +191,253 @@ def _extract_category(scenario_data):
     return tags[0] if tags else 'その他'
 
 
+def create_initial_achievements():
+    """
+    初期アチーブメントデータを作成
+    職場コミュニケーション練習アプリに適したアチーブメントを定義
+    """
+    from models import Achievement
+    
+    achievements = [
+        # === 練習回数系アチーブメント ===
+        {
+            'name': '初めての一歩',
+            'description': '初めての練習セッションを完了しました',
+            'icon': '🎯',
+            'category': '練習回数',
+            'threshold_type': 'session_count',
+            'threshold_value': 1,
+            'points': 10,
+            'is_active': True
+        },
+        {
+            'name': '練習の習慣',
+            'description': '5回の練習セッションを完了しました',
+            'icon': '📚',
+            'category': '練習回数',
+            'threshold_type': 'session_count',
+            'threshold_value': 5,
+            'points': 50,
+            'is_active': True
+        },
+        {
+            'name': 'コミュニケーションの達人',
+            'description': '10回の練習セッションを完了しました',
+            'icon': '🏆',
+            'category': '練習回数',
+            'threshold_type': 'session_count',
+            'threshold_value': 10,
+            'points': 100,
+            'is_active': True
+        },
+        {
+            'name': '継続は力なり',
+            'description': '25回の練習セッションを完了しました',
+            'icon': '💪',
+            'category': '練習回数',
+            'threshold_type': 'session_count',
+            'threshold_value': 25,
+            'points': 250,
+            'is_active': True
+        },
+        
+        # === シナリオ完了系アチーブメント ===
+        {
+            'name': '初めてのシナリオクリア',
+            'description': '初めてシナリオを完了しました',
+            'icon': '🌟',
+            'category': 'シナリオ',
+            'threshold_type': 'scenario_complete',
+            'threshold_value': 1,
+            'points': 20,
+            'is_active': True
+        },
+        {
+            'name': 'シナリオマスター',
+            'description': '5つの異なるシナリオを完了しました',
+            'icon': '🎭',
+            'category': 'シナリオ',
+            'threshold_type': 'unique_scenarios',
+            'threshold_value': 5,
+            'points': 100,
+            'is_active': True
+        },
+        {
+            'name': '全シナリオ制覇',
+            'description': 'すべてのシナリオを完了しました',
+            'icon': '👑',
+            'category': 'シナリオ',
+            'threshold_type': 'all_scenarios',
+            'threshold_value': 35,  # 現在のシナリオ数
+            'points': 500,
+            'is_active': True
+        },
+        
+        # === 難易度別アチーブメント ===
+        {
+            'name': '初級者',
+            'description': '初級シナリオを3つ完了しました',
+            'icon': '🌱',
+            'category': '難易度',
+            'threshold_type': 'difficulty_beginner',
+            'threshold_value': 3,
+            'points': 30,
+            'is_active': True
+        },
+        {
+            'name': '中級者',
+            'description': '中級シナリオを3つ完了しました',
+            'icon': '🌿',
+            'category': '難易度',
+            'threshold_type': 'difficulty_intermediate',
+            'threshold_value': 3,
+            'points': 60,
+            'is_active': True
+        },
+        {
+            'name': '上級者',
+            'description': '上級シナリオを3つ完了しました',
+            'icon': '🌳',
+            'category': '難易度',
+            'threshold_type': 'difficulty_advanced',
+            'threshold_value': 3,
+            'points': 100,
+            'is_active': True
+        },
+        
+        # === モード別アチーブメント ===
+        {
+            'name': '雑談マスター',
+            'description': '雑談練習を5回完了しました',
+            'icon': '💬',
+            'category': 'モード',
+            'threshold_type': 'free_talk_count',
+            'threshold_value': 5,
+            'points': 50,
+            'is_active': True
+        },
+        {
+            'name': '観察者',
+            'description': '観戦モードを3回利用しました',
+            'icon': '👀',
+            'category': 'モード',
+            'threshold_type': 'watch_count',
+            'threshold_value': 3,
+            'points': 30,
+            'is_active': True
+        },
+        
+        # === 連続練習系アチーブメント ===
+        {
+            'name': '3日連続',
+            'description': '3日連続で練習しました',
+            'icon': '🔥',
+            'category': '連続練習',
+            'threshold_type': 'consecutive_days',
+            'threshold_value': 3,
+            'points': 75,
+            'is_active': True
+        },
+        {
+            'name': '週間目標達成',
+            'description': '7日連続で練習しました',
+            'icon': '⭐',
+            'category': '連続練習',
+            'threshold_type': 'consecutive_days',
+            'threshold_value': 7,
+            'points': 150,
+            'is_active': True
+        },
+        
+        # === スキル向上系アチーブメント ===
+        {
+            'name': '共感力向上',
+            'description': '共感力スコアが80%以上を3回記録しました',
+            'icon': '❤️',
+            'category': 'スキル',
+            'threshold_type': 'skill_empathy',
+            'threshold_value': 3,
+            'points': 100,
+            'is_active': True
+        },
+        {
+            'name': '明確な伝達者',
+            'description': '明確さスコアが80%以上を3回記録しました',
+            'icon': '💡',
+            'category': 'スキル',
+            'threshold_type': 'skill_clarity',
+            'threshold_value': 3,
+            'points': 100,
+            'is_active': True
+        },
+        {
+            'name': '優れた聴き手',
+            'description': '傾聴力スコアが80%以上を3回記録しました',
+            'icon': '👂',
+            'category': 'スキル',
+            'threshold_type': 'skill_listening',
+            'threshold_value': 3,
+            'points': 100,
+            'is_active': True
+        },
+        
+        # === 特別アチーブメント ===
+        {
+            'name': '早朝練習',
+            'description': '朝6時から9時の間に練習しました',
+            'icon': '🌅',
+            'category': '特別',
+            'threshold_type': 'morning_practice',
+            'threshold_value': 1,
+            'points': 25,
+            'is_active': True
+        },
+        {
+            'name': '深夜練習',
+            'description': '夜10時以降に練習しました',
+            'icon': '🌙',
+            'category': '特別',
+            'threshold_type': 'night_practice',
+            'threshold_value': 1,
+            'points': 25,
+            'is_active': True
+        },
+        {
+            'name': '週末練習',
+            'description': '土日に練習しました',
+            'icon': '🌈',
+            'category': '特別',
+            'threshold_type': 'weekend_practice',
+            'threshold_value': 1,
+            'points': 30,
+            'is_active': True
+        }
+    ]
+    
+    # データベースに既存のアチーブメントがあるか確認
+    existing_count = Achievement.query.count()
+    if existing_count > 0:
+        logger.info(f"既に {existing_count} 個のアチーブメントが存在します。スキップします。")
+        return
+    
+    # アチーブメントを作成
+    added_count = 0
+    for achievement_data in achievements:
+        try:
+            achievement = Achievement(**achievement_data)
+            db.session.add(achievement)
+            added_count += 1
+        except Exception as e:
+            logger.warning(f"アチーブメント作成エラー: {achievement_data['name']} - {e}")
+            continue
+    
+    if added_count > 0:
+        db.session.commit()
+        logger.info(f"✅ {added_count} 個のアチーブメントを作成しました")
+    else:
+        logger.info("ℹ️ 作成するアチーブメントはありませんでした")
+
+
 # ========== 非推奨関数（services.pyに移行済み） ==========
 # これらの関数は services.py のサービスレイヤーに移行されました。
 # 新しいコードでは services.py の対応する関数を使用してください。
@@ -205,6 +459,9 @@ def get_or_create_scenario(yaml_id, scenario_data=None):
     )
     
     from models import Scenario
+    
+    # yaml_idを文字列に変換（整数の場合があるため）
+    yaml_id = str(yaml_id)
     
     scenario = Scenario.query.filter_by(yaml_id=yaml_id).first()
     if not scenario and scenario_data:
