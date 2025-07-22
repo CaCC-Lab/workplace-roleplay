@@ -146,7 +146,7 @@ class SessionService:
         """ユーザーの練習セッション履歴を取得"""
         try:
             return PracticeSession.query.filter_by(user_id=user_id)\
-                                       .order_by(PracticeSession.created_at.desc())\
+                                       .order_by(PracticeSession.started_at.desc())\
                                        .limit(limit).all()
         except SQLAlchemyError as e:
             logger.error(f"ユーザーセッション取得エラー (User ID: {user_id}): {e}")
@@ -790,12 +790,12 @@ def get_or_create_practice_session(user_id: Optional[int], scenario_id: Optional
             user_id=user_id,
             scenario_id=scenario_id,
             session_type=SessionType(session_type)
-        ).order_by(PracticeSession.created_at.desc()).first()
+        ).order_by(PracticeSession.started_at.desc()).first()
         
         # 最新セッションが1時間以内なら再利用
         if existing_session:
             from datetime import datetime, timedelta
-            if existing_session.created_at > datetime.utcnow() - timedelta(hours=1):
+            if existing_session.started_at > datetime.utcnow() - timedelta(hours=1):
                 return existing_session
         
         # 新しいセッションを作成

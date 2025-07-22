@@ -24,17 +24,17 @@ class CSRFTestClient:
     def _get_csrf_token(self) -> str:
         """CSRFトークンを取得または更新"""
         if self._csrf_token is None:
-            response = self.client.get('/api/csrf-token')
-            if response.status_code == 200:
-                data = response.get_json()
-                self._csrf_token = data.get('csrf_token')
-            else:
-                # CSRFトークンエンドポイントが利用できない場合、
-                # セッションから直接生成
-                from utils.security import CSRFToken
-                with self.client.session_transaction() as sess:
-                    self._csrf_token = CSRFToken.generate()
-                    sess['csrf_token'] = self._csrf_token
+            # セッションから既存のトークンを確認
+            with self.client.session_transaction() as sess:
+                existing_token = sess.get('csrf_token')
+                if existing_token:
+                    self._csrf_token = existing_token
+                else:
+                    # セッションにトークンがない場合のみ新規生成
+                    from utils.security import CSRFToken
+                    self._csrf_token = CSRFToken.get_or_create(sess)
+                    # Flaskセッションの変更を明示的にマーク
+                    sess.modified = True
         
         return self._csrf_token
     
@@ -68,22 +68,62 @@ class CSRFTestClient:
     def post(self, url: str, **kwargs) -> Any:
         """CSRFトークン付きPOSTリクエスト"""
         kwargs = self._add_csrf_token(**kwargs)
-        return self.client.post(url, **kwargs)
+        response = self.client.post(url, **kwargs)
+        
+        # レスポンスからCSRFトークンが更新されていたら保存
+        new_token = response.headers.get('X-CSRF-Token')
+        if new_token:
+            self._csrf_token = new_token
+            with self.client.session_transaction() as sess:
+                sess['csrf_token'] = new_token
+                sess.modified = True
+        
+        return response
     
     def put(self, url: str, **kwargs) -> Any:
         """CSRFトークン付きPUTリクエスト"""
         kwargs = self._add_csrf_token(**kwargs)
-        return self.client.put(url, **kwargs)
+        response = self.client.put(url, **kwargs)
+        
+        # レスポンスからCSRFトークンが更新されていたら保存
+        new_token = response.headers.get('X-CSRF-Token')
+        if new_token:
+            self._csrf_token = new_token
+            with self.client.session_transaction() as sess:
+                sess['csrf_token'] = new_token
+                sess.modified = True
+        
+        return response
     
     def patch(self, url: str, **kwargs) -> Any:
         """CSRFトークン付きPATCHリクエスト"""
         kwargs = self._add_csrf_token(**kwargs)
-        return self.client.patch(url, **kwargs)
+        response = self.client.patch(url, **kwargs)
+        
+        # レスポンスからCSRFトークンが更新されていたら保存
+        new_token = response.headers.get('X-CSRF-Token')
+        if new_token:
+            self._csrf_token = new_token
+            with self.client.session_transaction() as sess:
+                sess['csrf_token'] = new_token
+                sess.modified = True
+        
+        return response
     
     def delete(self, url: str, **kwargs) -> Any:
         """CSRFトークン付きDELETEリクエスト"""
         kwargs = self._add_csrf_token(**kwargs)
-        return self.client.delete(url, **kwargs)
+        response = self.client.delete(url, **kwargs)
+        
+        # レスポンスからCSRFトークンが更新されていたら保存
+        new_token = response.headers.get('X-CSRF-Token')
+        if new_token:
+            self._csrf_token = new_token
+            with self.client.session_transaction() as sess:
+                sess['csrf_token'] = new_token
+                sess.modified = True
+        
+        return response
     
     def get(self, url: str, **kwargs) -> Any:
         """通常のGETリクエスト（CSRFトークン不要）"""
@@ -158,8 +198,7 @@ def create_test_session_with_csrf(client, additional_data: Optional[Dict[str, An
     from utils.security import CSRFToken
     
     with client.session_transaction() as sess:
-        csrf_token = CSRFToken.generate()
-        sess['csrf_token'] = csrf_token
+        csrf_token = CSRFToken.get_or_create(sess)
         
         if additional_data:
             for key, value in additional_data.items():

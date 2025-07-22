@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会話観戦モード - 職場コミュニケーション練習アプリ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .watch-area {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+            background: #fafafa;
+            margin-bottom: 20px;
+        }
+        .conversation {
+            margin-bottom: 20px;
+        }
+        .ai1-message, .ai2-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .ai1-message {
+            background-color: #e3f2fd;
+            margin-right: 20px;
+        }
+        .ai2-message {
+            background-color: #f1f8e9;
+            margin-left: 20px;
+        }
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .primary-button, .secondary-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .primary-button {
+            background-color: #28a745;
+            color: white;
+        }
+        .secondary-button {
+            background-color: #007bff;
+            color: white;
+        }
+        .navigation {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .nav-button {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .speaker-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .ai1-label { color: #1976d2; }
+        .ai2-label { color: #388e3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>会話観戦モード</h1>
+        
+        <div class="control-buttons">
+            <button id="start-watch" class="primary-button">観戦を開始</button>
+            <button id="next-conversation" class="secondary-button" disabled>次の会話</button>
+            <button id="clear-conversation" class="secondary-button">会話をクリア</button>
+        </div>
+        
+        <div class="watch-area" id="watch-area">
+            <p style="color: #666; text-align: center;">「観戦を開始」ボタンを押して、2つのAIの会話を観察してください。</p>
+        </div>
+
+        <div class="navigation">
+            <a href="/" class="nav-button">トップページに戻る</a>
+            <a href="/chat" class="nav-button">雑談練習へ</a>
+        </div>
+    </div>
+
+    <script>
+        let watchActive = false;
+        let conversationCount = 0;
+        
+        document.getElementById('start-watch').addEventListener('click', function() {
+            const watchArea = document.getElementById('watch-area');
+            const nextButton = document.getElementById('next-conversation');
+            
+            watchArea.innerHTML = '<div class="conversation"><div class="ai1-message"><div class="speaker-label ai1-label">AI Assistant 1</div>こんにちは、今日はどんな話題について話しましょうか？</div></div>';
+            nextButton.disabled = false;
+            watchActive = true;
+            conversationCount = 1;
+            
+            this.textContent = '観戦中...';
+            this.disabled = true;
+        });
+        
+        document.getElementById('next-conversation').addEventListener('click', function() {
+            if (!watchActive) return;
+            
+            const watchArea = document.getElementById('watch-area');
+            conversationCount++;
+            
+            const conversations = [
+                {
+                    ai1: "最近の働き方の変化について、どのように感じていますか？",
+                    ai2: "リモートワークが普及して、コミュニケーションの取り方が大きく変わりましたね。"
+                },
+                {
+                    ai1: "そうですね。オンライン会議も多くなって、効率的な進行方法が重要になってきました。",
+                    ai2: "会議の準備や資料共有の方法も工夫が必要です。簡潔で分かりやすい資料作りを心がけています。"
+                },
+                {
+                    ai1: "チームワークを維持するために、どのような取り組みをされていますか？",
+                    ai2: "定期的な1on1ミーティングやチームビルディングの機会を作るようにしています。"
+                }
+            ];
+            
+            if (conversationCount <= conversations.length) {
+                const conv = conversations[conversationCount - 1];
+                watchArea.innerHTML += `<div class="conversation">
+                    <div class="ai1-message"><div class="speaker-label ai1-label">AI Assistant 1</div>${conv.ai1}</div>
+                    <div class="ai2-message"><div class="speaker-label ai2-label">AI Assistant 2</div>${conv.ai2}</div>
+                </div>`;
+                watchArea.scrollTop = watchArea.scrollHeight;
+            } else {
+                watchArea.innerHTML += '<p style="color: #666; text-align: center; margin-top: 20px;">会話が終了しました。新しい会話を開始するには「観戦を開始」をクリックしてください。</p>';
+                this.disabled = true;
+            }
+        });
+        
+        document.getElementById('clear-conversation').addEventListener('click', function() {
+            const watchArea = document.getElementById('watch-area');
+            const startButton = document.getElementById('start-watch');
+            const nextButton = document.getElementById('next-conversation');
+            
+            watchArea.innerHTML = '<p style="color: #666; text-align: center;">「観戦を開始」ボタンを押して、2つのAIの会話を観察してください。</p>';
+            startButton.textContent = '観戦を開始';
+            startButton.disabled = false;
+            nextButton.disabled = true;
+            watchActive = false;
+            conversationCount = 0;
+        });
+    </script>
+</body>
+</html>
