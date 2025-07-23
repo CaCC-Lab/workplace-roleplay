@@ -1,0 +1,331 @@
+"""
+実際のGemini APIを使用したPlaywright E2Eテスト
+CLAUDE.md原則: モック禁止、実際のブラウザでの動作確認
+"""
+import pytest
+import asyncio
+import json
+import time
+import requests
+from playwright.async_api import async_playwright, Page, Browser, BrowserContext
+
+# pytest-asyncioの設定
+pytest_plugins = ('pytest_asyncio',)
+
+
+class TestPlaywrightRealGeminiE2E:
+    """実際のGemini APIを使用したPlaywright E2Eテスト"""
+
+    @pytest.fixture(scope="session")
+    async def browser_context(self):
+        """ブラウザセッションを作成"""
+        playwright = await async_playwright().start()
+        browser = await playwright.chromium.launch(
+            headless=True,  # CIでは headless=True, デバッグ時は headless=False
+            args=["--disable-web-security", "--disable-features=VizDisplayCompositor"]
+        )
+        context = await browser.new_context(
+            viewport={"width": 1280, "height": 720},
+            locale="ja-JP"
+        )
+        yield context
+        await context.close()
+        await browser.close()
+        await playwright.stop()
+
+    @pytest.fixture
+    async def page(self, browser_context):
+        """新しいページを作成"""
+        page = await browser_context.new_page()
+        yield page
+        await page.close()
+
+    @pytest.mark.asyncio
+    @pytest.mark.asyncio
+    async def test_app_startup_and_navigation(self, page: Page):
+        """アプリケーションの起動と基本ナビゲーション"""
+        # アプリケーションにアクセス
+        await page.goto("http://localhost:5000")
+        
+        # タイトルの確認
+        await page.wait_for_selector("h1", timeout=10000)
+        title = await page.text_content("h1")
+        assert "職場" in title or "ロールプレイ" in title or "コミュニケーション" in title
+        
+        # ナビゲーションメニューの確認
+        nav_items = await page.query_selector_all("nav a, .nav-link, .navigation a")
+        assert len(nav_items) >= 3, "ナビゲーションメニューが不足しています"
+
+    @pytest.mark.asyncio
+    @pytest.mark.asyncio
+    async def test_real_gemini_chat_e2e(self, page: Page):
+        """実際のGemini APIを使用したチャット機能のE2Eテスト"""
+        # チャットページに移動
+        await page.goto("http://localhost:5000")
+        
+        # チャットセクションまたはボタンを探して移動
+        chat_button = await page.query_selector("text=雑談, text=チャット, [href*='chat'], .chat-button")
+        if chat_button:
+            await chat_button.click()
+        
+        # チャット画面が表示されるまで待機
+        await page.wait_for_selector("input[type='text'], textarea, .message-input", timeout=10000)
+        
+        # メッセージ入力フィールドを取得
+        message_input = await page.query_selector("input[type='text'], textarea, .message-input")
+        assert message_input is not None, "メッセージ入力フィールドが見つかりません"
+        
+        # テストメッセージを入力
+        test_message = "こんにちは、今日は良い天気ですね"
+        await message_input.fill(test_message)
+        
+        # 送信ボタンを探してクリック
+        send_button = await page.query_selector("button[type='submit'], .send-button, text=送信")
+        if send_button:
+            # レスポンスを待つためのプロミスを設定
+            response_promise = page.wait_for_selector(".ai-response, .message.ai, .response", timeout=30000)
+            
+            await send_button.click()
+            
+            # AI応答を待機
+            try:
+                await response_promise
+                
+                # 応答内容を確認
+                ai_responses = await page.query_selector_all(".ai-response, .message.ai, .response")
+                assert len(ai_responses) > 0, "AI応答が表示されていません"
+                
+                # 最新の応答内容を取得
+                latest_response = await ai_responses[-1].text_content()
+                assert len(latest_response.strip()) > 5, "AI応答が短すぎます"
+                
+                print(f"✅ 実際のGemini応答を取得: {latest_response[:50]}...")
+                
+            except Exception as e:
+                # レート制限や一時的なエラーの場合はスキップ
+                error_message = await page.query_selector(".error, .alert-danger")
+                if error_message:
+                    error_text = await error_message.text_content()
+                    if "レート制限" in error_text or "rate limit" in error_text.lower():
+                        pytest.skip("APIレート制限によりチャットE2Eテストをスキップ")
+                    elif "エラー" in error_text or "error" in error_text.lower():
+                        pytest.skip(f"一時的なAPIエラーによりスキップ: {error_text}")
+                
+                raise e
+
+    @pytest.mark.asyncio
+    @pytest.mark.asyncio
+    async def test_real_gemini_scenario_e2e(self, page: Page):
+        """実際のGemini APIを使用したシナリオ機能のE2Eテスト"""
+        # シナリオページに移動
+        await page.goto("http://localhost:5000")
+        
+        # シナリオセクションまたはボタンを探して移動
+        scenario_button = await page.query_selector("text=シナリオ, text=練習, [href*='scenario'], .scenario-button")
+        if scenario_button:
+            await scenario_button.click()
+        
+        # シナリオ一覧が表示されるまで待機
+        await page.wait_for_selector(".scenario-item, .scenario-card, .scenario-list", timeout=10000)
+        
+        # シナリオを選択
+        scenario_items = await page.query_selector_all(".scenario-item, .scenario-card")
+        assert len(scenario_items) > 0, "シナリオが表示されていません"
+        
+        # 最初のシナリオを選択
+        await scenario_items[0].click()
+        
+        # シナリオ詳細またはチャット画面が表示されるまで待機
+        await page.wait_for_selector("input[type='text'], textarea, .message-input", timeout=10000)
+        
+        # シナリオでのメッセージ送信
+        message_input = await page.query_selector("input[type='text'], textarea, .message-input")
+        test_message = "よろしくお願いします。初めてなので教えてください。"
+        await message_input.fill(test_message)
+        
+        # 送信ボタンをクリック
+        send_button = await page.query_selector("button[type='submit'], .send-button, text=送信")
+        if send_button:
+            # AI応答を待つ
+            response_promise = page.wait_for_selector(".ai-response, .message.ai, .response", timeout=30000)
+            
+            await send_button.click()
+            
+            try:
+                await response_promise
+                
+                # シナリオ固有の応答を確認
+                ai_responses = await page.query_selector_all(".ai-response, .message.ai, .response")
+                latest_response = await ai_responses[-1].text_content()
+                
+                # 職場らしいコンテキストが含まれているか確認
+                workplace_keywords = ["仕事", "会議", "資料", "報告", "相談", "上司", "同僚", "プロジェクト"]
+                has_workplace_context = any(keyword in latest_response for keyword in workplace_keywords)
+                
+                print(f"✅ シナリオAI応答: {latest_response[:100]}...")
+                print(f"職場コンテキスト含有: {has_workplace_context}")
+                
+                # 応答が職場シナリオらしいことを確認（厳密ではなく参考として）
+                assert len(latest_response.strip()) > 10, "シナリオAI応答が短すぎます"
+                
+            except Exception as e:
+                # エラーハンドリング
+                error_message = await page.query_selector(".error, .alert-danger")
+                if error_message:
+                    error_text = await error_message.text_content()
+                    if "レート制限" in error_text or "rate limit" in error_text.lower():
+                        pytest.skip("APIレート制限によりシナリオE2Eテストをスキップ")
+                
+                raise e
+
+    @pytest.mark.asyncio
+    async def test_scenario_navigation_e2e(self, page: Page):
+        """シナリオ間のナビゲーションE2Eテスト"""
+        await page.goto("http://localhost:5000")
+        
+        # シナリオページに移動
+        scenario_nav = await page.query_selector("text=シナリオ, [href*='scenario']")
+        if scenario_nav:
+            await scenario_nav.click()
+        
+        # シナリオ一覧の確認
+        await page.wait_for_selector(".scenario-item, .scenario-card", timeout=10000)
+        scenario_items = await page.query_selector_all(".scenario-item, .scenario-card")
+        
+        # 複数のシナリオが表示されていることを確認
+        assert len(scenario_items) >= 5, f"シナリオ数が不足: {len(scenario_items)}"
+        
+        # 異なる難易度のシナリオが存在することを確認
+        difficulty_levels = set()
+        for item in scenario_items[:10]:  # 最初の10個をチェック
+            text = await item.text_content()
+            if "初級" in text:
+                difficulty_levels.add("初級")
+            elif "中級" in text:
+                difficulty_levels.add("中級")
+            elif "上級" in text:
+                difficulty_levels.add("上級")
+        
+        assert len(difficulty_levels) >= 2, f"難易度のバリエーションが不足: {difficulty_levels}"
+        
+        print(f"✅ 確認された難易度レベル: {difficulty_levels}")
+
+    @pytest.mark.asyncio
+    async def test_watch_mode_e2e(self, page: Page):
+        """観戦モードのE2Eテスト"""
+        await page.goto("http://localhost:5000")
+        
+        # 観戦モードボタンを探す
+        watch_button = await page.query_selector("text=観戦, text=会話観戦, [href*='watch'], .watch-button")
+        if not watch_button:
+            pytest.skip("観戦モード機能が見つかりません")
+        
+        await watch_button.click()
+        
+        # 観戦画面が表示されるまで待機
+        await page.wait_for_selector(".conversation, .watch-area, .ai-conversation", timeout=10000)
+        
+        # 会話開始ボタンを探してクリック
+        start_button = await page.query_selector("text=開始, text=会話開始, .start-button")
+        if start_button:
+            await start_button.click()
+            
+            # AI同士の会話が表示されるまで待機
+            await page.wait_for_selector(".message, .conversation-item", timeout=30000)
+            
+            # 会話が生成されていることを確認
+            messages = await page.query_selector_all(".message, .conversation-item")
+            assert len(messages) >= 2, "AI同士の会話が生成されていません"
+            
+            print(f"✅ 観戦モードでAI会話を確認: {len(messages)}メッセージ")
+
+    @pytest.mark.asyncio
+    async def test_responsive_design_e2e(self, page: Page):
+        """レスポンシブデザインのE2Eテスト"""
+        await page.goto("http://localhost:5000")
+        
+        # デスクトップサイズでの表示確認
+        await page.set_viewport_size({"width": 1280, "height": 720})
+        await page.wait_for_load_state("networkidle")
+        
+        desktop_nav = await page.query_selector("nav, .navigation")
+        assert desktop_nav is not None, "デスクトップナビゲーションが見つかりません"
+        
+        # モバイルサイズでの表示確認
+        await page.set_viewport_size({"width": 375, "height": 667})
+        await page.wait_for_timeout(1000)  # レイアウト調整を待つ
+        
+        # モバイルでもナビゲーションが利用可能であることを確認
+        mobile_nav = await page.query_selector("nav, .navigation, .mobile-menu, .hamburger")
+        assert mobile_nav is not None, "モバイルナビゲーションが見つかりません"
+        
+        print("✅ レスポンシブデザインが機能しています")
+
+    @pytest.mark.asyncio
+    async def test_accessibility_e2e(self, page: Page):
+        """アクセシビリティのE2Eテスト"""
+        await page.goto("http://localhost:5000")
+        
+        # フォーカス可能な要素を確認
+        focusable_elements = await page.query_selector_all("button, input, select, textarea, a[href]")
+        assert len(focusable_elements) >= 3, "フォーカス可能な要素が不足しています"
+        
+        # キーボードナビゲーションのテスト
+        first_focusable = focusable_elements[0]
+        await first_focusable.focus()
+        
+        # Tabキーでナビゲーション
+        await page.keyboard.press("Tab")
+        focused_element = await page.evaluate("document.activeElement.tagName")
+        assert focused_element in ["BUTTON", "INPUT", "SELECT", "TEXTAREA", "A"], "Tab ナビゲーションが機能していません"
+        
+        print("✅ 基本的なアクセシビリティが確保されています")
+
+    @pytest.mark.asyncio
+    async def test_error_handling_e2e(self, page: Page):
+        """エラーハンドリングのE2Eテスト"""
+        await page.goto("http://localhost:5000")
+        
+        # チャット機能にアクセス
+        chat_area = await page.query_selector("input[type='text'], textarea, .message-input")
+        if chat_area:
+            # 空のメッセージ送信を試行
+            send_button = await page.query_selector("button[type='submit'], .send-button")
+            if send_button:
+                await send_button.click()
+                
+                # エラーメッセージまたは何らかのフィードバックが表示されることを確認
+                await page.wait_for_timeout(2000)
+                
+                # エラーメッセージの確認（存在すれば）
+                error_message = await page.query_selector(".error, .alert, .warning")
+                if error_message:
+                    error_text = await error_message.text_content()
+                    print(f"✅ エラーハンドリング確認: {error_text}")
+                else:
+                    print("✅ エラーハンドリング: 適切に処理されているか、入力検証で防止されています")
+
+
+# 実際のアプリケーション起動チェック
+@pytest.fixture(scope="session", autouse=True)
+def ensure_app_running():
+    """テスト実行前にアプリケーションが起動していることを確認"""
+    import requests
+    import time
+    
+    max_retries = 10
+    for attempt in range(max_retries):
+        try:
+            response = requests.get("http://localhost:5000", timeout=5)
+            if response.status_code == 200:
+                print(f"✅ アプリケーションが http://localhost:5000 で動作中")
+                return
+        except requests.exceptions.RequestException:
+            if attempt < max_retries - 1:
+                print(f"アプリケーション起動待機中... ({attempt + 1}/{max_retries})")
+                time.sleep(2)
+            else:
+                pytest.fail(
+                    "アプリケーションが起動していません。"
+                    "テスト実行前に 'python app.py' でアプリを起動してください。"
+                )

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学習履歴 - 職場コミュニケーション練習アプリ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .history-section {
+            margin-bottom: 30px;
+        }
+        .history-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .history-card h3 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        .history-meta {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .history-summary {
+            color: #333;
+            line-height: 1.5;
+        }
+        .navigation {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .nav-button {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 10px 20px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>学習履歴</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">15</div>
+                <div class="stat-label">練習回数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">8</div>
+                <div class="stat-label">シナリオ練習</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">7</div>
+                <div class="stat-label">雑談練習</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">120</div>
+                <div class="stat-label">総練習時間（分）</div>
+            </div>
+        </div>
+        
+        <div class="history-section">
+            <h2>最近の練習履歴</h2>
+            
+            <div class="history-card">
+                <h3>雑談練習</h3>
+                <div class="history-meta">2024年7月18日 14:30 | 15分間</div>
+                <div class="history-summary">
+                    同僚との休憩時間の会話を練習しました。天気の話から週末の予定について自然な会話ができました。
+                    フィードバック：相手の話をよく聞いて、適切な質問を返すことができていました。
+                </div>
+            </div>
+            
+            <div class="history-card">
+                <h3>シナリオ練習：上司への報告</h3>
+                <div class="history-meta">2024年7月17日 16:45 | 12分間</div>
+                <div class="history-summary">
+                    プロジェクトの進捗報告シナリオで練習しました。要点を整理して簡潔に伝えることを重視しました。
+                    フィードバック：論理的な構成で報告できており、改善点も具体的に提示できていました。
+                </div>
+            </div>
+            
+            <div class="history-card">
+                <h3>会話観戦モード</h3>
+                <div class="history-meta">2024年7月16日 10:20 | 8分間</div>
+                <div class="history-summary">
+                    2つのAIモデルの会話を観戦しました。効果的な質問の仕方や相手の意見を引き出す方法を学習しました。
+                </div>
+            </div>
+            
+            <div class="history-card">
+                <h3>シナリオ練習：新入社員との会話</h3>
+                <div class="history-meta">2024年7月15日 13:15 | 18分間</div>
+                <div class="history-summary">
+                    新しく入社した同僚をサポートする会話の練習をしました。相手の不安を和らげ、職場に馴染みやすい雰囲気作りを意識しました。
+                    フィードバック：温かみのある言葉選びができており、相手を気遣う姿勢が良く表現されていました。
+                </div>
+            </div>
+            
+            <div class="history-card">
+                <h3>雑談練習</h3>
+                <div class="history-meta">2024年7月14日 11:00 | 10分間</div>
+                <div class="history-summary">
+                    ランチタイムでの雑談を練習しました。食事の話から趣味の話題へと自然に展開できました。
+                    フィードバック：話題転換がスムーズで、相手の興味を引く質問ができていました。
+                </div>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <a href="/" class="nav-button">トップページに戻る</a>
+            <a href="/chat" class="nav-button">雑談練習へ</a>
+            <a href="/scenario" class="nav-button">シナリオ練習へ</a>
+        </div>
+    </div>
+</body>
+</html>

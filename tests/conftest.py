@@ -105,12 +105,32 @@ def sample_scenario_data():
         "description": "テスト用のシナリオです",
         "difficulty": "初級",
         "tags": ["テスト", "開発"],
-        "role_info": "テスト担当者",
+        "role_info": "部署、テスト担当者、チームメンバー",
         "character_setting": {
             "personality": "協力的で前向き",
             "speaking_style": "丁寧で親しみやすい",
-            "situation": "チーム会議での状況"
+            "situation": "チーム会議での状況",
+            "initial_approach": "こんにちは、今日はよろしくお願いします。"
         },
         "learning_points": ["コミュニケーション", "報告"],
         "feedback_points": ["明確さ", "具体性"]
     }
+
+
+@pytest.fixture
+def auth_user():
+    """認証済みユーザーのフィクスチャ"""
+    from models import User
+    from werkzeug.security import generate_password_hash
+    
+    user = User(
+        id=1,
+        username='testuser',
+        email='test@example.com',
+        password_hash=generate_password_hash('testpassword'),
+        is_active=True
+    )
+    # is_authenticated と is_anonymous は UserMixin が自動的に提供する
+    # プロパティなので設定する必要はない
+    
+    return user

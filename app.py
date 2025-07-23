@@ -658,7 +658,7 @@ def set_session_start_time(session_key, sub_key=None):
 @app.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token():
     """CSRFトークンを生成して返す"""
-    token = CSRFToken.generate(session)
+    token = CSRFToken.get_or_create(session)
     return jsonify({"csrf_token": token})
 
 @app.route("/api/chat", methods=["POST"])
@@ -749,6 +749,8 @@ def clear_history():
                 # 特定のシナリオ履歴をクリア（共通関数使用）
                 clear_session_history("scenario_history", scenario_id)
             else:
+                # 全てのシナリオ履歴をクリア
+                clear_session_history("scenario_history")
                 # 古い履歴形式との互換性維持
                 if "conversation_history" in session and selected_model in session["conversation_history"]:
                     session["conversation_history"][selected_model] = []
