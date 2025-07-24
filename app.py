@@ -107,6 +107,9 @@ from services import (
     get_conversation_history
 )
 
+# Celeryタスクのインポート
+from tasks.achievement import check_achievements_task
+
 """
 要件:
 1. Google Gemini APIを使用したAIチャット
@@ -2604,37 +2607,21 @@ def update_feedback_with_strength_analysis(feedback_response, session_type, scen
                             session_obj.is_completed = True
                             session_obj.ended_at = db.func.now()
                         
-                        # アチーブメントチェック
-                        unlocked_achievements = []
-                        
+                        # アチーブメントチェック（非同期で実行）
                         # セッション完了アチーブメント
-                        unlocked = AchievementService.check_and_unlock_achievements(
+                        check_achievements_task.delay(
                             user_id=g.current_user.id,
                             event_type='session_completed',
                             event_data={'session_id': session_obj.id}
                         )
-                        unlocked_achievements.extend(unlocked)
                         
                         # シナリオ完了アチーブメント
                         if scenario_id:
-                            unlocked = AchievementService.check_and_unlock_achievements(
+                            check_achievements_task.delay(
                                 user_id=g.current_user.id,
                                 event_type='scenario_completed',
                                 event_data={'scenario_id': scenario_id}
                             )
-                            unlocked_achievements.extend(unlocked)
-                        
-                        # アチーブメント情報をレスポンスに追加
-                        if unlocked_achievements:
-                            feedback_response["unlocked_achievements"] = [
-                                {
-                                    "name": achievement.name,
-                                    "description": achievement.description,
-                                    "icon": achievement.icon,
-                                    "points": achievement.points
-                                }
-                                for achievement in unlocked_achievements
-                            ]
                         
                         # 合計ポイントを追加
                         total_points = AchievementService.get_total_points(g.current_user.id)
