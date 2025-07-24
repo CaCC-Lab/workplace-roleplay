@@ -10,6 +10,7 @@ from models import db, User
 from forms import LoginForm, RegistrationForm
 from services import UserService
 from utils.security import CSRFToken
+from utils.transaction import managed_session
 import logging
 
 logger = logging.getLogger(__name__)
@@ -63,22 +64,23 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
-            # 新しいユーザーを作成
-            user = User(
-                username=form.username.data,
-                email=form.email.data
-            )
-            user.set_password(form.password.data)
-            
-            db.session.add(user)
-            db.session.commit()
-            
-            logger.info(f"新規ユーザー登録: {user.username}")
-            flash('登録が完了しました！ログインしてください。', 'success')
-            return redirect(url_for('auth.login'))
+            with managed_session():
+                # 新しいユーザーを作成
+                user = User(
+                    username=form.username.data,
+                    email=form.email.data
+                )
+                user.set_password(form.password.data)
+                
+                db.session.add(user)
+                # commit は managed_session が自動的に行う
+                
+                logger.info(f"新規ユーザー登録: {user.username}")
+                flash('登録が完了しました！ログインしてください。', 'success')
+                return redirect(url_for('auth.login'))
             
         except Exception as e:
-            db.session.rollback()
+            # rollback は managed_session が自動的に行う
             logger.error(f"ユーザー登録エラー: {e}")
             flash('登録に失敗しました。しばらく時間をおいてから再度お試しください。', 'danger')
     
