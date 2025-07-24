@@ -11,6 +11,7 @@ import redis
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from config.config import get_config
+from .retry_strategy import retry_with_backoff, track_streaming_chunks
 
 logger = logging.getLogger(__name__)
 config = get_config()
@@ -25,7 +26,7 @@ redis_client = redis.Redis(
 
 
 class LLMTask(Task):
-    """LLMタスクの基底クラス"""
+    """LLMタスクの基底クラス（リトライ機能付き）"""
     
     def __init__(self):
         super().__init__()
@@ -56,6 +57,7 @@ class LLMTask(Task):
 
 
 @celery.task(bind=True, base=LLMTask, name='tasks.llm.stream_chat_response')
+@retry_with_backoff
 def stream_chat_response(
     self,
     session_id: str,
@@ -127,6 +129,9 @@ def stream_chat_response(
                 if metadata and metadata.get('watch_mode'):
                     chunk_message['speaker'] = metadata.get('speaker', '不明')
                 
+                # 部分レスポンス追跡
+                track_streaming_chunks(self, chunk_message)
+                
                 redis_client.publish(channel, json.dumps(chunk_message))
         
         # 完了を通知
@@ -159,24 +164,48 @@ def stream_chat_response(
     except Exception as e:
         logger.error(f"LLM streaming error: {str(e)}", exc_info=True)
         
-        # エラーを通知
-        error_message = f"申し訳ございません。応答の生成中にエラーが発生しました: {str(e)}"
-        redis_client.publish(channel, json.dumps({
-            'type': 'error',
-            'error': str(e),
-            'message': error_message,
-            'timestamp': time.time()
-        }))
+        # 部分レスポンスを保存（可能な場合）
+        if generated_text:
+            self.save_partial_response(self.request.id, {
+                'content': generated_text,
+                'timestamp': time.time(),
+                'metadata': {
+                    'error_occurred': True,
+                    'error_message': str(e),
+                    'tokens_generated': token_count,
+                    'partial_response_time': time.time() - start_time
+                }
+            })
         
-        return {
-            'status': 'error',
-            'session_id': session_id,
-            'error': str(e),
-            'message': error_message
-        }
+        # リトライ戦略を適用
+        try:
+            self.retry_with_strategy(e, (session_id, model_name, messages, metadata), {})
+        except Exception as retry_error:
+            # 最終エラー処理
+            error_message = f"申し訳ございません。応答の生成中にエラーが発生しました: {str(retry_error)}"
+            
+            # エラーを通知
+            redis_client.publish(channel, json.dumps({
+                'type': 'error',
+                'error': str(retry_error),
+                'message': error_message,
+                'timestamp': time.time(),
+                'retry_count': self.request.retries,
+                'partial_content': generated_text if generated_text else None
+            }))
+            
+            return {
+                'status': 'error',
+                'session_id': session_id,
+                'error': str(retry_error),
+                'message': error_message,
+                'retry_count': self.request.retries,
+                'partial_content': generated_text if generated_text else None
+            }
 
 
 @celery.task(bind=True, base=LLMTask, name='tasks.llm.generate_feedback')
+@retry_with_backoff
 def generate_feedback(
     self,
     session_id: str,
@@ -228,12 +257,19 @@ def generate_feedback(
         
     except Exception as e:
         logger.error(f"Feedback generation error: {str(e)}", exc_info=True)
-        return {
-            'status': 'error',
-            'session_id': session_id,
-            'error': str(e),
-            'message': 'フィードバックの生成中にエラーが発生しました'
-        }
+        
+        # リトライ戦略を適用
+        try:
+            self.retry_with_strategy(e, (session_id, model_name, conversation_history, feedback_type, scenario_info), {})
+        except Exception as retry_error:
+            # 最終エラー処理
+            return {
+                'status': 'error',
+                'session_id': session_id,
+                'error': str(retry_error),
+                'message': 'フィードバックの生成中にエラーが発生しました',
+                'retry_count': self.request.retries
+            }
 
 
 def _create_scenario_feedback_prompt(history: List[Dict[str, str]], scenario: Dict) -> str:

@@ -229,6 +229,10 @@ app.register_blueprint(auth_bp)
 from api.async_chat import async_chat_bp
 app.register_blueprint(async_chat_bp)
 
+# タスク進捗監視APIの登録
+from routes.task_progress import progress_bp
+app.register_blueprint(progress_bp)
+
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)
 def handle_app_error(error: AppError):
