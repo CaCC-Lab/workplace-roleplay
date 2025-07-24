@@ -332,21 +332,6 @@ class CSRFToken:
         return secrets.token_hex(CSRFToken.TOKEN_LENGTH // 2)
     
     @staticmethod
-    def generate_with_seed(seed: str) -> str:
-        """
-        シード値を使用して決定的なトークンを生成（テスト用）
-        
-        Args:
-            seed: シード値
-            
-        Returns:
-            str: 32文字の16進数文字列
-        """
-        # テスト用の決定的生成（本番では使用しない）
-        hash_obj = hashlib.sha256(seed.encode('utf-8'))
-        return hash_obj.hexdigest()[:CSRFToken.TOKEN_LENGTH]
-    
-    @staticmethod
     def validate(token: str, session_data: Dict) -> bool:
         """
         CSRFトークンを検証
@@ -366,12 +351,32 @@ class CSRFToken:
             return False
         
         # セッションからトークンを取得
-        session_token = session_data.get(CSRFToken.SESSION_KEY)
-        if not session_token:
+        session_token_data = session_data.get(CSRFToken.SESSION_KEY)
+        if not session_token_data:
             return False
         
-        # タイミング攻撃を防ぐため、必ず固定時間で比較
-        return CSRFToken._secure_compare(token, session_token)
+        # 旧形式（文字列）との後方互換性
+        if isinstance(session_token_data, str):
+            # 旧形式の場合は期限チェックなし（後方互換性のため）
+            return CSRFToken._secure_compare(token, session_token_data)
+        
+        # 新形式（辞書）の場合
+        if isinstance(session_token_data, dict):
+            stored_token = session_token_data.get('token')
+            created_at = session_token_data.get('created_at')
+            
+            if not stored_token or created_at is None:
+                return False
+            
+            # 有効期限チェック
+            current_time = time.time()
+            if current_time - created_at > CSRFToken.TOKEN_LIFETIME:
+                return False
+            
+            # タイミング攻撃を防ぐため、必ず固定時間で比較
+            return CSRFToken._secure_compare(token, stored_token)
+        
+        return False
     
     @staticmethod
     def _is_valid_format(token: str) -> bool:
@@ -421,7 +426,11 @@ class CSRFToken:
             str: 新しいCSRFトークン
         """
         new_token = CSRFToken.generate()
-        session_data[CSRFToken.SESSION_KEY] = new_token
+        # トークンと生成時刻を保存
+        session_data[CSRFToken.SESSION_KEY] = {
+            'token': new_token,
+            'created_at': time.time()
+        }
         return new_token
     
     @staticmethod
@@ -435,10 +444,39 @@ class CSRFToken:
         Returns:
             str: CSRFトークン
         """
-        token = session_data.get(CSRFToken.SESSION_KEY)
-        if not token or not CSRFToken._is_valid_format(token):
-            token = CSRFToken.refresh(session_data)
-        return token
+        token_data = session_data.get(CSRFToken.SESSION_KEY)
+        
+        if not token_data:
+            # トークンが存在しない場合は新規作成
+            return CSRFToken.refresh(session_data)
+        
+        # 旧形式（文字列）の場合
+        if isinstance(token_data, str):
+            # 旧形式を新形式に移行
+            return CSRFToken.refresh(session_data)
+        
+        # 新形式（辞書）の場合
+        if isinstance(token_data, dict):
+            token = token_data.get('token')
+            created_at = token_data.get('created_at')
+            
+            if not token or created_at is None:
+                return CSRFToken.refresh(session_data)
+            
+            # 有効期限チェック
+            current_time = time.time()
+            if current_time - created_at > CSRFToken.TOKEN_LIFETIME:
+                # 期限切れの場合は再生成
+                return CSRFToken.refresh(session_data)
+            
+            # トークンの形式チェック
+            if not CSRFToken._is_valid_format(token):
+                return CSRFToken.refresh(session_data)
+            
+            return token
+        
+        # 予期しない形式の場合は再生成
+        return CSRFToken.refresh(session_data)
     
     @staticmethod
     def require_csrf(f):

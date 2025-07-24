@@ -20,9 +20,12 @@
                     <span class="user-info">
                         <i class="fas fa-user"></i> {{ current_user.username }}
                     </span>
-                    <a href="{{ url_for('auth.logout') }}" class="auth-link logout">
-                        <i class="fas fa-sign-out-alt"></i> ログアウト
-                    </a>
+                    <form method="POST" action="{{ url_for('auth.logout') }}" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="auth-link logout" style="border: none; background: none; cursor: pointer;">
+                            <i class="fas fa-sign-out-alt"></i> ログアウト
+                        </button>
+                    </form>
                 {% else %}
                     <a href="{{ url_for('auth.login') }}" class="auth-link login">
                         <i class="fas fa-sign-in-alt"></i> ログイン
