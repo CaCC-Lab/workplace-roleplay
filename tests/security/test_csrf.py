@@ -35,18 +35,6 @@ class TestCSRFToken:
             assert token not in tokens
             tokens.add(token)
     
-    def test_generate_token_with_seed(self):
-        """シード値を使用したCSRFトークン生成テスト"""
-        # 同じシード値で同じトークンが生成されることを確認
-        seed = "test_seed_123"
-        token1 = CSRFToken.generate_with_seed(seed)
-        token2 = CSRFToken.generate_with_seed(seed)
-        assert token1 == token2
-        
-        # 異なるシード値で異なるトークンが生成されることを確認
-        token3 = CSRFToken.generate_with_seed("different_seed")
-        assert token1 != token3
-    
     def test_validate_token_valid(self):
         """有効なCSRFトークンの検証テスト"""
         app = Flask(__name__)

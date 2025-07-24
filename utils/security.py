@@ -332,21 +332,6 @@ class CSRFToken:
         return secrets.token_hex(CSRFToken.TOKEN_LENGTH // 2)
     
     @staticmethod
-    def generate_with_seed(seed: str) -> str:
-        """
-        シード値を使用して決定的なトークンを生成（テスト用）
-        
-        Args:
-            seed: シード値
-            
-        Returns:
-            str: 32文字の16進数文字列
-        """
-        # テスト用の決定的生成（本番では使用しない）
-        hash_obj = hashlib.sha256(seed.encode('utf-8'))
-        return hash_obj.hexdigest()[:CSRFToken.TOKEN_LENGTH]
-    
-    @staticmethod
     def validate(token: str, session_data: Dict) -> bool:
         """
         CSRFトークンを検証
