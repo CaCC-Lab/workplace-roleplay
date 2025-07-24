@@ -17,11 +17,13 @@ def setup_test_env():
     os.environ['FLASK_ENV'] = 'testing'
     os.environ['FLASK_SECRET_KEY'] = 'test-secret-key-for-testing'
     
-    # テスト用のGoogle APIキー（ダミー）
-    os.environ['GOOGLE_API_KEY'] = 'test-api-key-1'
-    os.environ['GOOGLE_API_KEY_2'] = 'test-api-key-2'
-    os.environ['GOOGLE_API_KEY_3'] = 'test-api-key-3'
-    os.environ['GOOGLE_API_KEY_4'] = 'test-api-key-4'
+    # テスト用のGoogle APIキー（実際のAPIキーを使用）
+    # 実環境テストのため、本物のAPIキーが必要
+    if not os.environ.get('GOOGLE_API_KEY'):
+        # .envから読み込み
+        from dotenv import load_dotenv
+        load_dotenv()
+    # 既に設定されている場合はそのまま使用
     
     yield
     
@@ -32,14 +34,9 @@ def setup_test_env():
 
 @pytest.fixture
 def mock_env_vars():
-    """環境変数のモック用フィクスチャ"""
-    with patch.dict(os.environ, {
-        'GOOGLE_API_KEY': 'mock-key-1',
-        'GOOGLE_API_KEY_2': 'mock-key-2',
-        'GOOGLE_API_KEY_3': 'mock-key-3',
-        'GOOGLE_API_KEY_4': 'mock-key-4',
-    }):
-        yield
+    """環境変数のモック用フィクスチャ（実環境テストのため無効化）"""
+    # 実環境テストでは実際のAPIキーを使用するため、モックしない
+    yield
 
 
 @pytest.fixture
@@ -122,11 +119,14 @@ def auth_user():
     """認証済みユーザーのフィクスチャ"""
     from models import User
     from werkzeug.security import generate_password_hash
+    import uuid
+    
+    # 一意の識別子でテスト間の競合を回避
+    unique_id = str(uuid.uuid4())[:8]
     
     user = User(
-        id=1,
-        username='testuser',
-        email='test@example.com',
+        username=f'testuser_{unique_id}',
+        email=f'test_{unique_id}@example.com',
         password_hash=generate_password_hash('testpassword'),
         is_active=True
     )

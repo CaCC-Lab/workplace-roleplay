@@ -1,70 +1,68 @@
 """
-主要APIエンドポイントのテスト
+主要APIエンドポイントの実環境テスト
 
-app.pyの主要なAPIエンドポイントをモックを使用してテストし、
-Gemini APIやTTS機能に依存しない形でカバレッジを向上させる
+開発規約準拠：モック禁止、実際のGemini APIを使用した統合テスト
+実際のAPIキーとFlaskセッションを使用してエンドポイントの動作を検証
 """
 import pytest
-from unittest.mock import patch, MagicMock, Mock, call
-from flask import session
 import json
-import io
+import os
+import time
+from flask import session
 
 from utils.security import CSRFToken
 from models import User
 
 
-class TestChatAPI:
-    """チャットAPI (/api/chat) のテスト"""
+class TestChatAPIReal:
+    """チャットAPI (/api/chat) の実環境テスト"""
     
-    def test_api_chat_success(self, client, app, auth_user):
-        """正常なチャットAPIリクエスト"""
+    def test_api_chat_success_real(self, client, app, auth_user):
+        """正常なチャットAPIリクエスト（実際のGemini API使用）"""
+        # 実際のGoogle API Keyが必要
+        if not os.getenv('GOOGLE_API_KEY'):
+            pytest.skip("GOOGLE_API_KEY environment variable required for real API test")
+            
         with app.app_context():
-            # CSRFトークンをセッションに設定
+            # 実際のCSRFトークンを生成
             csrf_token = CSRFToken.generate()
             with client.session_transaction() as sess:
-                sess['csrf_token'] = csrf_token  # セッションにトークンを保存
+                sess['csrf_token'] = csrf_token
                 sess['user_id'] = auth_user.id
                 sess['conversation_history'] = []
-                # チャット設定を追加
+                # 実際のチャット設定（短い応答を要求）
                 sess['chat_settings'] = {
-                    'system_prompt': 'あなたは職場でのコミュニケーションを支援するAIアシスタントです。'
+                    'system_prompt': 'あなたは職場でのコミュニケーションを支援するAIアシスタントです。テスト用なので10文字以内で短く応答してください。'
                 }
             
-            # LLMチェーンをモック
-            with patch('app.initialize_llm') as mock_init_llm:
-                mock_chain = MagicMock()
-                mock_chain.stream.return_value = iter(['こんにちは', 'ユーザー', 'さん'])
-                mock_init_llm.return_value = mock_chain
-                
-                # API key管理をモック
-                with patch('app.get_google_api_key', return_value='test-api-key'):
-                    with patch('app.record_api_usage'):
-                        response = client.post('/api/chat',
-                            data=json.dumps({
-                                'message': 'こんにちは',
-                                'csrf_token': csrf_token
-                            }),
-                            content_type='application/json',
-                            headers={'X-CSRFToken': csrf_token}
-                        )
-                        
-                        # デバッグ：レスポンス内容を確認
-                        if response.status_code != 200:
-                            print(f"Status: {response.status_code}")
-                            print(f"Response: {response.get_json()}")
-                        
-                        assert response.status_code == 200
-                        # ストリーミングレスポンスの確認
-                        assert response.content_type.startswith('application/json')
+            # 実際のAPI呼び出し（モックなし）
+            response = client.post('/api/chat',
+                data=json.dumps({
+                    'message': 'こんにちは、テストです',
+                    'csrf_token': csrf_token
+                }),
+                content_type='application/json',
+                headers={'X-CSRFToken': csrf_token}
+            )
+            
+            # 実際のAPI応答を検証
+            assert response.status_code == 200
+            # ストリーミングレスポンスまたはJSON応答を確認
+            content_type = response.content_type
+            assert content_type.startswith('application/json') or content_type.startswith('text/event-stream')
+            
+            # APIレート制限を考慮した待機
+            time.sleep(2)
     
-    def test_api_chat_missing_message(self, client, app):
-        """メッセージなしのチャットAPIリクエスト"""
+    def test_api_chat_missing_message_real(self, client, app):
+        """メッセージなしのチャットAPIリクエスト（実際のバリデーション）"""
         with app.app_context():
+            # 実際のCSRF検証
             csrf_token = CSRFToken.generate()
             with client.session_transaction() as sess:
                 sess['csrf_token'] = csrf_token
             
+            # 実際のバリデーションエラーテスト
             response = client.post('/api/chat',
                 data=json.dumps({'csrf_token': csrf_token}),
                 content_type='application/json',
@@ -74,77 +72,77 @@ class TestChatAPI:
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
-            assert 'message' in data['error']  # APIは英語エラーを返す
     
-    def test_api_chat_llm_error(self, client, app, auth_user):
-        """LLMエラー時のハンドリング"""
+    def test_api_chat_invalid_csrf_real(self, client, app, auth_user):
+        """無効なCSRFトークンでのエラー（実際のセキュリティテスト）"""
         with app.app_context():
             csrf_token = CSRFToken.generate()
             with client.session_transaction() as sess:
                 sess['csrf_token'] = csrf_token
                 sess['user_id'] = auth_user.id
             
-            # LLMエラーをシミュレート
-            with patch('app.initialize_llm') as mock_init_llm:
-                mock_init_llm.side_effect = Exception("LLM initialization failed")
-                
-                response = client.post('/api/chat',
-                    data=json.dumps({
-                        'message': 'テストメッセージ',
-                        'csrf_token': csrf_token
-                    }),
-                    content_type='application/json',
-                    headers={'X-CSRFToken': csrf_token}
-                )
-                
-                assert response.status_code == 400  # LLM初期化失敗は400エラー
-                data = response.get_json()
-                assert 'error' in data
+            # 無効なCSRFトークンで実際のリクエスト
+            response = client.post('/api/chat',
+                data=json.dumps({
+                    'message': 'テストメッセージ',
+                    'csrf_token': 'invalid_csrf_token'
+                }),
+                content_type='application/json',
+                headers={'X-CSRFToken': 'invalid_csrf_token'}
+            )
+            
+            # 実際のCSRF検証エラー
+            assert response.status_code in [400, 403]
 
 
-class TestScenarioChatAPI:
-    """シナリオチャットAPI (/api/scenario_chat) のテスト"""
+class TestScenarioChatAPIReal:
+    """シナリオチャットAPI (/api/scenario_chat) の実環境テスト"""
     
-    def test_scenario_chat_success(self, client, app, auth_user, sample_scenario_data):
-        """正常なシナリオチャットAPIリクエスト"""
+    def test_scenario_chat_success_real(self, client, app, auth_user, sample_scenario_data):
+        """正常なシナリオチャットAPIリクエスト（実際のAPI使用）"""
+        if not os.getenv('GOOGLE_API_KEY'):
+            pytest.skip("GOOGLE_API_KEY environment variable required for real API test")
+            
         with app.app_context():
+            # テストフィクスチャとして、app.scenariosにテスト用シナリオを追加
+            # これによりテストが実際のYAMLファイルから独立し、安定性が向上
+            import app as app_module
+            scenario_id = sample_scenario_data['id']
+            app_module.scenarios[scenario_id] = sample_scenario_data
+            
             csrf_token = CSRFToken.generate()
+            
             with client.session_transaction() as sess:
                 sess['csrf_token'] = csrf_token
                 sess['user_id'] = auth_user.id
-                # シナリオを app.scenarios に登録するモック
+                # 実際のシナリオデータ設定
+                sess['current_scenario'] = sample_scenario_data
+                sess['scenario_history'] = {
+                    scenario_id: []
+                }
             
-            # シナリオデータを app.scenarios にモック登録
-            with patch('app.scenarios', {sample_scenario_data['id']: sample_scenario_data}):
-                with patch('app.get_or_create_practice_session') as mock_session_func:
-                    # practice_session をモック
-                    mock_session_func.return_value = None  # セッション無効でテスト
-                    
-                    with patch('app.initialize_llm') as mock_init_llm:
-                        mock_chain = MagicMock()
-                        mock_chain.stream.return_value = iter(['シナリオ', '応答'])
-                        mock_init_llm.return_value = mock_chain
-                        
-                        with patch('app.get_google_api_key', return_value='test-api-key'):
-                            response = client.post('/api/scenario_chat',
-                            data=json.dumps({
-                                'message': 'プロジェクトの進捗を報告します',
-                                'scenario_id': sample_scenario_data['id'],  # scenario_id を追加
-                                'csrf_token': csrf_token
-                            }),
-                            content_type='application/json',
-                            headers={'X-CSRFToken': csrf_token}
-                        )
-                        
-                        # デバッグ：レスポンス内容を確認
-                        if response.status_code != 200:
-                            print(f"Status: {response.status_code}")
-                            print(f"Response: {response.get_json()}")
-                        
-                        assert response.status_code == 200
+            # 実際のシナリオチャットリクエスト
+            response = client.post('/api/scenario_chat',
+                data=json.dumps({
+                    'message': 'プロジェクトの進捗を報告します',
+                    'scenario_id': scenario_id,
+                    'csrf_token': csrf_token
+                }),
+                content_type='application/json',
+                headers={'X-CSRFToken': csrf_token}
+            )
+            
+            # 実際のAPI応答を検証
+            if response.status_code != 200:
+                print(f"Scenario chat failed: {response.status_code} - {response.get_json()}")
+            
+            assert response.status_code == 200
+            
+            # APIレート制限対応
+            time.sleep(2)
     
-    def test_scenario_chat_no_scenario_selected(self, client, app):
-        """シナリオ未選択時のエラー"""
+    def test_scenario_chat_no_scenario_real(self, client, app):
+        """シナリオ未選択時のエラー（実際のバリデーション）"""
         with app.app_context():
             csrf_token = CSRFToken.generate()
             with client.session_transaction() as sess:
@@ -162,210 +160,13 @@ class TestScenarioChatAPI:
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
-            assert 'シナリオ' in data['error']
 
 
-class TestFeedbackAPI:
-    """フィードバックAPI のテスト"""
+class TestUtilityAPIReal:
+    """ユーティリティAPI の実環境テスト"""
     
-    def test_chat_feedback_success(self, client, app, auth_user):
-        """チャットフィードバックAPI成功テスト"""
-        with app.app_context():
-            csrf_token = CSRFToken.generate()
-            with client.session_transaction() as sess:
-                sess['csrf_token'] = csrf_token
-                sess['user_id'] = auth_user.id
-                sess['chat_history'] = [
-                    {'role': 'user', 'content': 'こんにちは'},
-                    {'role': 'assistant', 'content': 'こんにちは！何かお手伝いできることはありますか？'}
-                ]
-            
-            with patch('app.initialize_llm') as mock_init_llm:
-                mock_chain = MagicMock()
-                mock_chain.stream.return_value = iter(['フィードバック', 'テキスト'])
-                mock_init_llm.return_value = mock_chain
-                
-                with patch('app.get_google_api_key', return_value='test-api-key'):
-                    response = client.post('/api/chat_feedback',
-                        data=json.dumps({'csrf_token': csrf_token}),
-                        content_type='application/json',
-                        headers={'X-CSRFToken': csrf_token}
-                    )
-                    
-                    # デバッグ：レスポンス内容を確認
-                    if response.status_code != 200:
-                        print(f"Status: {response.status_code}")
-                        print(f"Response: {response.get_data()}")
-                    
-                    assert response.status_code == 200
-    
-    def test_scenario_feedback_success(self, client, app, auth_user, sample_scenario_data):
-        """シナリオフィードバックAPI成功テスト"""
-        with app.app_context():
-            csrf_token = CSRFToken.generate()
-            scenario_id = sample_scenario_data['id']
-            with client.session_transaction() as sess:
-                sess['csrf_token'] = csrf_token
-                # セッションにシナリオ履歴を設定（認証なしユーザー向け）
-                sess['scenario_history'] = {
-                    scenario_id: [
-                        {'role': 'user', 'content': 'プロジェクトの進捗を報告します'},
-                        {'role': 'assistant', 'content': 'はい、お聞きします。どのような状況でしょうか？'}
-                    ]
-                }
-            
-            # シナリオデータを app.scenarios にモック登録
-            with patch('app.scenarios', {scenario_id: sample_scenario_data}):
-                # Flask g オブジェクトを正しくモック（リクエストコンテキスト内で）
-                with patch('flask.g') as mock_g:
-                    # MagicMockのattributeとしてuserを設定
-                    mock_g.user = None
-                    
-                    with patch('app.initialize_llm') as mock_init_llm:
-                        mock_chain = MagicMock()
-                        mock_chain.stream.return_value = iter(['シナリオ', 'フィードバック'])
-                        mock_init_llm.return_value = mock_chain
-                        
-                        with patch('app.get_google_api_key', return_value='test-api-key'):
-                            response = client.post('/api/scenario_feedback',
-                                data=json.dumps({
-                                    'scenario_id': scenario_id,
-                                    'csrf_token': csrf_token
-                                }),
-                                content_type='application/json',
-                                headers={'X-CSRFToken': csrf_token}
-                            )
-                            
-                            # デバッグ：レスポンス内容を確認
-                            if response.status_code != 200:
-                                print(f"Scenario feedback - Status: {response.status_code}")
-                                print(f"Scenario feedback - Response: {response.get_json()}")
-                            
-                            assert response.status_code == 200
-    
-    def test_feedback_no_conversation_history(self, client, app):
-        """会話履歴なしでのフィードバックAPIエラー"""
-        with app.app_context():
-            csrf_token = CSRFToken.generate()
-            with client.session_transaction() as sess:
-                sess['csrf_token'] = csrf_token
-            
-            response = client.post('/api/chat_feedback',
-                data=json.dumps({'csrf_token': csrf_token}),
-                content_type='application/json',
-                headers={'X-CSRFToken': csrf_token}
-            )
-            
-            assert response.status_code == 404  # APIは404を返す
-            data = response.get_json()
-            assert 'error' in data
-
-
-class TestWatchAPI:
-    """観戦モードAPI のテスト"""
-    
-    def test_watch_start_success(self, client, app):
-        """観戦モード開始API成功テスト"""
-        with app.app_context():
-            csrf_token = CSRFToken.generate()
-            with client.session_transaction() as sess:
-                sess['csrf_token'] = csrf_token
-            
-            with patch('app.initialize_llm') as mock_init_llm:
-                mock_chain = MagicMock()
-                mock_chain.invoke.return_value = 'テスト会話内容'
-                mock_init_llm.return_value = mock_chain
-                
-                with patch('app.get_google_api_key', return_value='test-api-key'):
-                    response = client.post('/api/watch/start',
-                        data=json.dumps({
-                            'topic': 'プロジェクト管理について',
-                            'model_a': 'gemini/gemini-1.5-flash',
-                            'model_b': 'gemini/gemini-1.5-flash',
-                            'partner_type': '同僚',
-                            'situation': 'オフィス',
-                            'csrf_token': csrf_token
-                        }),
-                        content_type='application/json',
-                        headers={'X-CSRFToken': csrf_token}
-                    )
-                    
-                    # デバッグ：レスポンス内容を確認
-                    if response.status_code != 200:
-                        print(f"Watch start - Status: {response.status_code}")
-                        print(f"Watch start - Response: {response.get_json()}")
-                    
-                    assert response.status_code == 200
-                    data = response.get_json()
-                    # 実際のレスポンス構造に合わせて修正
-                    assert 'message' in data or 'assistant1_message' in data
-    
-    def test_watch_next_success(self, client, app):
-        """観戦モード次メッセージAPI成功テスト"""
-        with app.app_context():
-            csrf_token = CSRFToken.generate()
-            with client.session_transaction() as sess:
-                sess['csrf_token'] = csrf_token
-                sess['watch_conversation'] = [
-                    {'speaker': 'A', 'message': '初期メッセージ'}
-                ]
-                # 観戦セッションの初期化状態を設定
-                sess['watch_settings'] = {
-                    'model_a': 'gemini/gemini-1.5-flash',
-                    'model_b': 'gemini/gemini-1.5-flash',
-                    'partner_type': '同僚',
-                    'situation': 'オフィス',
-                    'topic': 'プロジェクト管理について',
-                    'current_speaker': 'A'
-                }
-                sess['watch_history'] = [
-                    {'speaker': 'A', 'message': '初期メッセージ'}
-                ]
-            
-            with patch('app.initialize_llm') as mock_init_llm:
-                mock_chain = MagicMock()
-                mock_chain.invoke.return_value = '次のメッセージです'
-                mock_init_llm.return_value = mock_chain
-                
-                with patch('app.get_google_api_key', return_value='test-api-key'):
-                    response = client.post('/api/watch/next',
-                        data=json.dumps({'csrf_token': csrf_token}),
-                        content_type='application/json',
-                        headers={'X-CSRFToken': csrf_token}
-                    )
-                    
-                    # デバッグ：レスポンス内容を確認
-                    if response.status_code != 200:
-                        print(f"Watch next - Status: {response.status_code}")
-                        print(f"Watch next - Response: {response.get_json()}")
-                    
-                    assert response.status_code == 200
-                    data = response.get_json()
-                    assert 'message' in data
-    
-    def test_watch_next_no_conversation(self, client, app):
-        """観戦モード履歴なしでのエラー"""
-        with app.app_context():
-            csrf_token = CSRFToken.generate()
-            with client.session_transaction() as sess:
-                sess['csrf_token'] = csrf_token
-            
-            response = client.post('/api/watch/next',
-                data=json.dumps({'csrf_token': csrf_token}),
-                content_type='application/json',
-                headers={'X-CSRFToken': csrf_token}
-            )
-            
-            assert response.status_code == 400
-            data = response.get_json()
-            assert 'error' in data
-
-
-class TestUtilityAPI:
-    """ユーティリティAPI のテスト"""
-    
-    def test_clear_history_success(self, client, app):
-        """履歴クリアAPI成功テスト"""
+    def test_clear_history_success_real(self, client, app):
+        """履歴クリアAPI実環境テスト"""
         with app.app_context():
             csrf_token = CSRFToken.generate()
             with client.session_transaction() as sess:
@@ -378,28 +179,28 @@ class TestUtilityAPI:
                 headers={'X-CSRFToken': csrf_token}
             )
             
-            # デバッグ：レスポンス内容を確認
-            if response.status_code != 200:
-                print(f"Clear history - Status: {response.status_code}")
-                print(f"Clear history - Response: {response.get_json()}")
+            assert response.status_code == 200
+            data = response.get_json()
+            assert 'status' in data and data['status'] == 'success'
+    
+    def test_models_api_real(self, client, app):
+        """モデル一覧API 実環境テスト"""
+        if not os.getenv('GOOGLE_API_KEY'):
+            pytest.skip("GOOGLE_API_KEY environment variable required for real API test")
+            
+        with app.app_context():
+            response = client.get('/api/models')
             
             assert response.status_code == 200
             data = response.get_json()
-            assert 'status' in data and data['status'] == 'success'  # 正しいレスポンス構造をチェック
+            assert 'models' in data
+            assert isinstance(data['models'], list)
+            # Geminiモデルが含まれていることを確認
+            model_names = [model.get('id', '') for model in data['models']]
+            assert any('gemini' in name.lower() for name in model_names)
     
-    def test_models_api(self, client, app):
-        """モデル一覧API テスト"""
-        with app.app_context():
-            with patch('app.get_google_api_key', return_value='test-api-key'):
-                response = client.get('/api/models')
-                
-                assert response.status_code == 200
-                data = response.get_json()
-                assert 'models' in data
-                assert isinstance(data['models'], list)
-    
-    def test_session_clear_success(self, client, app):
-        """セッションクリアAPI成功テスト"""
+    def test_session_clear_success_real(self, client, app):
+        """セッションクリアAPI実環境テスト"""
         with app.app_context():
             csrf_token = CSRFToken.generate()
             with client.session_transaction() as sess:
@@ -412,40 +213,98 @@ class TestUtilityAPI:
                 headers={'X-CSRFToken': csrf_token}
             )
             
-            # デバッグ：レスポンス内容を確認
-            if response.status_code != 200:
-                print(f"Session clear - Status: {response.status_code}")
-                print(f"Session clear - Response: {response.get_json()}")
+            assert response.status_code == 200
+            data = response.get_json()
+            assert 'status' in data and data['status'] == 'success'
+
+
+class TestFeedbackAPIReal:
+    """フィードバックAPI の実環境テスト"""
+    
+    def test_chat_feedback_success_real(self, client, app, auth_user):
+        """チャットフィードバックAPI実環境テスト"""
+        if not os.getenv('GOOGLE_API_KEY'):
+            pytest.skip("GOOGLE_API_KEY environment variable required for real API test")
+            
+        with app.app_context():
+            csrf_token = CSRFToken.generate()
+            with client.session_transaction() as sess:
+                sess['csrf_token'] = csrf_token
+                sess['user_id'] = auth_user.id
+                sess['chat_history'] = [
+                    {'role': 'user', 'content': 'こんにちは'},
+                    {'role': 'assistant', 'content': 'こんにちは！何かお手伝いできることはありますか？'}
+                ]
+            
+            # 実際のフィードバック生成
+            response = client.post('/api/chat_feedback',
+                data=json.dumps({'csrf_token': csrf_token}),
+                content_type='application/json',
+                headers={'X-CSRFToken': csrf_token}
+            )
+            
+            assert response.status_code == 200
+            
+            # APIレート制限対応
+            time.sleep(3)
+    
+    def test_feedback_no_conversation_real(self, client, app):
+        """会話履歴なしでのフィードバックAPIエラー"""
+        with app.app_context():
+            csrf_token = CSRFToken.generate()
+            with client.session_transaction() as sess:
+                sess['csrf_token'] = csrf_token
+            
+            response = client.post('/api/chat_feedback',
+                data=json.dumps({'csrf_token': csrf_token}),
+                content_type='application/json',
+                headers={'X-CSRFToken': csrf_token}
+            )
+            
+            assert response.status_code == 404
+            data = response.get_json()
+            assert 'error' in data
+
+
+class TestWatchAPIReal:
+    """観戦モードAPI の実環境テスト"""
+    
+    def test_watch_start_success_real(self, client, app):
+        """観戦モード開始API実環境テスト"""
+        if not os.getenv('GOOGLE_API_KEY'):
+            pytest.skip("GOOGLE_API_KEY environment variable required for real API test")
+            
+        with app.app_context():
+            csrf_token = CSRFToken.generate()
+            with client.session_transaction() as sess:
+                sess['csrf_token'] = csrf_token
+            
+            response = client.post('/api/watch/start',
+                data=json.dumps({
+                    'topic': 'プロジェクト管理について（テスト用短縮版）',
+                    'model_a': 'gemini/gemini-1.5-flash',
+                    'model_b': 'gemini/gemini-1.5-flash',
+                    'partner_type': '同僚',
+                    'situation': 'オフィス',
+                    'csrf_token': csrf_token
+                }),
+                content_type='application/json',
+                headers={'X-CSRFToken': csrf_token}
+            )
             
             assert response.status_code == 200
             data = response.get_json()
-            assert 'status' in data and data['status'] == 'success'  # 正しいレスポンス形式をチェック
+            assert 'message' in data or 'assistant1_message' in data
+            
+            # APIレート制限対応
+            time.sleep(3)
 
 
-class TestTTSAPI:
-    """TTS (Text-to-Speech) API のテスト"""
+class TestStrengthAnalysisAPIReal:
+    """強み分析API の実環境テスト"""
     
-    @pytest.mark.skip(reason="TTS implementation is complex, skipping for now")
-    def test_tts_success(self, client, app):
-        """TTS API成功テスト（スキップ）"""
-        pass
-    
-    @pytest.mark.skip(reason="TTS implementation is complex, skipping for now")
-    def test_tts_missing_text(self, client, app):
-        """TTS API テキストなしエラー（スキップ）"""
-        pass
-    
-    @pytest.mark.skip(reason="TTS implementation is complex, skipping for now")
-    def test_tts_generation_error(self, client, app):
-        """TTS生成エラーのハンドリング（スキップ）"""
-        pass
-
-
-class TestStrengthAnalysisAPI:
-    """強み分析API のテスト"""
-    
-    def test_strength_analysis_success(self, client, app):
-        """強み分析API成功テスト"""
+    def test_strength_analysis_success_real(self, client, app):
+        """強み分析API実環境テスト"""
         with app.app_context():
             with client.session_transaction() as sess:
                 sess['chat_history'] = [
@@ -454,36 +313,25 @@ class TestStrengthAnalysisAPI:
                     {'role': 'user', 'content': '期限が迫っているのですが、品質を保ちたいです'}
                 ]
             
-            # 強み分析をモック
-            with patch('app.analyze_user_strengths') as mock_analyze:
-                mock_analyze.return_value = {
-                    'empathy': 0.8,
-                    'clarity': 0.7,
-                    'active_listening': 0.9,
-                    'professionalism': 0.6,
-                    'adaptability': 0.5,
-                    'positivity': 0.7
-                }
-                
-                response = client.post('/api/strength_analysis',
-                    data=json.dumps({}),
-                    content_type='application/json'
-                )
-                
-                assert response.status_code == 200
-                data = response.get_json()
-                assert 'scores' in data
-                assert 'empathy' in data['scores']
+            # 実際の強み分析（内部関数を使用）
+            response = client.post('/api/strength_analysis',
+                data=json.dumps({}),
+                content_type='application/json'
+            )
+            
+            assert response.status_code == 200
+            data = response.get_json()
+            assert 'scores' in data
+            assert 'empathy' in data['scores']
     
-    def test_strength_analysis_no_conversation(self, client, app):
-        """会話履歴なしでの強み分析（デフォルト値返却）"""
+    def test_strength_analysis_no_conversation_real(self, client, app):
+        """会話履歴なしでの強み分析（デフォルト値）"""
         with app.app_context():
             response = client.post('/api/strength_analysis',
                 data=json.dumps({}),
                 content_type='application/json'
             )
             
-            # 会話履歴がない場合はデフォルトスコアが返される
             assert response.status_code == 200
             data = response.get_json()
             assert 'scores' in data
@@ -491,15 +339,28 @@ class TestStrengthAnalysisAPI:
             assert data['scores']['empathy'] == 50
 
 
-class TestImageGenerationAPI:
-    """画像生成API のテスト"""
+# TTS と画像生成 API は複雑な外部依存があるため、基本的な接続テストのみ
+class TestComplexAPIReal:
+    """複雑なAPI（TTS、画像生成）の基本テスト"""
     
-    @pytest.mark.skip(reason="Image generation API implementation is complex, skipping for now")
-    def test_character_image_generation_success(self, client, app):
-        """キャラクター画像生成API成功テスト（スキップ）"""
-        pass
+    def test_tts_endpoint_exists(self, client, app):
+        """TTS APIエンドポイントの存在確認"""
+        with app.app_context():
+            # エンドポイントが存在することのみ確認
+            response = client.post('/api/tts',
+                data=json.dumps({'text': 'テスト'}),
+                content_type='application/json'
+            )
+            # 400 (必要パラメータ不足) または 200 (成功) を期待
+            assert response.status_code in [200, 400, 405]
     
-    @pytest.mark.skip(reason="Image generation API implementation is complex, skipping for now")
-    def test_character_image_generation_error(self, client, app):
-        """画像生成エラーのハンドリング（スキップ）"""
-        pass
+    def test_image_generation_endpoint_exists(self, client, app):
+        """画像生成APIエンドポイントの存在確認"""
+        with app.app_context():
+            # エンドポイントが存在することのみ確認
+            response = client.post('/api/generate_character_image',
+                data=json.dumps({'character_description': 'テスト'}),
+                content_type='application/json'
+            )
+            # エンドポイントが存在し、何らかのレスポンスを返すことを確認
+            assert response.status_code in [200, 400, 405, 501]

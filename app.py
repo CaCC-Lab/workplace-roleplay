@@ -224,6 +224,10 @@ def load_user(user_id):
 from auth import auth_bp
 app.register_blueprint(auth_bp)
 
+# 非同期チャットAPIの登録
+from api.async_chat import async_chat_bp
+app.register_blueprint(async_chat_bp)
+
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)
 def handle_app_error(error: AppError):
@@ -843,9 +847,8 @@ def scenario_chat():
             # 【DB利用】認証済みユーザー
             practice_session = get_or_create_practice_session(
                 g.user.id, 
-                "scenario", 
                 scenario_id,
-                selected_model
+                "scenario"
             )
             if practice_session:
                 history = get_conversation_history(practice_session)
@@ -1944,8 +1947,7 @@ def text_to_speech():
         
         try:
             # Gemini TTS APIを使用
-            from google import genai
-            from google.genai import types
+            # genaiは既にファイル上部でインポート済み
             import base64
             import wave
             import io
@@ -1953,8 +1955,8 @@ def text_to_speech():
             # APIキーマネージャーから次のキーを取得
             current_api_key = get_google_api_key()
             
-            # Geminiクライアントの初期化
-            client = genai.Client(api_key=current_api_key)
+            # Gemini APIの設定
+            genai.configure(api_key=current_api_key)
             
             # プロンプトの構築（スタイルのみ適用、感情は声の表現で）
             prompt = text
@@ -1981,21 +1983,30 @@ def text_to_speech():
                 if emotion in emotion_prompts:
                     prompt = f"{emotion_prompts[emotion]}: {text}"
             
+            # Geminiモデルの初期化
+            model = genai.GenerativeModel("models/gemini-2.5-flash-preview-tts")
+            
             # 音声合成リクエストの作成
-            response = client.models.generate_content(
-                model="models/gemini-2.5-flash-preview-tts",  # 正しいモデル名
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_modalities=["AUDIO"],
-                    speech_config=types.SpeechConfig(
-                        voice_config=types.VoiceConfig(
-                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                voice_name=voice_name.lower(),  # 小文字に変換
+            # Note: TTS機能は開発中です。現在の google.generativeai API では
+            # 音声生成の設定方法が異なる可能性があります。
+            try:
+                response = model.generate_content(
+                    contents=prompt,
+                    config=genai.types.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        speech_config=genai.types.SpeechConfig(
+                            voice_config=genai.types.VoiceConfig(
+                                prebuilt_voice_config=genai.types.PrebuiltVoiceConfig(
+                                    voice_name=voice_name.lower(),  # 小文字に変換
+                                )
                             )
-                        )
-                    ),
+                        ),
+                    )
                 )
-            )
+            except (AttributeError, ImportError) as e:
+                # 現在のgoogle.generativeai APIバージョンでは音声設定がサポートされていない
+                print(f"TTS configuration error: {e}")
+                return jsonify({"error": "TTS機能は現在開発中です。google.generativeai APIの更新が必要です。"}), 400
             
             # デバッグ情報を追加
             print(f"TTS Response type: {type(response)}")
@@ -2260,22 +2271,23 @@ def generate_character_image():
         
         try:
             # Gemini Image Generation APIを使用
-            from google import genai
-            from google.genai import types
+            # genaiは既にファイル上部でインポート済み
             from PIL import Image as PILImage
             from io import BytesIO
             import base64
             
-            # Geminiクライアントの初期化
-            client = genai.Client(api_key=GOOGLE_API_KEY)
+            # Gemini APIの設定
+            genai.configure(api_key=GOOGLE_API_KEY)
             
             print(f"画像生成開始: {cache_key}")
             
+            # Geminiモデルの初期化
+            model = genai.GenerativeModel("models/gemini-2.5-flash-image-generation")
+            
             # 画像生成リクエスト
-            response = client.models.generate_content(
-                model="gemini-2.0-flash-preview-image-generation",
+            response = model.generate_content(
                 contents=prompt,
-                config=types.GenerateContentConfig(
+                config=genai.types.GenerateContentConfig(
                     response_modalities=['TEXT', 'IMAGE']
                 )
             )

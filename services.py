@@ -794,8 +794,15 @@ def get_or_create_practice_session(user_id: Optional[int], scenario_id: Optional
         
         # 最新セッションが1時間以内なら再利用
         if existing_session:
-            from datetime import datetime, timedelta
-            if existing_session.started_at > datetime.utcnow() - timedelta(hours=1):
+            from datetime import datetime, timedelta, timezone
+            now_utc = datetime.now(timezone.utc)
+            
+            # started_atがtimezone-naiveの場合はUTCとして扱う
+            started_at = existing_session.started_at
+            if started_at.tzinfo is None:
+                started_at = started_at.replace(tzinfo=timezone.utc)
+            
+            if started_at > now_utc - timedelta(hours=1):
                 return existing_session
         
         # 新しいセッションを作成
