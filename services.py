@@ -7,6 +7,7 @@ app.pyから循環インポートを排除するためのレイヤー
 import logging
 from typing import Optional, List, Dict, Any
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
 from models import db, Scenario, PracticeSession, ConversationLog, User, SessionType, StrengthAnalysis, Achievement, UserAchievement
 from errors import NotFoundError, AppError, ValidationError
 from database import sync_scenarios_from_yaml
@@ -145,7 +146,9 @@ class SessionService:
     def get_user_sessions(user_id: int, limit: int = 10) -> List[PracticeSession]:
         """ユーザーの練習セッション履歴を取得"""
         try:
+            # N+1問題を回避するため、関連するscenarioを事前にロード
             return PracticeSession.query.filter_by(user_id=user_id)\
+                                       .options(joinedload(PracticeSession.scenario))\
                                        .order_by(PracticeSession.started_at.desc())\
                                        .limit(limit).all()
         except SQLAlchemyError as e:
@@ -500,50 +503,82 @@ class StrengthAnalysisService:
     
     @staticmethod
     def _check_achievements(user_id: int, analysis: StrengthAnalysis):
-        """分析結果に基づいてアチーブメントをチェック"""
+        """分析結果に基づいてアチーブメントをチェック（N+1最適化版）"""
         try:
-            # スキル系アチーブメントのチェック
+            # スキル系アチーブメントのスコアを定義
             skill_achievements = {
                 'skill_empathy': analysis.empathy,
                 'skill_clarity': analysis.clarity,
                 'skill_listening': analysis.listening
             }
             
-            for threshold_type, score in skill_achievements.items():
-                if score >= 0.8:  # 80%以上
-                    # 該当するアチーブメントを検索
-                    achievement = Achievement.query.filter_by(
-                        threshold_type=threshold_type,
-                        is_active=True
-                    ).first()
+            # 80%以上のスキルのみ対象
+            high_skill_types = [skill_type for skill_type, score in skill_achievements.items() if score >= 0.8]
+            
+            if not high_skill_types:
+                return  # 対象スキルがない場合は早期リターン
+            
+            # 必要なアチーブメントを一括取得
+            achievements = Achievement.query.filter(
+                Achievement.threshold_type.in_(high_skill_types),
+                Achievement.is_active == True
+            ).all()
+            
+            if not achievements:
+                return  # アチーブメントがない場合は早期リターン
+            
+            # アチーブメントIDのリスト作成
+            achievement_ids = [a.id for a in achievements]
+            
+            # ユーザーの既存アチーブメントを一括取得
+            existing_user_achievements = UserAchievement.query.filter(
+                UserAchievement.user_id == user_id,
+                UserAchievement.achievement_id.in_(achievement_ids)
+            ).all()
+            
+            # 既存アチーブメントをIDでマッピング
+            existing_map = {ua.achievement_id: ua for ua in existing_user_achievements}
+            
+            # 新規追加用のリスト
+            new_achievements = []
+            
+            # アチーブメントごとにチェック
+            for achievement in achievements:
+                score = skill_achievements.get(achievement.threshold_type, 0)
+                
+                if achievement.id in existing_map:
+                    # 既存のアチーブメント進捗を更新
+                    user_achievement = existing_map[achievement.id]
+                    user_achievement.progress += 1
                     
-                    if achievement:
-                        # ユーザーのアチーブメント進捗を更新
-                        user_achievement = UserAchievement.query.filter_by(
-                            user_id=user_id,
-                            achievement_id=achievement.id
-                        ).first()
-                        
-                        if not user_achievement:
-                            user_achievement = UserAchievement(
-                                user_id=user_id,
-                                achievement_id=achievement.id,
-                                progress=0
-                            )
-                            db.session.add(user_achievement)
-                        
-                        # 進捗を更新
-                        user_achievement.progress += 1
-                        
-                        # 閾値に達したら解除
-                        if user_achievement.progress >= achievement.threshold_value and not user_achievement.unlocked_at:
-                            user_achievement.unlocked_at = db.func.now()
-                            logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                    # 閾値に達したら解除
+                    if user_achievement.progress >= achievement.threshold_value and not user_achievement.unlocked_at:
+                        user_achievement.unlocked_at = db.func.now()
+                        logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                else:
+                    # 新規アチーブメントとして追加
+                    user_achievement = UserAchievement(
+                        user_id=user_id,
+                        achievement_id=achievement.id,
+                        progress=1  # 初回は1
+                    )
+                    
+                    # 閾値が1の場合は即座に解除
+                    if achievement.threshold_value <= 1:
+                        user_achievement.unlocked_at = db.func.now()
+                        logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                    
+                    new_achievements.append(user_achievement)
+            
+            # 新規アチーブメントを一括追加
+            if new_achievements:
+                db.session.add_all(new_achievements)
             
             db.session.commit()
             
         except Exception as e:
             logger.error(f"アチーブメントチェックエラー: {e}")
+            db.session.rollback()
             # アチーブメントチェックの失敗は分析保存を妨げない
 
 
@@ -622,68 +657,104 @@ class AchievementService:
     
     @staticmethod
     def _check_session_achievements(user_id: int, event_data: Dict[str, Any]) -> List[Achievement]:
-        """セッション完了系のアチーブメントをチェック"""
+        """セッション完了系のアチーブメントをチェック（N+1最適化版）"""
         unlocked = []
         
         try:
+            from datetime import datetime
+            
             # セッション数カウント
             session_count = PracticeSession.query.filter_by(
                 user_id=user_id,
                 is_completed=True
             ).count()
             
-            # セッションカウント系アチーブメント
-            count_achievements = Achievement.query.filter_by(
-                threshold_type='session_count',
-                is_active=True
+            # チェック対象のアチーブメントタイプを定義
+            threshold_types = ['session_count']
+            
+            # 時間帯別アチーブメントの条件チェック
+            current_hour = datetime.now().hour
+            if 6 <= current_hour < 9:
+                threshold_types.append('morning_practice')
+            elif current_hour >= 22:
+                threshold_types.append('night_practice')
+            
+            # 週末チェック
+            if datetime.now().weekday() >= 5:  # 土日
+                threshold_types.append('weekend_practice')
+            
+            # 関連する全アチーブメントを一括取得
+            achievements = Achievement.query.filter(
+                Achievement.threshold_type.in_(threshold_types),
+                Achievement.is_active == True
             ).all()
             
-            for achievement in count_achievements:
-                if session_count >= achievement.threshold_value:
-                    if AchievementService._unlock_achievement(user_id, achievement.id):
-                        unlocked.append(achievement)
+            if not achievements:
+                return unlocked
             
-            # 時間帯別アチーブメント
-            from datetime import datetime
-            current_hour = datetime.now().hour
+            # アチーブメントIDのリスト作成
+            achievement_ids = [a.id for a in achievements]
             
-            if 6 <= current_hour < 9:
-                morning_achievement = Achievement.query.filter_by(
-                    threshold_type='morning_practice',
-                    is_active=True
-                ).first()
-                if morning_achievement and AchievementService._unlock_achievement(user_id, morning_achievement.id):
-                    unlocked.append(morning_achievement)
+            # 既存のユーザーアチーブメントを一括取得
+            existing_achievements = db.session.query(UserAchievement.achievement_id).filter(
+                UserAchievement.user_id == user_id,
+                UserAchievement.achievement_id.in_(achievement_ids),
+                UserAchievement.unlocked_at.isnot(None)
+            ).all()
             
-            elif current_hour >= 22:
-                night_achievement = Achievement.query.filter_by(
-                    threshold_type='night_practice',
-                    is_active=True
-                ).first()
-                if night_achievement and AchievementService._unlock_achievement(user_id, night_achievement.id):
-                    unlocked.append(night_achievement)
+            # 既に解除済みのIDのセット作成
+            unlocked_ids = {ua[0] for ua in existing_achievements}
             
-            # 週末練習
-            if datetime.now().weekday() >= 5:  # 土日
-                weekend_achievement = Achievement.query.filter_by(
-                    threshold_type='weekend_practice',
-                    is_active=True
-                ).first()
-                if weekend_achievement and AchievementService._unlock_achievement(user_id, weekend_achievement.id):
-                    unlocked.append(weekend_achievement)
+            # 新規解除用のリスト
+            new_unlocks = []
+            
+            # 各アチーブメントをチェック
+            for achievement in achievements:
+                # 既に解除済みならスキップ
+                if achievement.id in unlocked_ids:
+                    continue
+                
+                # 条件チェック
+                should_unlock = False
+                
+                if achievement.threshold_type == 'session_count' and session_count >= achievement.threshold_value:
+                    should_unlock = True
+                elif achievement.threshold_type in ['morning_practice', 'night_practice', 'weekend_practice']:
+                    # 時間帯・曜日系はタイプが存在することで条件満たしている
+                    should_unlock = True
+                
+                if should_unlock:
+                    new_unlocks.append({
+                        'user_id': user_id,
+                        'achievement_id': achievement.id,
+                        'progress': session_count if achievement.threshold_type == 'session_count' else 1,
+                        'unlocked_at': datetime.now()
+                    })
+                    unlocked.append(achievement)
+            
+            # 新規アチーブメントを一括挿入
+            if new_unlocks:
+                db.session.bulk_insert_mappings(UserAchievement, new_unlocks)
+                db.session.commit()
+                
+                for achievement in unlocked:
+                    logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
             
             return unlocked
             
         except Exception as e:
             logger.error(f"セッションアチーブメントチェックエラー: {e}")
+            db.session.rollback()
             return unlocked
     
     @staticmethod
     def _check_scenario_achievements(user_id: int, event_data: Dict[str, Any]) -> List[Achievement]:
-        """シナリオ完了系のアチーブメントをチェック"""
+        """シナリオ完了系のアチーブメントをチェック（N+1最適化版）"""
         unlocked = []
         
         try:
+            from datetime import datetime
+            
             # シナリオ完了数カウント
             completed_scenarios = db.session.query(
                 db.func.count(db.distinct(PracticeSession.scenario_id))
@@ -693,31 +764,74 @@ class AchievementService:
                 PracticeSession.scenario_id.isnot(None)
             ).scalar()
             
-            # シナリオ完了系アチーブメント
+            # シナリオ完了系アチーブメントを一括取得
             scenario_achievements = Achievement.query.filter(
                 Achievement.threshold_type.in_(['scenario_complete', 'unique_scenarios', 'all_scenarios']),
                 Achievement.is_active == True
             ).all()
             
+            if not scenario_achievements:
+                return unlocked
+            
+            # all_scenariosタイプがある場合のみ総シナリオ数を取得
+            total_scenarios = None
+            if any(a.threshold_type == 'all_scenarios' for a in scenario_achievements):
+                total_scenarios = Scenario.query.filter_by(is_active=True).count()
+            
+            # アチーブメントIDのリスト作成
+            achievement_ids = [a.id for a in scenario_achievements]
+            
+            # 既存のユーザーアチーブメントを一括取得
+            existing_achievements = db.session.query(UserAchievement.achievement_id).filter(
+                UserAchievement.user_id == user_id,
+                UserAchievement.achievement_id.in_(achievement_ids),
+                UserAchievement.unlocked_at.isnot(None)
+            ).all()
+            
+            # 既に解除済みのIDのセット作成
+            unlocked_ids = {ua[0] for ua in existing_achievements}
+            
+            # 新規解除用のリスト
+            new_unlocks = []
+            
+            # 各アチーブメントをチェック
             for achievement in scenario_achievements:
+                # 既に解除済みならスキップ
+                if achievement.id in unlocked_ids:
+                    continue
+                
+                # 条件チェック
+                should_unlock = False
+                
                 if achievement.threshold_type == 'scenario_complete' and completed_scenarios >= 1:
-                    if AchievementService._unlock_achievement(user_id, achievement.id):
-                        unlocked.append(achievement)
-                
+                    should_unlock = True
                 elif achievement.threshold_type == 'unique_scenarios' and completed_scenarios >= achievement.threshold_value:
-                    if AchievementService._unlock_achievement(user_id, achievement.id):
-                        unlocked.append(achievement)
+                    should_unlock = True
+                elif achievement.threshold_type == 'all_scenarios' and total_scenarios and completed_scenarios >= total_scenarios:
+                    should_unlock = True
                 
-                elif achievement.threshold_type == 'all_scenarios':
-                    total_scenarios = Scenario.query.filter_by(is_active=True).count()
-                    if completed_scenarios >= total_scenarios:
-                        if AchievementService._unlock_achievement(user_id, achievement.id):
-                            unlocked.append(achievement)
+                if should_unlock:
+                    new_unlocks.append({
+                        'user_id': user_id,
+                        'achievement_id': achievement.id,
+                        'progress': completed_scenarios,
+                        'unlocked_at': datetime.now()
+                    })
+                    unlocked.append(achievement)
+            
+            # 新規アチーブメントを一括挿入
+            if new_unlocks:
+                db.session.bulk_insert_mappings(UserAchievement, new_unlocks)
+                db.session.commit()
+                
+                for achievement in unlocked:
+                    logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
             
             return unlocked
             
         except Exception as e:
             logger.error(f"シナリオアチーブメントチェックエラー: {e}")
+            db.session.rollback()
             return unlocked
     
     @staticmethod
