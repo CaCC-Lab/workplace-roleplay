@@ -9,6 +9,7 @@ from werkzeug.urls import url_parse
 from models import db, User
 from forms import LoginForm, RegistrationForm
 from services import UserService
+from utils.security import CSRFToken
 import logging
 
 logger = logging.getLogger(__name__)
@@ -84,8 +85,9 @@ def register():
     return render_template('auth/register.html', title='ユーザー登録', form=form)
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 @login_required
+@CSRFToken.require_csrf
 def logout():
     """ログアウト"""
     username = current_user.username
