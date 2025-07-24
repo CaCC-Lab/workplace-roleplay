@@ -35,6 +35,67 @@ class TestCSRFToken:
             assert token not in tokens
             tokens.add(token)
     
+    def test_token_expiration(self):
+        """CSRFトークンの有効期限テスト"""
+        app = Flask(__name__)
+        app.secret_key = 'test_secret_key_for_testing'
+        
+        with app.test_client() as client:
+            with client.session_transaction() as sess:
+                # 新しいトークンを生成
+                token = CSRFToken.refresh(sess)
+                
+                # 即座の検証は成功すべき
+                assert CSRFToken.validate(token, sess) is True
+                
+                # 有効期限を過ぎたトークンをシミュレート
+                sess['csrf_token']['created_at'] = time.time() - CSRFToken.TOKEN_LIFETIME - 1
+                
+                # 期限切れトークンの検証は失敗すべき
+                assert CSRFToken.validate(token, sess) is False
+    
+    def test_token_refresh_updates_timestamp(self):
+        """トークンリフレッシュ時のタイムスタンプ更新テスト"""
+        app = Flask(__name__)
+        app.secret_key = 'test_secret_key_for_testing'
+        
+        with app.test_client() as client:
+            with client.session_transaction() as sess:
+                # 初回トークン生成
+                token1 = CSRFToken.refresh(sess)
+                timestamp1 = sess['csrf_token']['created_at']
+                
+                # 少し待機
+                time.sleep(0.1)
+                
+                # トークンをリフレッシュ
+                token2 = CSRFToken.refresh(sess)
+                timestamp2 = sess['csrf_token']['created_at']
+                
+                # 新しいトークンと新しいタイムスタンプであることを確認
+                assert token1 != token2
+                assert timestamp2 > timestamp1
+    
+    def test_backward_compatibility(self):
+        """旧形式トークンとの後方互換性テスト"""
+        app = Flask(__name__)
+        app.secret_key = 'test_secret_key_for_testing'
+        
+        with app.test_client() as client:
+            with client.session_transaction() as sess:
+                # 旧形式のトークン（文字列）を直接設定
+                old_token = CSRFToken.generate()
+                sess['csrf_token'] = old_token
+                
+                # 旧形式トークンの検証が成功することを確認
+                assert CSRFToken.validate(old_token, sess) is True
+                
+                # get_or_createが旧形式を新形式に移行することを確認
+                new_token = CSRFToken.get_or_create(sess)
+                assert isinstance(sess['csrf_token'], dict)
+                assert 'token' in sess['csrf_token']
+                assert 'created_at' in sess['csrf_token']
+    
     def test_validate_token_valid(self):
         """有効なCSRFトークンの検証テスト"""
         app = Flask(__name__)
@@ -122,7 +183,9 @@ class TestCSRFToken:
                 
                 # 新しいトークンが生成されていることを確認
                 assert new_token != old_token
-                assert sess['csrf_token'] == new_token
+                assert isinstance(sess['csrf_token'], dict)
+                assert sess['csrf_token']['token'] == new_token
+                assert 'created_at' in sess['csrf_token']
                 
                 # 古いトークンは無効になっていることを確認
                 assert CSRFToken.validate(old_token, sess) is False
