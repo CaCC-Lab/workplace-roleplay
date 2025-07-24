@@ -31,13 +31,14 @@ class RedisSSEBridge:
         )
         self.pubsub = None
     
-    def stream_channel(self, channel: str, timeout: int = 300) -> Generator[str, None, None]:
+    def stream_channel(self, channel: str, timeout: int = 300, heartbeat_interval: int = 15) -> Generator[str, None, None]:
         """
         Redisチャンネルからメッセージを受信してSSE形式で配信
         
         Args:
             channel: 購読するRedisチャンネル
             timeout: タイムアウト秒数（デフォルト: 5分）
+            heartbeat_interval: ハートビート間隔（秒、デフォルト: 15秒）
             
         Yields:
             SSE形式のメッセージ
@@ -46,6 +47,7 @@ class RedisSSEBridge:
         self.pubsub.subscribe(channel)
         
         start_time = time.time()
+        last_heartbeat = start_time
         
         try:
             # 初期接続メッセージ
@@ -53,8 +55,10 @@ class RedisSSEBridge:
             
             # メッセージの受信ループ
             while True:
+                current_time = time.time()
+                
                 # タイムアウトチェック
-                if time.time() - start_time > timeout:
+                if current_time - start_time > timeout:
                     yield self._format_sse({
                         'type': 'timeout',
                         'message': 'Connection timeout'
@@ -87,9 +91,13 @@ class RedisSSEBridge:
                             'content': message['data']
                         })
                 
-                # ハートビート（15秒ごと）
-                if int(time.time() - start_time) % 15 == 0:
-                    yield self._format_sse({'type': 'heartbeat'})
+                # ハートビート（指定間隔ごと）
+                if current_time - last_heartbeat >= heartbeat_interval:
+                    yield self._format_sse({
+                        'type': 'heartbeat',
+                        'timestamp': current_time
+                    })
+                    last_heartbeat = current_time
                     
         except Exception as e:
             logger.error(f"Redis SSE streaming error: {str(e)}", exc_info=True)
@@ -118,13 +126,14 @@ class RedisSSEBridge:
             return f"data: {json_data}\n\n"
     
     @staticmethod
-    def create_sse_response(channel: str, timeout: int = 300) -> Response:
+    def create_sse_response(channel: str, timeout: int = 300, heartbeat_interval: int = 15) -> Response:
         """
         SSEレスポンスを作成
         
         Args:
             channel: Redisチャンネル
             timeout: タイムアウト秒数
+            heartbeat_interval: ハートビート間隔（秒）
             
         Returns:
             Flask Response オブジェクト
@@ -133,7 +142,7 @@ class RedisSSEBridge:
         
         def generate():
             """SSEジェネレータ"""
-            for message in bridge.stream_channel(channel, timeout):
+            for message in bridge.stream_channel(channel, timeout, heartbeat_interval):
                 yield message
         
         return Response(

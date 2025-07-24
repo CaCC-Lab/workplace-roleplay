@@ -95,6 +95,7 @@ from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnect
 # データベース関連のインポート
 from database import init_database, create_initial_data
 from models import User, db
+from utils.transaction import managed_session
 
 # サービスレイヤーのインポート（循環インポート解決）
 from services import (
@@ -227,6 +228,10 @@ app.register_blueprint(auth_bp)
 # 非同期チャットAPIの登録
 from api.async_chat import async_chat_bp
 app.register_blueprint(async_chat_bp)
+
+# タスク進捗監視APIの登録
+from routes.task_progress import progress_bp
+app.register_blueprint(progress_bp)
 
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)
@@ -2587,17 +2592,17 @@ def update_feedback_with_strength_analysis(feedback_response, session_type, scen
                     )
                     
                     if session_obj:
-                        # 強み分析を保存
-                        analysis = StrengthAnalysisService.save_analysis(
-                            session_id=session_obj.id,
-                            analysis_result=scores,
-                            feedback_text=feedback_response.get("feedback", "")
-                        )
-                        
-                        # セッションを完了としてマーク
-                        session_obj.is_completed = True
-                        session_obj.ended_at = db.func.now()
-                        db.session.commit()
+                        # 強み分析を保存し、セッションを完了としてマーク
+                        with managed_session() as session:
+                            analysis = StrengthAnalysisService.save_analysis(
+                                session_id=session_obj.id,
+                                analysis_result=scores,
+                                feedback_text=feedback_response.get("feedback", "")
+                            )
+                            
+                            # セッションを完了としてマーク
+                            session_obj.is_completed = True
+                            session_obj.ended_at = db.func.now()
                         
                         # アチーブメントチェック
                         unlocked_achievements = []

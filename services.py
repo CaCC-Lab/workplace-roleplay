@@ -7,9 +7,11 @@ app.pyから循環インポートを排除するためのレイヤー
 import logging
 from typing import Optional, List, Dict, Any
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
 from models import db, Scenario, PracticeSession, ConversationLog, User, SessionType, StrengthAnalysis, Achievement, UserAchievement
 from errors import NotFoundError, AppError, ValidationError
 from database import sync_scenarios_from_yaml
+from utils.transaction import managed_session
 
 logger = logging.getLogger(__name__)
 
@@ -88,36 +90,37 @@ class SessionService:
     ) -> PracticeSession:
         """新しい練習セッションを作成"""
         try:
-            # セッションタイプの検証
-            try:
-                session_type_enum = SessionType(session_type)
-            except ValueError as e:
-                raise ValidationError(f"無効なセッションタイプです: {session_type}") from e
-            
-            # シナリオIDの検証（指定された場合）
-            if scenario_id:
-                scenario = ScenarioService.get_by_id(scenario_id)
-                if not scenario:
-                    raise NotFoundError("シナリオ", str(scenario_id))
-            
-            session = PracticeSession(
-                user_id=user_id,
-                session_type=session_type_enum,
-                scenario_id=scenario_id,
-                ai_model=ai_model
-            )
-            
-            db.session.add(session)
-            db.session.commit()
-            
-            logger.info(f"練習セッション作成完了: {session.id}")
-            return session
+            with managed_session():
+                # セッションタイプの検証
+                try:
+                    session_type_enum = SessionType(session_type)
+                except ValueError as e:
+                    raise ValidationError(f"無効なセッションタイプです: {session_type}") from e
+                
+                # シナリオIDの検証（指定された場合）
+                if scenario_id:
+                    scenario = ScenarioService.get_by_id(scenario_id)
+                    if not scenario:
+                        raise NotFoundError("シナリオ", str(scenario_id))
+                
+                session = PracticeSession(
+                    user_id=user_id,
+                    session_type=session_type_enum,
+                    scenario_id=scenario_id,
+                    ai_model=ai_model
+                )
+                
+                db.session.add(session)
+                # commit は managed_session が自動的に行う
+                
+                logger.info(f"練習セッション作成完了: {session.id}")
+                return session
             
         except AppError:
-            db.session.rollback()
+            # rollback は managed_session が自動的に行う
             raise
         except SQLAlchemyError as e:
-            db.session.rollback()
+            # rollback は managed_session が自動的に行う
             logger.error(f"練習セッション作成エラー: {e}")
             raise AppError(
                 message="練習セッションの作成中にデータベースエラーが発生しました",
@@ -145,7 +148,9 @@ class SessionService:
     def get_user_sessions(user_id: int, limit: int = 10) -> List[PracticeSession]:
         """ユーザーの練習セッション履歴を取得"""
         try:
+            # N+1問題を回避するため、関連するscenarioを事前にロード
             return PracticeSession.query.filter_by(user_id=user_id)\
+                                       .options(joinedload(PracticeSession.scenario))\
                                        .order_by(PracticeSession.started_at.desc())\
                                        .limit(limit).all()
         except SQLAlchemyError as e:
@@ -170,26 +175,27 @@ class ConversationService:
     ) -> ConversationLog:
         """会話ログを追加"""
         try:
-            # セッションの存在確認（存在しない場合は例外が発生）
-            SessionService.get_session_by_id(session_id)
-            
-            log = ConversationLog(
-                session_id=session_id,
-                speaker='user' if is_user else 'ai',
-                message=message,
-                message_type='text'
-            )
-            
-            db.session.add(log)
-            db.session.commit()
-            
-            return log
+            with managed_session():
+                # セッションの存在確認（存在しない場合は例外が発生）
+                SessionService.get_session_by_id(session_id)
+                
+                log = ConversationLog(
+                    session_id=session_id,
+                    speaker='user' if is_user else 'ai',
+                    message=message,
+                    message_type='text'
+                )
+                
+                db.session.add(log)
+                # commit は managed_session が自動的に行う
+                
+                return log
             
         except AppError:
-            db.session.rollback()
+            # rollback は managed_session が自動的に行う
             raise
         except SQLAlchemyError as e:
-            db.session.rollback()
+            # rollback は managed_session が自動的に行う
             logger.error(f"会話ログ追加エラー: {e}")
             raise AppError(
                 message="会話ログの保存中にデータベースエラーが発生しました",
@@ -237,41 +243,26 @@ class UserService:
     @staticmethod
     def create_user(username: str, email: str, password_hash: str) -> User:
         """新規ユーザーを作成"""
-        try:
-            # 重複チェック
-            existing_user = User.query.filter(
-                (User.username == username) | (User.email == email)
-            ).first()
-            
-            if existing_user:
-                if existing_user.username == username:
-                    raise ValidationError("このユーザー名は既に使用されています", field="username")
-                else:
-                    raise ValidationError("このメールアドレスは既に使用されています", field="email")
-            
-            user = User(
-                username=username,
-                email=email,
-                password_hash=password_hash
-            )
-            
-            db.session.add(user)
-            db.session.commit()
-            
-            logger.info(f"ユーザー作成完了: {user.username}")
-            return user
-            
-        except AppError:
-            db.session.rollback()
-            raise
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            logger.error(f"ユーザー作成エラー: {e}")
-            raise AppError(
-                message="ユーザーの作成中にデータベースエラーが発生しました",
-                code="DATABASE_ERROR",
-                status_code=500
-            ) from e
+        # 重複チェック
+        existing_user = User.query.filter(
+            (User.username == username) | (User.email == email)
+        ).first()
+        
+        if existing_user:
+            if existing_user.username == username:
+                raise ValidationError("このユーザー名は既に使用されています", field="username")
+            else:
+                raise ValidationError("このメールアドレスは既に使用されています", field="email")
+        
+        user = User(
+            username=username,
+            email=email,
+            password_hash=password_hash
+        )
+        
+        db.session.add(user)
+        logger.info(f"ユーザーオブジェクト作成: {user.username}")
+        return user
 
 
 class StrengthAnalysisService:
@@ -285,59 +276,60 @@ class StrengthAnalysisService:
     ) -> StrengthAnalysis:
         """強み分析結果を保存"""
         try:
-            # セッションの存在確認
-            session = SessionService.get_session_by_id(session_id)
-            
-            # 既存の分析結果があれば更新、なければ新規作成
-            analysis = StrengthAnalysis.query.filter_by(session_id=session_id).first()
-            
-            if not analysis:
-                analysis = StrengthAnalysis(session_id=session_id)
-            
-            # スコアを更新
-            analysis.empathy = analysis_result.get('empathy', 0.0)
-            analysis.clarity = analysis_result.get('clarity', 0.0)
-            analysis.listening = analysis_result.get('listening', 0.0)
-            analysis.problem_solving = analysis_result.get('problem_solving', 0.0)
-            analysis.assertiveness = analysis_result.get('assertiveness', 0.0)
-            analysis.flexibility = analysis_result.get('flexibility', 0.0)
-            
-            # フィードバックと改善提案
-            analysis.feedback_text = feedback_text
-            analysis.overall_score = sum([
-                analysis.empathy, analysis.clarity, analysis.listening,
-                analysis.problem_solving, analysis.assertiveness, analysis.flexibility
-            ]) / 6.0
-            
-            # 改善提案をJSON形式で保存
-            analysis.improvement_suggestions = {
-                'strengths': StrengthAnalysisService._identify_strengths(analysis_result),
-                'areas_for_improvement': StrengthAnalysisService._identify_improvements(analysis_result),
-                'next_steps': StrengthAnalysisService._suggest_next_steps(analysis_result)
-            }
-            
-            # バリデーション実行
-            try:
-                analysis.validate_skill_scores()
-            except ValueError as e:
-                logger.error(f"スキルスコアのバリデーションエラー: {e}")
-                raise ValidationError(str(e))
-            
-            db.session.add(analysis)
-            db.session.commit()
-            
-            # アチーブメントチェック（バックグラウンドタスクとして実行可能）
-            if session.user_id:
-                StrengthAnalysisService._check_achievements(session.user_id, analysis)
-            
-            logger.info(f"強み分析保存完了: Session {session_id}")
-            return analysis
+            with managed_session():
+                # セッションの存在確認
+                session = SessionService.get_session_by_id(session_id)
+                
+                # 既存の分析結果があれば更新、なければ新規作成
+                analysis = StrengthAnalysis.query.filter_by(session_id=session_id).first()
+                
+                if not analysis:
+                    analysis = StrengthAnalysis(session_id=session_id)
+                
+                # スコアを更新
+                analysis.empathy = analysis_result.get('empathy', 0.0)
+                analysis.clarity = analysis_result.get('clarity', 0.0)
+                analysis.listening = analysis_result.get('listening', 0.0)
+                analysis.problem_solving = analysis_result.get('problem_solving', 0.0)
+                analysis.assertiveness = analysis_result.get('assertiveness', 0.0)
+                analysis.flexibility = analysis_result.get('flexibility', 0.0)
+                
+                # フィードバックと改善提案
+                analysis.feedback_text = feedback_text
+                analysis.overall_score = sum([
+                    analysis.empathy, analysis.clarity, analysis.listening,
+                    analysis.problem_solving, analysis.assertiveness, analysis.flexibility
+                ]) / 6.0
+                
+                # 改善提案をJSON形式で保存
+                analysis.improvement_suggestions = {
+                    'strengths': StrengthAnalysisService._identify_strengths(analysis_result),
+                    'areas_for_improvement': StrengthAnalysisService._identify_improvements(analysis_result),
+                    'next_steps': StrengthAnalysisService._suggest_next_steps(analysis_result)
+                }
+                
+                # バリデーション実行
+                try:
+                    analysis.validate_skill_scores()
+                except ValueError as e:
+                    logger.error(f"スキルスコアのバリデーションエラー: {e}")
+                    raise ValidationError(str(e))
+                
+                db.session.add(analysis)
+                # commit は managed_session が自動的に行う
+                
+                # アチーブメントチェック（バックグラウンドタスクとして実行可能）
+                if session.user_id:
+                    StrengthAnalysisService._check_achievements(session.user_id, analysis)
+                
+                logger.info(f"強み分析保存完了: Session {session_id}")
+                return analysis
             
         except AppError:
-            db.session.rollback()
+            # rollback は managed_session が自動的に行う
             raise
         except SQLAlchemyError as e:
-            db.session.rollback()
+            # rollback は managed_session が自動的に行う
             logger.error(f"強み分析保存エラー: {e}")
             raise AppError(
                 message="強み分析の保存中にデータベースエラーが発生しました",
@@ -500,50 +492,81 @@ class StrengthAnalysisService:
     
     @staticmethod
     def _check_achievements(user_id: int, analysis: StrengthAnalysis):
-        """分析結果に基づいてアチーブメントをチェック"""
+        """分析結果に基づいてアチーブメントをチェック（N+1最適化版）"""
         try:
-            # スキル系アチーブメントのチェック
+            # スキル系アチーブメントのスコアを定義
             skill_achievements = {
                 'skill_empathy': analysis.empathy,
                 'skill_clarity': analysis.clarity,
                 'skill_listening': analysis.listening
             }
             
-            for threshold_type, score in skill_achievements.items():
-                if score >= 0.8:  # 80%以上
-                    # 該当するアチーブメントを検索
-                    achievement = Achievement.query.filter_by(
-                        threshold_type=threshold_type,
-                        is_active=True
-                    ).first()
-                    
-                    if achievement:
-                        # ユーザーのアチーブメント進捗を更新
-                        user_achievement = UserAchievement.query.filter_by(
-                            user_id=user_id,
-                            achievement_id=achievement.id
-                        ).first()
-                        
-                        if not user_achievement:
-                            user_achievement = UserAchievement(
-                                user_id=user_id,
-                                achievement_id=achievement.id,
-                                progress=0
-                            )
-                            db.session.add(user_achievement)
-                        
-                        # 進捗を更新
-                        user_achievement.progress += 1
-                        
-                        # 閾値に達したら解除
-                        if user_achievement.progress >= achievement.threshold_value and not user_achievement.unlocked_at:
-                            user_achievement.unlocked_at = db.func.now()
-                            logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+            # 80%以上のスキルのみ対象
+            high_skill_types = [skill_type for skill_type, score in skill_achievements.items() if score >= 0.8]
             
-            db.session.commit()
+            if not high_skill_types:
+                return  # 対象スキルがない場合は早期リターン
+            
+            # 必要なアチーブメントを一括取得
+            achievements = Achievement.query.filter(
+                Achievement.threshold_type.in_(high_skill_types),
+                Achievement.is_active == True
+            ).all()
+            
+            if not achievements:
+                return  # アチーブメントがない場合は早期リターン
+            
+            # アチーブメントIDのリスト作成
+            achievement_ids = [a.id for a in achievements]
+            
+            # ユーザーの既存アチーブメントを一括取得
+            existing_user_achievements = UserAchievement.query.filter(
+                UserAchievement.user_id == user_id,
+                UserAchievement.achievement_id.in_(achievement_ids)
+            ).all()
+            
+            # 既存アチーブメントをIDでマッピング
+            existing_map = {ua.achievement_id: ua for ua in existing_user_achievements}
+            
+            # 新規追加用のリスト
+            new_achievements = []
+            
+            # アチーブメントごとにチェック
+            for achievement in achievements:
+                score = skill_achievements.get(achievement.threshold_type, 0)
+                
+                if achievement.id in existing_map:
+                    # 既存のアチーブメント進捗を更新
+                    user_achievement = existing_map[achievement.id]
+                    user_achievement.progress += 1
+                    
+                    # 閾値に達したら解除
+                    if user_achievement.progress >= achievement.threshold_value and not user_achievement.unlocked_at:
+                        user_achievement.unlocked_at = db.func.now()
+                        logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                else:
+                    # 新規アチーブメントとして追加
+                    user_achievement = UserAchievement(
+                        user_id=user_id,
+                        achievement_id=achievement.id,
+                        progress=1  # 初回は1
+                    )
+                    
+                    # 閾値が1の場合は即座に解除
+                    if achievement.threshold_value <= 1:
+                        user_achievement.unlocked_at = db.func.now()
+                        logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                    
+                    new_achievements.append(user_achievement)
+            
+            # 新規アチーブメントを一括追加
+            if new_achievements:
+                db.session.add_all(new_achievements)
+            # commit は呼び出し元の managed_session が行う
             
         except Exception as e:
             logger.error(f"アチーブメントチェックエラー: {e}")
+            # rollback は呼び出し元の managed_session が行う
             # アチーブメントチェックの失敗は分析保存を妨げない
 
 
@@ -622,140 +645,221 @@ class AchievementService:
     
     @staticmethod
     def _check_session_achievements(user_id: int, event_data: Dict[str, Any]) -> List[Achievement]:
-        """セッション完了系のアチーブメントをチェック"""
+        """セッション完了系のアチーブメントをチェック（N+1最適化版）"""
         unlocked = []
         
         try:
-            # セッション数カウント
-            session_count = PracticeSession.query.filter_by(
-                user_id=user_id,
-                is_completed=True
-            ).count()
-            
-            # セッションカウント系アチーブメント
-            count_achievements = Achievement.query.filter_by(
-                threshold_type='session_count',
-                is_active=True
-            ).all()
-            
-            for achievement in count_achievements:
-                if session_count >= achievement.threshold_value:
-                    if AchievementService._unlock_achievement(user_id, achievement.id):
+            with managed_session():
+                from datetime import datetime
+                
+                # セッション数カウント
+                session_count = PracticeSession.query.filter_by(
+                    user_id=user_id,
+                    is_completed=True
+                ).count()
+                
+                # チェック対象のアチーブメントタイプを定義
+                threshold_types = ['session_count']
+                
+                # 時間帯別アチーブメントの条件チェック
+                current_hour = datetime.now().hour
+                if 6 <= current_hour < 9:
+                    threshold_types.append('morning_practice')
+                elif current_hour >= 22:
+                    threshold_types.append('night_practice')
+                
+                # 週末チェック
+                if datetime.now().weekday() >= 5:  # 土日
+                    threshold_types.append('weekend_practice')
+                
+                # 関連する全アチーブメントを一括取得
+                achievements = Achievement.query.filter(
+                    Achievement.threshold_type.in_(threshold_types),
+                    Achievement.is_active == True
+                ).all()
+                
+                if not achievements:
+                    return unlocked
+                
+                # アチーブメントIDのリスト作成
+                achievement_ids = [a.id for a in achievements]
+                
+                # 既存のユーザーアチーブメントを一括取得
+                existing_achievements = db.session.query(UserAchievement.achievement_id).filter(
+                    UserAchievement.user_id == user_id,
+                    UserAchievement.achievement_id.in_(achievement_ids),
+                    UserAchievement.unlocked_at.isnot(None)
+                ).all()
+                
+                # 既に解除済みのIDのセット作成
+                unlocked_ids = {ua[0] for ua in existing_achievements}
+                
+                # 新規解除用のリスト
+                new_unlocks = []
+                
+                # 各アチーブメントをチェック
+                for achievement in achievements:
+                    # 既に解除済みならスキップ
+                    if achievement.id in unlocked_ids:
+                        continue
+                    
+                    # 条件チェック
+                    should_unlock = False
+                    
+                    if achievement.threshold_type == 'session_count' and session_count >= achievement.threshold_value:
+                        should_unlock = True
+                    elif achievement.threshold_type in ['morning_practice', 'night_practice', 'weekend_practice']:
+                        # 時間帯・曜日系はタイプが存在することで条件満たしている
+                        should_unlock = True
+                    
+                    if should_unlock:
+                        new_unlocks.append({
+                            'user_id': user_id,
+                            'achievement_id': achievement.id,
+                            'progress': session_count if achievement.threshold_type == 'session_count' else 1,
+                            'unlocked_at': datetime.now()
+                        })
                         unlocked.append(achievement)
-            
-            # 時間帯別アチーブメント
-            from datetime import datetime
-            current_hour = datetime.now().hour
-            
-            if 6 <= current_hour < 9:
-                morning_achievement = Achievement.query.filter_by(
-                    threshold_type='morning_practice',
-                    is_active=True
-                ).first()
-                if morning_achievement and AchievementService._unlock_achievement(user_id, morning_achievement.id):
-                    unlocked.append(morning_achievement)
-            
-            elif current_hour >= 22:
-                night_achievement = Achievement.query.filter_by(
-                    threshold_type='night_practice',
-                    is_active=True
-                ).first()
-                if night_achievement and AchievementService._unlock_achievement(user_id, night_achievement.id):
-                    unlocked.append(night_achievement)
-            
-            # 週末練習
-            if datetime.now().weekday() >= 5:  # 土日
-                weekend_achievement = Achievement.query.filter_by(
-                    threshold_type='weekend_practice',
-                    is_active=True
-                ).first()
-                if weekend_achievement and AchievementService._unlock_achievement(user_id, weekend_achievement.id):
-                    unlocked.append(weekend_achievement)
-            
-            return unlocked
+                
+                # 新規アチーブメントを一括挿入
+                if new_unlocks:
+                    db.session.bulk_insert_mappings(UserAchievement, new_unlocks)
+                    # commit は managed_session が自動的に行う
+                    
+                    for achievement in unlocked:
+                        logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
             
         except Exception as e:
+            # アチーブメント処理の失敗はメインの処理を妨げない
             logger.error(f"セッションアチーブメントチェックエラー: {e}")
-            return unlocked
+            # rollback は managed_session が自動的に行う
+            # エラーを呼び出し元に伝播させない
+        
+        return unlocked
     
     @staticmethod
     def _check_scenario_achievements(user_id: int, event_data: Dict[str, Any]) -> List[Achievement]:
-        """シナリオ完了系のアチーブメントをチェック"""
+        """シナリオ完了系のアチーブメントをチェック（N+1最適化版）"""
         unlocked = []
         
         try:
-            # シナリオ完了数カウント
-            completed_scenarios = db.session.query(
-                db.func.count(db.distinct(PracticeSession.scenario_id))
-            ).filter(
-                PracticeSession.user_id == user_id,
-                PracticeSession.is_completed == True,
-                PracticeSession.scenario_id.isnot(None)
-            ).scalar()
-            
-            # シナリオ完了系アチーブメント
-            scenario_achievements = Achievement.query.filter(
-                Achievement.threshold_type.in_(['scenario_complete', 'unique_scenarios', 'all_scenarios']),
-                Achievement.is_active == True
-            ).all()
-            
-            for achievement in scenario_achievements:
-                if achievement.threshold_type == 'scenario_complete' and completed_scenarios >= 1:
-                    if AchievementService._unlock_achievement(user_id, achievement.id):
-                        unlocked.append(achievement)
+            with managed_session():
+                from datetime import datetime
                 
-                elif achievement.threshold_type == 'unique_scenarios' and completed_scenarios >= achievement.threshold_value:
-                    if AchievementService._unlock_achievement(user_id, achievement.id):
-                        unlocked.append(achievement)
+                # シナリオ完了数カウント
+                completed_scenarios = db.session.query(
+                    db.func.count(db.distinct(PracticeSession.scenario_id))
+                ).filter(
+                    PracticeSession.user_id == user_id,
+                    PracticeSession.is_completed == True,
+                    PracticeSession.scenario_id.isnot(None)
+                ).scalar()
                 
-                elif achievement.threshold_type == 'all_scenarios':
+                # シナリオ完了系アチーブメントを一括取得
+                scenario_achievements = Achievement.query.filter(
+                    Achievement.threshold_type.in_(['scenario_complete', 'unique_scenarios', 'all_scenarios']),
+                    Achievement.is_active == True
+                ).all()
+                
+                if not scenario_achievements:
+                    return unlocked
+                
+                # all_scenariosタイプがある場合のみ総シナリオ数を取得
+                total_scenarios = None
+                if any(a.threshold_type == 'all_scenarios' for a in scenario_achievements):
                     total_scenarios = Scenario.query.filter_by(is_active=True).count()
-                    if completed_scenarios >= total_scenarios:
-                        if AchievementService._unlock_achievement(user_id, achievement.id):
-                            unlocked.append(achievement)
-            
-            return unlocked
+                
+                # アチーブメントIDのリスト作成
+                achievement_ids = [a.id for a in scenario_achievements]
+                
+                # 既存のユーザーアチーブメントを一括取得
+                existing_achievements = db.session.query(UserAchievement.achievement_id).filter(
+                    UserAchievement.user_id == user_id,
+                    UserAchievement.achievement_id.in_(achievement_ids),
+                    UserAchievement.unlocked_at.isnot(None)
+                ).all()
+                
+                # 既に解除済みのIDのセット作成
+                unlocked_ids = {ua[0] for ua in existing_achievements}
+                
+                # 新規解除用のリスト
+                new_unlocks = []
+                
+                # 各アチーブメントをチェック
+                for achievement in scenario_achievements:
+                    # 既に解除済みならスキップ
+                    if achievement.id in unlocked_ids:
+                        continue
+                    
+                    # 条件チェック
+                    should_unlock = False
+                    
+                    if achievement.threshold_type == 'scenario_complete' and completed_scenarios >= 1:
+                        should_unlock = True
+                    elif achievement.threshold_type == 'unique_scenarios' and completed_scenarios >= achievement.threshold_value:
+                        should_unlock = True
+                    elif achievement.threshold_type == 'all_scenarios' and total_scenarios and completed_scenarios >= total_scenarios:
+                        should_unlock = True
+                    
+                    if should_unlock:
+                        new_unlocks.append({
+                            'user_id': user_id,
+                            'achievement_id': achievement.id,
+                            'progress': completed_scenarios,
+                            'unlocked_at': datetime.now()
+                        })
+                        unlocked.append(achievement)
+                
+                # 新規アチーブメントを一括挿入
+                if new_unlocks:
+                    db.session.bulk_insert_mappings(UserAchievement, new_unlocks)
+                    # commit は managed_session が自動的に行う
+                    
+                    for achievement in unlocked:
+                        logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
             
         except Exception as e:
+            # アチーブメント処理の失敗はメインの処理を妨げない
             logger.error(f"シナリオアチーブメントチェックエラー: {e}")
-            return unlocked
+            # rollback は managed_session が自動的に行う
+            # エラーを呼び出し元に伝播させない
+        
+        return unlocked
     
     @staticmethod
     def _unlock_achievement(user_id: int, achievement_id: int) -> bool:
         """アチーブメントを解除（既に解除済みの場合はFalse）"""
         try:
-            user_achievement = UserAchievement.query.filter_by(
-                user_id=user_id,
-                achievement_id=achievement_id
-            ).first()
-            
-            if not user_achievement:
-                user_achievement = UserAchievement(
+            with managed_session() as session:
+                user_achievement = UserAchievement.query.filter_by(
                     user_id=user_id,
-                    achievement_id=achievement_id,
-                    progress=1,
-                    unlocked_at=db.func.now()
-                )
-                db.session.add(user_achievement)
-                db.session.commit()
+                    achievement_id=achievement_id
+                ).first()
                 
-                achievement = Achievement.query.get(achievement_id)
-                logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
-                return True
-            
-            elif not user_achievement.unlocked_at:
-                user_achievement.unlocked_at = db.func.now()
-                db.session.commit()
+                if not user_achievement:
+                    user_achievement = UserAchievement(
+                        user_id=user_id,
+                        achievement_id=achievement_id,
+                        progress=1,
+                        unlocked_at=db.func.now()
+                    )
+                    session.add(user_achievement)
+                    
+                    achievement = Achievement.query.get(achievement_id)
+                    logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                    return True
                 
-                achievement = Achievement.query.get(achievement_id)
-                logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
-                return True
-            
-            return False
-            
+                elif not user_achievement.unlocked_at:
+                    user_achievement.unlocked_at = db.func.now()
+                    
+                    achievement = Achievement.query.get(achievement_id)
+                    logger.info(f"アチーブメント解除: User {user_id}, Achievement {achievement.name}")
+                    return True
+                
+                return False
+                
         except Exception as e:
             logger.error(f"アチーブメント解除エラー: {e}")
-            db.session.rollback()
             return False
     
     @staticmethod
