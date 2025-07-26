@@ -7,11 +7,11 @@ python-dotenv
 langchain==0.3.26
 langchain-core==0.3.69
 langchain-community==0.3.27
-langchain-google-genai==2.1.8
+langchain-google-genai==2.0.0
 langchain-text-splitters==0.3.8
-google-generativeai==0.8.5
-google-ai-generativelanguage==0.6.15
-redis==5.1.1
+google-generativeai==0.7.2
+google-ai-generativelanguage==0.6.6
+redis==4.5.4
 pydub==0.25.1
 Pillow==10.4.0
 pydantic==2.9.2

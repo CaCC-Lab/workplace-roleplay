@@ -7,10 +7,18 @@ import yaml
 import re
 from typing import Dict, Any
 
+# モジュールレベルの変数でシナリオデータをキャッシュ
+_scenarios_cache = None
+
 def load_scenarios() -> Dict[str, Any]:
     """
     scenarios/dataディレクトリ内の全シナリオYAMLファイルをロードする
     """
+    global _scenarios_cache
+    
+    if _scenarios_cache is not None:
+        return _scenarios_cache
+    
     scenarios = {}
     data_dir = os.path.join(os.path.dirname(__file__), 'data')
     
@@ -46,4 +54,20 @@ def load_scenarios() -> Dict[str, Any]:
     print(f"Loaded {len(sorted_scenarios)} scenarios in natural sort order")
     print(f"First 5 scenarios: {scenario_order[:5] if len(scenario_order) >= 5 else scenario_order}")
     
-    return sorted_scenarios 
+    # キャッシュに保存
+    _scenarios_cache = sorted_scenarios
+    return sorted_scenarios
+
+
+def get_scenario_by_id(scenario_id: str) -> Dict[str, Any]:
+    """
+    指定されたIDのシナリオを取得する
+    
+    Args:
+        scenario_id: シナリオID
+        
+    Returns:
+        シナリオデータまたはNone（見つからない場合）
+    """
+    scenarios = load_scenarios()
+    return scenarios.get(scenario_id)

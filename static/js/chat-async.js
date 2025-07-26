@@ -22,13 +22,19 @@ function initializeAsyncChat() {
         baseUrl: '/api/async',
         onMessage: handleStreamingMessage,
         onError: handleStreamingError,
-        onComplete: handleStreamingComplete
+        onComplete: handleStreamingComplete,
+        autoReconnect: true,
+        maxRetries: 3,
+        errorNotifier: showErrorNotification
     });
 }
 
 // ストリーミングメッセージのハンドリング
 function handleStreamingMessage(data) {
     if (data.type === 'streaming') {
+        // AIが入力中インジケーターを非表示
+        hideTypingIndicator();
+        
         if (!currentStreamingMessage) {
             // 新しいメッセージコンテナを作成
             currentStreamingMessage = createMessageElement("相手: ", "bot-message", true);
@@ -55,6 +61,9 @@ function handleStreamingError(error) {
 // ストリーミング完了のハンドリング
 function handleStreamingComplete(data) {
     console.log('Streaming complete:', data);
+    
+    // AIが入力中インジケーターを非表示
+    hideTypingIndicator();
     
     // TTS読み上げ（既存のTTS機能を使用）
     if (currentStreamingMessage && window.ttsSettings && window.ttsSettings.enabled) {
@@ -88,6 +97,9 @@ async function startConversation() {
         // システムプロンプトを構築
         const systemPrompt = buildSystemPrompt(partnerType, situation, topic);
         
+        // AIが入力中インジケーターを表示
+        showTypingIndicator();
+        
         // 非同期チャットで送信
         await asyncChatClient.sendMessage(systemPrompt, selectedModel);
         
@@ -99,6 +111,7 @@ async function startConversation() {
     } catch (err) {
         console.error("Error:", err);
         displayMessage("エラーが発生しました: " + err.message, "error-message");
+        hideTypingIndicator();
     } finally {
         loadingDiv.style.display = 'none';
         startButton.disabled = false;
@@ -149,12 +162,16 @@ async function sendMessage() {
     messageInput.value = "";
     isStreaming = true;
     updateUIState();
+    
+    // AIが入力中インジケーターを表示
+    showTypingIndicator();
 
     try {
         await asyncChatClient.sendMessage(msg, selectedModel);
     } catch (error) {
         console.error("Send message error:", error);
         displayMessage("メッセージの送信に失敗しました: " + error.message, "error-message");
+        hideTypingIndicator();
         isStreaming = false;
         updateUIState();
     }
@@ -170,24 +187,177 @@ async function getFeedback() {
         return;
     }
 
-    loadingDiv.style.display = 'block';
     getFeedbackButton.disabled = true;
 
     try {
-        const result = await asyncChatClient.generateFeedback(selectedModel);
+        // 強み分析の非同期タスクを開始
+        showAnalysisProgress("分析を開始しています...", 0);
         
-        if (result && result.feedback) {
-            document.getElementById('feedback-content').innerHTML = marked.parse(result.feedback);
-            feedbackArea.style.display = 'block';
-            feedbackArea.scrollIntoView({ behavior: 'smooth' });
+        const startResponse = await fetch('/api/async/strength-analysis/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                session_type: 'chat',
+                session_id: asyncChatClient.sessionId
+            })
+        });
+        
+        if (!startResponse.ok) {
+            const error = await startResponse.json();
+            throw new Error(error.error || '分析の開始に失敗しました');
         }
+        
+        const { task_id } = await startResponse.json();
+        
+        // プログレスをポーリング
+        const analysisResult = await pollAnalysisProgress(task_id);
+        
+        if (analysisResult.success) {
+            // 分析結果を表示
+            displayAnalysisResults(analysisResult);
+            
+            // 従来のフィードバックも取得
+            const feedbackResult = await asyncChatClient.generateFeedback(selectedModel);
+            if (feedbackResult && feedbackResult.feedback) {
+                document.getElementById('feedback-content').innerHTML = marked.parse(feedbackResult.feedback);
+                feedbackArea.style.display = 'block';
+                feedbackArea.scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            throw new Error('分析に失敗しました');
+        }
+        
     } catch (error) {
         console.error("Feedback error:", error);
         displayMessage("フィードバックの取得に失敗しました: " + error.message, "error-message");
+        hideAnalysisProgress();
     } finally {
-        loadingDiv.style.display = 'none';
         getFeedbackButton.disabled = false;
     }
+}
+
+// 分析プログレスの表示
+function showAnalysisProgress(message, percentage) {
+    let progressContainer = document.getElementById('analysis-progress');
+    if (!progressContainer) {
+        progressContainer = document.createElement('div');
+        progressContainer.id = 'analysis-progress';
+        progressContainer.className = 'analysis-progress-container';
+        progressContainer.innerHTML = `
+            <div class="progress-header">
+                <i class="fas fa-brain"></i> 強み分析中...
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <span class="progress-percentage">0%</span>
+            </div>
+            <div class="progress-message"></div>
+        `;
+        
+        // フィードバックエリアの前に挿入
+        feedbackArea.parentNode.insertBefore(progressContainer, feedbackArea);
+    }
+    
+    progressContainer.style.display = 'block';
+    const progressFill = progressContainer.querySelector('.progress-fill');
+    const progressPercentage = progressContainer.querySelector('.progress-percentage');
+    const progressMessage = progressContainer.querySelector('.progress-message');
+    
+    progressFill.style.width = `${percentage}%`;
+    progressPercentage.textContent = `${percentage}%`;
+    progressMessage.textContent = message;
+}
+
+// 分析プログレスを非表示
+function hideAnalysisProgress() {
+    const progressContainer = document.getElementById('analysis-progress');
+    if (progressContainer) {
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+        }, 1000);
+    }
+}
+
+// 分析進捗のポーリング
+async function pollAnalysisProgress(taskId) {
+    const maxAttempts = 60; // 最大60秒待機
+    const pollInterval = 1000; // 1秒ごとにチェック
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            const response = await fetch(`/api/async/strength-analysis/status/${taskId}`);
+            const data = await response.json();
+            
+            if (data.state === 'SUCCESS') {
+                showAnalysisProgress('分析が完了しました！', 100);
+                setTimeout(() => hideAnalysisProgress(), 1000);
+                return data.result;
+            } else if (data.state === 'FAILURE' || data.state === 'ERROR') {
+                throw new Error(data.error || '分析中にエラーが発生しました');
+            } else if (data.state === 'PROGRESS') {
+                const percentage = Math.round((data.current / data.total) * 100);
+                showAnalysisProgress(data.status, percentage);
+            } else {
+                // PENDING状態
+                showAnalysisProgress('分析を準備中...', 5);
+            }
+            
+            // 次のポーリングまで待機
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            
+        } catch (error) {
+            console.error('Polling error:', error);
+            throw error;
+        }
+    }
+    
+    throw new Error('分析がタイムアウトしました');
+}
+
+// 分析結果の表示
+function displayAnalysisResults(result) {
+    if (!result || !result.analysis) return;
+    
+    const { scores, top_strengths, encouragement_messages } = result.analysis;
+    
+    // 強みスコアのレーダーチャート風表示を作成
+    let strengthsHtml = '<div class="strength-analysis-results">';
+    strengthsHtml += '<h3><i class="fas fa-chart-radar"></i> あなたの強み分析結果</h3>';
+    
+    // トップ強みの表示
+    if (top_strengths && top_strengths.length > 0) {
+        strengthsHtml += '<div class="top-strengths">';
+        strengthsHtml += '<h4>特に優れている点</h4>';
+        top_strengths.forEach((strength, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+            strengthsHtml += `
+                <div class="strength-item">
+                    <span class="medal">${medal}</span>
+                    <span class="strength-name">${strength.name}</span>
+                    <span class="strength-score">${strength.score}点</span>
+                </div>
+            `;
+        });
+        strengthsHtml += '</div>';
+    }
+    
+    // 励ましメッセージの表示
+    if (encouragement_messages && encouragement_messages.length > 0) {
+        strengthsHtml += '<div class="encouragement-messages">';
+        encouragement_messages.forEach(message => {
+            strengthsHtml += `<p class="encouragement"><i class="fas fa-star"></i> ${message}</p>`;
+        });
+        strengthsHtml += '</div>';
+    }
+    
+    strengthsHtml += '</div>';
+    
+    // 結果を表示
+    const resultsContainer = document.createElement('div');
+    resultsContainer.innerHTML = strengthsHtml;
+    feedbackArea.insertBefore(resultsContainer, feedbackArea.firstChild);
 }
 
 // UI状態の更新
@@ -195,6 +365,42 @@ function updateUIState() {
     messageInput.disabled = isStreaming;
     sendButton.disabled = isStreaming;
     getFeedbackButton.disabled = isStreaming;
+}
+
+// AIが入力中インジケーターを表示
+function showTypingIndicator() {
+    let typingIndicator = document.getElementById('typing-indicator');
+    if (!typingIndicator) {
+        typingIndicator = document.createElement('div');
+        typingIndicator.id = 'typing-indicator';
+        typingIndicator.className = 'typing-indicator bot-message';
+        typingIndicator.innerHTML = `
+            <div class="typing-content">
+                <span class="typing-text">AIが入力中</span>
+                <div class="typing-dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 既存のインジケーターがなければ追加
+    if (!typingIndicator.parentNode) {
+        chatMessages.appendChild(typingIndicator);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    typingIndicator.style.display = 'block';
+}
+
+// AIが入力中インジケーターを非表示
+function hideTypingIndicator() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) {
+        typingIndicator.style.display = 'none';
+    }
 }
 
 // メッセージ要素の作成
@@ -272,3 +478,63 @@ document.addEventListener('DOMContentLoaded', function() {
     sendButton.disabled = true;
     getFeedbackButton.disabled = true;
 });
+
+// カスタムエラー通知関数
+function showErrorNotification(errorInfo) {
+    const errorContainer = document.getElementById('error-container');
+    if (!errorContainer) return;
+    
+    // 既存の再接続通知がある場合は削除
+    if (errorInfo.type === 'reconnecting') {
+        const existingReconnect = errorContainer.querySelector('.alert-reconnecting');
+        if (existingReconnect) {
+            existingReconnect.remove();
+        }
+    }
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${errorInfo.severity}`;
+    if (errorInfo.type === 'reconnecting') {
+        alertDiv.classList.add('alert-reconnecting');
+    }
+    
+    let iconHtml = '';
+    switch (errorInfo.severity) {
+        case 'critical':
+        case 'error':
+            iconHtml = '<i class="fas fa-exclamation-circle"></i>';
+            break;
+        case 'warning':
+            iconHtml = '<i class="fas fa-exclamation-triangle"></i>';
+            break;
+        case 'info':
+            iconHtml = '<i class="fas fa-info-circle"></i>';
+            break;
+    }
+    
+    alertDiv.innerHTML = `
+        ${iconHtml}
+        <span class="error-message">${errorInfo.userMessage}</span>
+        ${errorInfo.type === 'reconnecting' ? '<span class="spinner"></span>' : ''}
+        <button class="close-button" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    errorContainer.appendChild(alertDiv);
+    
+    // 自動的に消える（再接続中とクリティカルエラー以外）
+    if (errorInfo.type !== 'reconnecting' && errorInfo.severity !== 'critical') {
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                alertDiv.remove();
+            }
+        }, 10000);
+    }
+    
+    // 再接続が成功した場合、再接続通知を削除
+    if (errorInfo.type === 'success') {
+        const reconnectAlert = errorContainer.querySelector('.alert-reconnecting');
+        if (reconnectAlert) {
+            reconnectAlert.remove();
+        }
+    }
+}
