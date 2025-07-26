@@ -30,16 +30,33 @@ def analyze_conversation_strengths_task(self, user_id: int, conversation_history
     """
     会話履歴から強み分析を非同期で実行するCeleryタスク
     
+    このタスクは、ユーザーの会話履歴を分析し、コミュニケーションスキルの
+    強みを数値化します。LLM（Gemini）を使用して分析を行い、結果を構造化
+    されたデータとして返します。
+    
     Args:
-        user_id: ユーザーID
-        conversation_history: 会話履歴のリスト
-        session_type: セッション種別 ('chat', 'scenario')
+        user_id (int): 分析対象のユーザーID
+        conversation_history (List[Dict[str, str]]): 会話履歴のリスト。
+            各要素は {'role': 'user'|'assistant', 'content': str} の形式
+        session_type (str, optional): セッション種別。'chat' または 'scenario'。
+            デフォルトは 'chat'
         
     Returns:
-        Dict containing analysis results and task status
+        Dict[str, Any]: 分析結果を含む辞書。以下のキーを含む：
+            - success (bool): 処理の成功/失敗
+            - user_id (int): ユーザーID
+            - session_type (str): セッション種別
+            - analysis (dict): 分析結果（scores, top_strengths, encouragement_messages）
+            - task_id (str): CeleryタスクID
+            - error (str, optional): エラーメッセージ（失敗時のみ）
         
     Raises:
-        MaxRetriesExceededError: 最大リトライ回数を超えた場合
+        Retry: エラー発生時にリトライを実行
+        
+    Note:
+        - 進捗は current_task.update_state() で更新される
+        - LLMエラー時は自動的にリトライされる（最大3回）
+        - 会話履歴が空の場合はエラーを返す
     """
     try:
         logger.info(f"Starting strength analysis task for user {user_id}, session type: {session_type}")
@@ -182,13 +199,29 @@ def analyze_conversation_strengths_task(self, user_id: int, conversation_history
 )
 def get_analysis_status_task(self, task_id: str) -> Dict[str, Any]:
     """
-    分析タスクのステータスを取得
+    分析タスクのステータスと進捗を取得
+    
+    指定されたタスクIDの現在の状態、進捗、結果を取得します。
+    このタスクは軽量なため、同期的に実行されます。
     
     Args:
-        task_id: タスクID
+        task_id (str): 確認するCeleryタスクのID
         
     Returns:
-        Dict containing task status and progress
+        Dict[str, Any]: タスクの状態情報を含む辞書。以下のキーを含む：
+            - state (str): タスクの状態（PENDING, PROGRESS, SUCCESS, FAILURE, ERROR）
+            - current (int): 現在の進捗値（0-100）
+            - total (int): 進捗の最大値（通常100）
+            - status (str): 人間が読めるステータスメッセージ
+            - result (dict, optional): 完了時の結果（SUCCESS時のみ）
+            - error (str, optional): エラーメッセージ（FAILURE/ERROR時のみ）
+            
+    Note:
+        - PENDING: タスクがまだ開始されていない
+        - PROGRESS: タスクが実行中で進捗を報告している
+        - SUCCESS: タスクが正常に完了した
+        - FAILURE: タスクが失敗した
+        - ERROR: ステータス取得中にエラーが発生した
     """
     try:
         from celery.result import AsyncResult

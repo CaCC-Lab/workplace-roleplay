@@ -203,7 +203,21 @@ def parse_strength_analysis(analysis_response: str) -> Dict[str, float]:
 
 def get_top_strengths(scores: Dict[str, float], top_n: int = 3) -> List[Dict[str, Any]]:
     """
-    トップNの強みを取得
+    スコアからトップNの強みを取得
+    
+    スコアが高い順に指定された数の強みを返します。
+    各強みには名前、説明、スコアが含まれます。
+    
+    Args:
+        scores (Dict[str, float]): 各スキルのスコア
+        top_n (int, optional): 取得する強みの数。デフォルトは3
+    
+    Returns:
+        List[Dict[str, Any]]: トップNの強み情報のリスト
+            各要素は以下のキーを含む：
+            - name (str): スキル名
+            - description (str): スキルの説明
+            - score (float): スコア
     """
     sorted_strengths = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     top_strengths = []

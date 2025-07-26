@@ -31,7 +31,8 @@ class TestStrengthAnalysisPrompt:
         prompt = create_strength_analysis_prompt(conversation_history)
         
         assert "会話履歴:" in prompt
-        assert str(conversation_history) in prompt
+        assert "ユーザー: テストメッセージ1" in prompt
+        assert "AI: 返答1" in prompt
     
     def test_プロンプトにすべての評価項目が含まれる(self):
         """プロンプトに全ての強みカテゴリが含まれることを確認"""
@@ -49,10 +50,10 @@ class TestStrengthAnalysisPrompt:
         """プロンプトにJSON形式での回答指示が含まれることを確認"""
         prompt = create_strength_analysis_prompt([])
         
-        assert "JSON形式" in prompt
-        assert '"scores"' in prompt
-        assert '"overall_impression"' in prompt
-        assert '"growth_areas"' in prompt
+        assert "以下の形式で回答してください" in prompt
+        assert '"empathy": XX' in prompt
+        assert '"clarity": XX' in prompt
+        assert "JSONのみを返し" in prompt
 
 
 class TestParseStrengthAnalysis:
@@ -61,36 +62,36 @@ class TestParseStrengthAnalysis:
     def test_正常なJSON形式の解析(self):
         """正しいJSON形式のレスポンスが適切に解析されることを確認"""
         valid_response = json.dumps({
-            "scores": {
-                "empathy": {"score": 85, "evidence": "相手の気持ちを理解する発言"},
-                "clarity": {"score": 70, "evidence": "明確な説明"}
-            },
-            "overall_impression": "素晴らしいコミュニケーション",
-            "growth_areas": "さらなる向上の余地あり"
+            "empathy": 85,
+            "clarity": 70,
+            "active_listening": 75,
+            "adaptability": 80,
+            "positivity": 78,
+            "professionalism": 82
         })
         
         result = parse_strength_analysis(valid_response)
         
-        assert result["scores"]["empathy"] == 85
-        assert result["scores"]["clarity"] == 70
-        assert result["overall_impression"] == "素晴らしいコミュニケーション"
-        assert result["growth_areas"] == "さらなる向上の余地あり"
+        assert result["empathy"] == 85
+        assert result["clarity"] == 70
+        assert result["active_listening"] == 75
+        assert len(result) == 6
     
     def test_シンプルなスコア形式の解析(self):
         """スコアが数値のみの形式でも解析できることを確認"""
         simple_response = json.dumps({
-            "scores": {
-                "empathy": 85,
-                "clarity": 70
-            },
-            "overall_impression": "良好",
-            "growth_areas": "改善点"
+            "empathy": 85,
+            "clarity": 70,
+            "active_listening": 50,
+            "adaptability": 50,
+            "positivity": 50,
+            "professionalism": 50
         })
         
         result = parse_strength_analysis(simple_response)
         
-        assert result["scores"]["empathy"] == 85
-        assert result["scores"]["clarity"] == 70
+        assert result["empathy"] == 85
+        assert result["clarity"] == 70
     
     def test_不正なJSON形式の場合のフォールバック(self):
         """JSON解析エラー時にデフォルト値が返されることを確認"""
@@ -98,22 +99,24 @@ class TestParseStrengthAnalysis:
         
         result = parse_strength_analysis(invalid_response)
         
-        assert all(score == 50 for score in result["scores"].values())
-        assert "分析中にエラーが発生しました" in result["overall_impression"]
-        assert result["growth_areas"] == ""
+        assert all(score == 50 for score in result.values())
+        assert len(result) == 6
     
     def test_部分的に欠損したJSONの処理(self):
         """一部のフィールドが欠損していても処理できることを確認"""
         partial_response = json.dumps({
-            "scores": {"empathy": 80}
-            # overall_impressionとgrowth_areasが欠損
+            "empathy": 80,
+            "clarity": 75
+            # 他のキーが欠損
         })
         
         result = parse_strength_analysis(partial_response)
         
-        assert result["scores"]["empathy"] == 80
-        assert result["overall_impression"] == ""
-        assert result["growth_areas"] == ""
+        assert result["empathy"] == 80
+        assert result["clarity"] == 75
+        # 欠損キーはデフォルト値
+        assert result["active_listening"] == 50
+        assert result["adaptability"] == 50
 
 
 class TestGetTopStrengths:
@@ -133,10 +136,13 @@ class TestGetTopStrengths:
         top_strengths = get_top_strengths(scores, 3)
         
         assert len(top_strengths) == 3
-        assert top_strengths[0]["key"] == "empathy"
+        # キーはkeyではなくnameで参照
         assert top_strengths[0]["score"] == 90
-        assert top_strengths[1]["key"] == "clarity"
-        assert top_strengths[2]["key"] == "active_listening"
+        assert top_strengths[1]["score"] == 85
+        assert top_strengths[2]["score"] == 80
+        # 名前が含まれていることを確認
+        assert top_strengths[0]["name"] == "共感力"
+        assert top_strengths[1]["name"] == "明確な伝達力"
     
     def test_強み情報に名前と説明が含まれる(self):
         """取得した強み情報に必要な属性が含まれることを確認"""
