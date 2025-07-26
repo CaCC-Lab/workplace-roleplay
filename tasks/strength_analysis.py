@@ -9,18 +9,23 @@ import json
 from typing import List, Dict, Any, Optional
 from celery import shared_task, current_task
 from celery.exceptions import MaxRetriesExceededError, Retry
+from .llm import LLMTask
+from celery_app import celery
+from .retry_strategy import retry_with_backoff
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@shared_task(
+@celery.task(
     bind=True,
+    base=LLMTask,
     name='tasks.strength_analysis.analyze_conversation_strengths',
     max_retries=3,
     default_retry_delay=60,  # 60秒後にリトライ
     queue='analytics'  # analyticsキューを使用
 )
+@retry_with_backoff
 def analyze_conversation_strengths_task(self, user_id: int, conversation_history: List[Dict[str, str]], session_type: str = 'chat') -> Dict[str, Any]:
     """
     会話履歴から強み分析を非同期で実行するCeleryタスク
@@ -76,9 +81,28 @@ def analyze_conversation_strengths_task(self, user_id: int, conversation_history
                 # プロンプトを作成
                 prompt = create_strength_analysis_prompt(conversation_history)
                 
-                # LLMで分析（本実装では簡易版を使用）
-                # 実際のLLM呼び出しを行う場合は、llmタスクと連携
-                analysis_result = analyze_user_strengths(str(conversation_history))
+                # LLMで分析（実際のGemini APIを使用）
+                model_name = "gemini/gemini-1.5-flash"  # 高速な分析用モデル
+                llm = self.get_llm(model_name)
+                
+                # プロンプトメッセージの構築
+                messages = [
+                    {"role": "system", "content": "あなたは職場コミュニケーションの専門家です。会話履歴を分析し、ユーザーの強みを数値化してください。"},
+                    {"role": "user", "content": prompt}
+                ]
+                
+                # LLMで分析実行
+                from langchain_core.messages import SystemMessage, HumanMessage
+                langchain_messages = [
+                    SystemMessage(content=messages[0]["content"]),
+                    HumanMessage(content=messages[1]["content"])
+                ]
+                
+                response = llm.invoke(langchain_messages)
+                analysis_text = response.content
+                
+                # 分析結果をパース
+                analysis_result = parse_strength_analysis(analysis_text)
                 
                 # 進捗を更新
                 current_task.update_state(
