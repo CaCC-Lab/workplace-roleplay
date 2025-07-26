@@ -1,7 +1,8 @@
-flask
-flask-session
-requests
-python-dotenv
+# Webフレームワークと基本依存関係
+flask==3.0.3  # 最新安定版（セキュリティパッチ適用済み）
+flask-session==0.8.0  # セッション管理の最新版
+requests==2.32.3  # セキュリティ修正を含む最新版
+python-dotenv==1.0.1  # 環境変数管理
 # 🚨 セキュリティ修正: langchain 0.0.27には重大な脆弱性（CVE-2023-46229, CVE-2023-36281等）が存在
 # 最新版にアップデート - SSRF、RCE、SQLインジェクション脆弱性を修正
 langchain==0.3.26
@@ -29,3 +30,9 @@ Flask-Bcrypt==1.0.1
 Flask-WTF==1.2.1
 WTForms==3.1.2
 email-validator==2.2.0
+
+# セキュリティ依存関係（明示的に安全なバージョンを指定）
+Werkzeug==3.0.4  # Flask依存、セキュリティパッチ適用済み
+Jinja2==3.1.4  # テンプレートエンジン、XSS対策強化版
+itsdangerous==2.2.0  # セッション署名用
+MarkupSafe==2.1.5  # HTMLエスケープ処理
