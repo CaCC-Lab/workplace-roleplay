@@ -65,6 +65,9 @@
         <a href="{{ url_for('view_journal') }}" class="nav-button"><i class="fas fa-book"></i> 学習履歴を見る</a>
     </div>
 
+    <!-- Socket.IO for real-time coaching -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
     <script src="{{ url_for('static', filename='js/csrf-manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/security-utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tts-common.js') }}"></script>
@@ -72,5 +75,8 @@
     <script src="{{ url_for('static', filename='js/retry_handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/async-chat.js') }}"></script>
     <script src="{{ url_for('static', filename='js/scenario-async.js') }}" data-scenario-id="{{ scenario_id }}"></script>
+    
+    <!-- Real-time coaching client -->
+    <script src="{{ url_for('static', filename='js/realtime_coaching.js') }}"></script>
 </body>
 </html>

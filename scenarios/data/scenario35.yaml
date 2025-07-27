@@ -73,3 +73,7 @@ skill_focus:
   - 適度な距離感
   - リラックスした雰囲気作り
   workplace_relevance: 休憩時間の軽い雑談は、職場の人間関係を円滑にする潤滑油
+metadata:
+  target_strengths:
+  - professionalism
+  difficulty: 1

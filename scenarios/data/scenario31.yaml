@@ -73,3 +73,8 @@ skill_focus:
   - 謝罪の仕方
   - 問題解決への姿勢
   workplace_relevance: ミスを適切に報告できることは、信頼される社会人の第一歩
+metadata:
+  target_strengths:
+  - clarity
+  - empathy
+  difficulty: 1

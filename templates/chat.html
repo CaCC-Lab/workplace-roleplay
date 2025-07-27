@@ -112,11 +112,17 @@
         </a>
     </div>
 
+    <!-- Socket.IO for real-time coaching -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
     <script src="{{ url_for('static', filename='js/csrf-manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/security-utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tts-common.js') }}"></script>
     <script src="{{ url_for('static', filename='js/retry_handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/async-chat.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chat-async.js') }}"></script>
+    
+    <!-- Real-time coaching client -->
+    <script src="{{ url_for('static', filename='js/realtime_coaching.js') }}"></script>
 </body>
 </html>

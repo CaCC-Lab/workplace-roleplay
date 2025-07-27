@@ -1,6 +1,7 @@
 id: 21
 title: 国際的なチームでの文化的配慮とコミュニケーション
-description: グローバルプロジェクトで、日本、アメリカ、インドのメンバーと協力する必要があります。文化的な違いや時差により、コミュニケーションに課題が生じています。効果的な国際チーム運営を実現する場面です。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: グローバルプロジェクトで、日本、アメリカ、インドのメンバーと協力する必要があります。文化的な違いや時差により、コミュニケーションに課題が生じています。効果的な国際チーム運営を実現する場面です。
+  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: beginner
 tags:
 - 国際チーム
@@ -13,7 +14,8 @@ character_setting:
   personality: アメリカ出身の30代エンジニア。直接的なコミュニケーションを好み、効率性を重視する。文化的な違いに関心はあるが理解は限定的。 あなたの立場を理解し、成長を応援する姿勢を持っている。
   speaking_style: 率直で直接的。「I think」「We should」など、主張を明確に述べる。日本の間接的な表現を理解しにくい。 相手を尊重し、プレッシャーを与えない話し方を心がける。
   situation: プロジェクトの進行が日本式の合意形成で遅いと感じている。より迅速な意思決定を求めている。
-  initial_approach: 「Hi! I wanted to discuss the project timeline. I'm concerned we're moving too slowly on the decision-making process."
+  initial_approach: 「Hi! I wanted to discuss the project timeline. I'm concerned we're
+    moving too slowly on the decision-making process."
 learning_points:
 - 文化的な違いを理解し尊重する
 - 明確で誤解のないコミュニケーションを心がける
@@ -79,3 +81,9 @@ skill_focus:
   - 傾聴力
   - まとめ力
   workplace_relevance: 異なる意見の調整は職場での信頼関係構築の基礎
+metadata:
+  target_strengths:
+  - positivity
+  - adaptability
+  - empathy
+  difficulty: 2

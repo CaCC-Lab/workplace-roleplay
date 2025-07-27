@@ -73,3 +73,7 @@ skill_focus:
   - プレッシャーへの対処
   - 期待値の調整
   workplace_relevance: 熟考してから答える姿勢は、信頼される社員の特徴
+metadata:
+  target_strengths:
+  - professionalism
+  difficulty: 1

@@ -73,3 +73,7 @@ skill_focus:
   - 声の大きさ
   - 自然な会話の始め方
   workplace_relevance: 職場での第一印象と人間関係の基礎
+metadata:
+  target_strengths:
+  - professionalism
+  difficulty: 1

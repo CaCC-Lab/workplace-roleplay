@@ -73,3 +73,9 @@ skill_focus:
   - 状況説明力
   - 感謝の表現
   workplace_relevance: 適切に助けを求められることは、効率的な仕事の進め方の基本
+metadata:
+  target_strengths:
+  - positivity
+  - empathy
+  - active_listening
+  difficulty: 1
