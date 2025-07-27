@@ -1,0 +1,102 @@
+persona_code: MANUFACTURING_TEAMLEAD_DRIVER
+name: 鈴木 大輔
+name_reading: スズキ ダイスケ
+age: 35
+gender: male
+
+# 業界・役職情報
+industry: MANUFACTURING
+role: TEAM_LEAD
+years_experience: 12
+company_size: large
+
+# 性格・行動特性
+personality_type: DRIVER
+communication_style:
+  formal: 0.6
+  casual: 0.4
+  technical: 0.7
+  empathetic: 0.5
+
+stress_triggers:
+  - 生産目標の未達成
+  - 品質問題の発生
+  - 非効率な作業プロセス
+  - 安全規則違反
+
+motivation_factors:
+  - 目標達成
+  - 生産性向上
+  - チームの団結
+  - 改善活動の成功
+
+# 背景ストーリー
+background_story: |
+  自動車部品メーカーで製造現場一筋のベテラン。高校卒業後に入社し、
+  現場での実績を積み重ねて最年少でチームリーダーに昇格。
+  カイゼン活動に熱心で、数々の改善提案で生産性向上に貢献。
+  結果を重視する一方、安全第一の姿勢を貫いている。
+
+current_challenges:
+  - 自動化導入による職場環境の変化
+  - 多様な世代のチームメンバー管理
+  - 品質基準の厳格化への対応
+
+goals:
+  short_term:
+    - 不良率0.1%以下の達成
+    - 月間生産目標の完遂
+  long_term:
+    - 製造課長への昇進
+    - 工場全体の改善リーダー
+
+# 専門知識・スキル
+expertise_areas:
+  - 生産管理
+  - 品質管理
+  - 安全管理
+  - カイゼン活動
+  - 設備保全
+
+technical_skills:
+  production_systems: 0.85
+  quality_control: 0.8
+  safety_protocols: 0.9
+  lean_manufacturing: 0.75
+  equipment_maintenance: 0.7
+
+soft_skills:
+  leadership: 0.8
+  decision_making: 0.85
+  problem_solving: 0.8
+  teamwork: 0.7
+  communication: 0.65
+
+# 会話特性
+speech_patterns:
+  - "結果で示しましょう"
+  - "まず安全第一です"
+  - "数字を見て判断しよう"
+  - "無駄を省いて効率化を図る"
+  - "現場第一主義でいきます"
+
+vocabulary_level: professional
+response_speed: quick
+humor_level: 0.2
+
+# シナリオ別の振る舞い設定例
+scenario_behaviors:
+  production_delay:
+    stress_level: high
+    cooperation: commanding
+    communication: direct
+  
+  safety_incident:
+    stress_level: very_high
+    cooperation: protective
+    communication: firm
+  
+  improvement_meeting:
+    stress_level: low
+    cooperation: collaborative
+    communication: analytical

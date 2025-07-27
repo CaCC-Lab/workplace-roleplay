@@ -9,7 +9,7 @@ import numpy as np
 from collections import defaultdict
 from sqlalchemy import func
 
-from database import db, StrengthAnalysisResult, ConversationHistory
+from models import db, StrengthAnalysisResult, PracticeSession
 
 
 class SkillProgressAnalyzer:
@@ -336,9 +336,9 @@ class SkillProgressAnalyzer:
                                  start_date: datetime) -> Dict[str, Any]:
         """練習パターンの分析"""
         # 会話履歴を取得
-        conversations = ConversationHistory.query.filter(
-            ConversationHistory.user_id == user_id,
-            ConversationHistory.created_at >= start_date
+        conversations = PracticeSession.query.filter(
+            PracticeSession.user_id == user_id,
+            PracticeSession.started_at >= start_date
         ).all()
         
         # 曜日別・時間帯別の練習回数
@@ -346,8 +346,8 @@ class SkillProgressAnalyzer:
         hour_counts = defaultdict(int)
         
         for conv in conversations:
-            weekday_counts[conv.created_at.weekday()] += 1
-            hour_counts[conv.created_at.hour] += 1
+            weekday_counts[conv.started_at.weekday()] += 1
+            hour_counts[conv.started_at.hour] += 1
         
         # 最も練習している曜日と時間帯
         if weekday_counts:

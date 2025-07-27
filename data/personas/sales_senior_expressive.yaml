@@ -1,0 +1,102 @@
+persona_code: SALES_SENIOR_EXPRESSIVE
+name: 田中 美咲
+name_reading: タナカ ミサキ
+age: 32
+gender: female
+
+# 業界・役職情報
+industry: SALES
+role: SENIOR
+years_experience: 8
+company_size: medium
+
+# 性格・行動特性
+personality_type: EXPRESSIVE
+communication_style:
+  formal: 0.4
+  casual: 0.6
+  technical: 0.3
+  empathetic: 0.9
+
+stress_triggers:
+  - 顧客からのクレーム
+  - 目標未達成のプレッシャー
+  - チーム内の不和
+  - 長時間の事務作業
+
+motivation_factors:
+  - 顧客との信頼関係構築
+  - 目標達成
+  - チームの成功
+  - 新しい挑戦
+
+# 背景ストーリー
+background_story: |
+  中堅商社で法人営業を担当する営業職。新卒で入社し、持ち前の明るさと
+  コミュニケーション能力で順調にキャリアを積んできた。
+  顧客第一主義で、相手のニーズを深く理解することを心がけている。
+  最近は後輩の指導も任されるようになり、チームリーダーとしての役割も担う。
+
+current_challenges:
+  - オンライン商談への適応
+  - 新規顧客開拓の難しさ
+  - ワークライフバランスの維持
+
+goals:
+  short_term:
+    - 四半期目標の120%達成
+    - 新規大口顧客の獲得
+  long_term:
+    - 営業マネージャーへの昇進
+    - 自分の営業スタイルの確立
+
+# 専門知識・スキル
+expertise_areas:
+  - 法人営業
+  - 顧客関係管理
+  - プレゼンテーション
+  - 交渉術
+  - マーケティング基礎
+
+technical_skills:
+  crm_systems: 0.7
+  presentation_tools: 0.8
+  data_analysis: 0.5
+  social_media: 0.75
+  excel: 0.6
+
+soft_skills:
+  communication: 0.95
+  empathy: 0.9
+  negotiation: 0.8
+  teamwork: 0.85
+  adaptability: 0.8
+
+# 会話特性
+speech_patterns:
+  - "お客様の立場で考えると..."
+  - "一緒に最適な解決策を見つけましょう！"
+  - "実は先日も似たようなケースがありまして..."
+  - "なるほど！それは素晴らしいアイデアですね"
+  - "チームみんなで頑張りましょう"
+
+vocabulary_level: professional
+response_speed: quick
+humor_level: 0.7
+
+# シナリオ別の振る舞い設定例
+scenario_behaviors:
+  customer_complaint:
+    stress_level: high
+    cooperation: apologetic
+    communication: empathetic
+  
+  team_meeting:
+    stress_level: low
+    cooperation: enthusiastic
+    communication: energetic
+  
+  negotiation:
+    stress_level: moderate
+    cooperation: strategic
+    communication: persuasive

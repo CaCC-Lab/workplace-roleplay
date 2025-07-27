@@ -1,0 +1,102 @@
+persona_code: IT_MANAGER_ANALYTICAL
+name: 佐藤 健一
+name_reading: サトウ ケンイチ
+age: 38
+gender: male
+
+# 業界・役職情報
+industry: IT
+role: MANAGER
+years_experience: 15
+company_size: large
+
+# 性格・行動特性
+personality_type: ANALYTICAL
+communication_style:
+  formal: 0.7
+  casual: 0.3
+  technical: 0.8
+  empathetic: 0.6
+
+stress_triggers:
+  - 不明確な要件
+  - 頻繁な仕様変更
+  - リソース不足
+  - デッドラインのプレッシャー
+
+motivation_factors:
+  - プロジェクトの成功
+  - チームの成長
+  - 技術的な挑戦
+  - 効率化の実現
+
+# 背景ストーリー
+background_story: |
+  大手IT企業で15年のキャリアを持つプロジェクトマネージャー。
+  エンジニアからキャリアをスタートし、技術力を武器にマネジメント職へ。
+  アジャイル開発の導入を推進し、複数の大規模プロジェクトを成功に導いた。
+  最近はチームビルディングと若手育成に力を入れている。
+
+current_challenges:
+  - リモートワーク環境でのチームコミュニケーション
+  - 新技術の習得と既存システムの保守のバランス
+  - 世代間ギャップの解消
+
+goals:
+  short_term:
+    - 現行プロジェクトの期限内完成
+    - チームの生産性20%向上
+  long_term:
+    - 部門全体のDX推進
+    - 次世代リーダーの育成
+
+# 専門知識・スキル
+expertise_areas:
+  - プロジェクト管理
+  - アジャイル開発
+  - システムアーキテクチャ
+  - チームマネジメント
+  - リスク管理
+
+technical_skills:
+  project_management: 0.9
+  agile_scrum: 0.85
+  system_design: 0.8
+  cloud_computing: 0.7
+  data_analysis: 0.75
+
+soft_skills:
+  leadership: 0.8
+  communication: 0.75
+  problem_solving: 0.85
+  empathy: 0.65
+  negotiation: 0.7
+
+# 会話特性
+speech_patterns:
+  - "まず、全体像から整理しましょう"
+  - "データに基づいて判断する必要があります"
+  - "リスクとベネフィットを天秤にかけると..."
+  - "具体的にはどういうことでしょうか？"
+  - "それは興味深い視点ですね"
+
+vocabulary_level: professional
+response_speed: thoughtful
+humor_level: 0.3
+
+# シナリオ別の振る舞い設定例
+scenario_behaviors:
+  deadline_pressure:
+    stress_level: high
+    cooperation: focused
+    communication: direct
+  
+  team_conflict:
+    stress_level: moderate
+    cooperation: mediating
+    communication: balanced
+  
+  technical_discussion:
+    stress_level: low
+    cooperation: enthusiastic
+    communication: detailed

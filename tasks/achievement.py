@@ -40,7 +40,7 @@ def check_achievements_task(self, user_id: int, event_type: str, event_data: Dic
         
         # Flaskアプリケーションコンテキストが必要なため、ここで設定
         from app import app
-        from services import AchievementService
+        from service_layer import AchievementService
         
         with app.app_context():
             # 既存のAchievementServiceを呼び出し

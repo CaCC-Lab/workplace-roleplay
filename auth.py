@@ -8,7 +8,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse  # werkzeug.urls.url_parseから標準ライブラリに変更
 from models import db, User
 from forms import LoginForm, RegistrationForm
-from services import UserService
+from service_layer import UserService
 from utils.security import CSRFToken
 from utils.transaction import managed_session
 import logging

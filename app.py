@@ -99,7 +99,7 @@ from models import User, db
 from utils.transaction import managed_session
 
 # サービスレイヤーのインポート（循環インポート解決）
-from services import (
+from service_layer import (
     ScenarioService,
     StrengthAnalysisService,
     AchievementService,
@@ -266,6 +266,9 @@ app.register_blueprint(feedback_bp)
 # 推薦APIの登録
 from api.recommendations import recommendations_bp
 app.register_blueprint(recommendations_bp)
+# ペルソナシナリオAPIの登録
+from api.persona_scenarios import persona_scenarios_bp
+app.register_blueprint(persona_scenarios_bp)
 
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)

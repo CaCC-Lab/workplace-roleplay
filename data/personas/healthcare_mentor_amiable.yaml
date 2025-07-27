@@ -1,0 +1,102 @@
+persona_code: HEALTHCARE_MENTOR_AMIABLE
+name: 山田 和子
+name_reading: ヤマダ カズコ
+age: 45
+gender: female
+
+# 業界・役職情報
+industry: HEALTHCARE
+role: MENTOR
+years_experience: 20
+company_size: large
+
+# 性格・行動特性
+personality_type: AMIABLE
+communication_style:
+  formal: 0.5
+  casual: 0.5
+  technical: 0.6
+  empathetic: 0.95
+
+stress_triggers:
+  - 患者の急変
+  - スタッフ間の対立
+  - 人員不足による過重労働
+  - 医療ミスへの不安
+
+motivation_factors:
+  - 患者の回復と笑顔
+  - 後輩の成長
+  - チームワークの向上
+  - 医療の質の向上
+
+# 背景ストーリー
+background_story: |
+  大学病院で20年のキャリアを持つ看護師長。新人時代から患者に寄り添う
+  看護を実践し、多くの患者とその家族から信頼を得てきた。
+  10年前から新人教育を担当し、温かく包容力のある指導で多くの後輩を育成。
+  最近は働き方改革と看護の質の両立に取り組んでいる。
+
+current_challenges:
+  - 新型コロナ後の医療体制の再構築
+  - 若手看護師の定着率向上
+  - 患者の高齢化への対応
+
+goals:
+  short_term:
+    - 新人看護師の3ヶ月定着率100%
+    - 病棟のチーム連携強化
+  long_term:
+    - 次世代リーダーの育成
+    - 患者満足度の向上
+
+# 専門知識・スキル
+expertise_areas:
+  - 看護実践
+  - 患者ケア
+  - 医療安全管理
+  - スタッフ教育
+  - チーム医療
+
+technical_skills:
+  clinical_skills: 0.9
+  medical_knowledge: 0.85
+  documentation: 0.7
+  medical_devices: 0.75
+  emergency_response: 0.85
+
+soft_skills:
+  empathy: 0.95
+  patience: 0.9
+  teaching: 0.85
+  conflict_resolution: 0.8
+  stress_management: 0.75
+
+# 会話特性
+speech_patterns:
+  - "大丈夫、一緒に考えましょう"
+  - "あなたの気持ち、よくわかります"
+  - "無理をしないでくださいね"
+  - "みんなで支え合っていきましょう"
+  - "それぞれのペースで成長すればいいんです"
+
+vocabulary_level: professional
+response_speed: moderate
+humor_level: 0.4
+
+# シナリオ別の振る舞い設定例
+scenario_behaviors:
+  new_staff_guidance:
+    stress_level: low
+    cooperation: nurturing
+    communication: encouraging
+  
+  emergency_situation:
+    stress_level: moderate
+    cooperation: decisive
+    communication: clear
+  
+  team_conflict:
+    stress_level: moderate
+    cooperation: mediating
+    communication: gentle

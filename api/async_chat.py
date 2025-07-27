@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify, session
 from flask_login import current_user
 from utils.redis_sse import RedisSSEBridge, AsyncTaskManager
 from tasks.llm import stream_chat_response, generate_feedback
-from services import SessionService, ConversationService
+from service_layer import SessionService, ConversationService
 from models import SessionType
 from errors import ValidationError, AppError
 
@@ -538,7 +538,7 @@ def async_scenario_assist():
         ]
         
         # 簡易的な同期実行（将来的には非同期化）
-        from services import LLMService
+        from service_layer import LLMService
         llm_service = LLMService()
         
         try:

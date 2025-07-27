@@ -9,7 +9,6 @@ from datetime import datetime
 import logging
 
 from analytics import LearningDashboard, SkillProgressAnalyzer, TrendAnalyzer
-from auth import check_session_validity
 
 # ログ設定
 logger = logging.getLogger(__name__)
@@ -28,10 +27,6 @@ trend_analyzer = TrendAnalyzer()
 def get_user_overview():
     """ユーザーの学習概要を取得"""
     try:
-        # セッション確認
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         overview = dashboard.get_user_overview(user_id)
         
@@ -53,9 +48,6 @@ def get_user_overview():
 def get_skill_progression():
     """スキルの成長推移を取得"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         days = request.args.get('days', 30, type=int)
         
@@ -82,9 +74,6 @@ def get_skill_progression():
 def get_scenario_performance():
     """シナリオ別のパフォーマンス分析を取得"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         performance = dashboard.get_scenario_performance(user_id)
         
@@ -106,9 +95,6 @@ def get_scenario_performance():
 def get_comparative_analysis():
     """他のユーザーとの比較分析を取得"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         comparison = dashboard.get_comparative_analysis(user_id)
         
@@ -130,9 +116,6 @@ def get_comparative_analysis():
 def analyze_skill_progress(skill_name):
     """特定スキルの詳細な進捗分析"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         days = request.args.get('days', 30, type=int)
         days = min(days, 180)
@@ -157,9 +140,6 @@ def analyze_skill_progress(skill_name):
 def compare_skills():
     """全スキルの比較分析"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         days = request.args.get('days', 30, type=int)
         days = min(days, 180)
@@ -184,9 +164,6 @@ def compare_skills():
 def get_skill_correlations():
     """スキル間の相関関係を分析"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         correlations = skill_analyzer.get_skill_correlations(user_id)
         
@@ -208,9 +185,6 @@ def get_skill_correlations():
 def analyze_trends():
     """全体的な学習トレンドを分析"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         days = request.args.get('days', 90, type=int)
         days = min(days, 365)
@@ -235,9 +209,6 @@ def analyze_trends():
 def predict_performance(skill_name):
     """将来のパフォーマンスを予測"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         days_ahead = request.args.get('days_ahead', 30, type=int)
         days_ahead = min(days_ahead, 90)
@@ -264,9 +235,6 @@ def predict_performance(skill_name):
 def identify_plateaus():
     """学習の停滞期を特定"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         plateaus = trend_analyzer.identify_learning_plateaus(user_id)
         
@@ -288,9 +256,6 @@ def identify_plateaus():
 def analyze_momentum():
     """学習の勢い（モメンタム）を分析"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         momentum = trend_analyzer.analyze_momentum(user_id)
         
@@ -312,9 +277,6 @@ def analyze_momentum():
 def export_analytics_data():
     """分析データをエクスポート（CSV/JSON形式）"""
     try:
-        if not check_session_validity():
-            return jsonify({'error': 'Invalid session'}), 401
-        
         user_id = current_user.id
         format_type = request.args.get('format', 'json')
         

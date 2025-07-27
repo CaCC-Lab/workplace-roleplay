@@ -9,7 +9,7 @@ import numpy as np
 from scipy import stats
 from collections import defaultdict
 
-from database import db, StrengthAnalysisResult, ConversationHistory
+from models import db, StrengthAnalysisResult, PracticeSession
 
 
 class TrendAnalyzer:
@@ -35,10 +35,10 @@ class TrendAnalyzer:
             StrengthAnalysisResult.created_at >= start_date
         ).order_by(StrengthAnalysisResult.created_at).all()
         
-        conversations = ConversationHistory.query.filter(
-            ConversationHistory.user_id == user_id,
-            ConversationHistory.created_at >= start_date
-        ).order_by(ConversationHistory.created_at).all()
+        conversations = PracticeSession.query.filter(
+            PracticeSession.user_id == user_id,
+            PracticeSession.started_at >= start_date
+        ).order_by(PracticeSession.started_at).all()
         
         if not analysis_results:
             return {'error': 'No data available for trend analysis'}
@@ -198,15 +198,15 @@ class TrendAnalyzer:
             StrengthAnalysisResult.created_at < mid_date
         ).all()
         
-        recent_conversations = ConversationHistory.query.filter(
-            ConversationHistory.user_id == user_id,
-            ConversationHistory.created_at >= mid_date
+        recent_conversations = PracticeSession.query.filter(
+            PracticeSession.user_id == user_id,
+            PracticeSession.started_at >= mid_date
         ).count()
         
-        previous_conversations = ConversationHistory.query.filter(
-            ConversationHistory.user_id == user_id,
-            ConversationHistory.created_at >= start_date,
-            ConversationHistory.created_at < mid_date
+        previous_conversations = PracticeSession.query.filter(
+            PracticeSession.user_id == user_id,
+            PracticeSession.started_at >= start_date,
+            PracticeSession.started_at < mid_date
         ).count()
         
         # モメンタム指標の計算
@@ -233,7 +233,7 @@ class TrendAnalyzer:
     
     # プライベートメソッド
     def _aggregate_daily_stats(self, analysis_results: List[StrengthAnalysisResult], 
-                             conversations: List[ConversationHistory]) -> Dict[str, Any]:
+                             conversations: List[PracticeSession]) -> Dict[str, Any]:
         """日次統計を集計"""
         daily_stats = defaultdict(lambda: {
             'conversations': 0,

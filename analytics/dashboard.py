@@ -11,7 +11,7 @@ from flask import current_app
 from collections import defaultdict
 import numpy as np
 
-from database import db, StrengthAnalysisResult, ConversationHistory
+from models import db, StrengthAnalysisResult, PracticeSession, ConversationLog
 from config.config import get_config
 
 
@@ -131,7 +131,7 @@ class LearningDashboard:
             シナリオ別パフォーマンスデータ
         """
         # 会話履歴からシナリオ別のデータを集計
-        conversations = ConversationHistory.query.filter_by(
+        conversations = PracticeSession.query.filter_by(
             user_id=user_id,
             session_type='scenario'
         ).all()
@@ -151,12 +151,13 @@ class LearningDashboard:
                 stats['count'] += 1
                 
                 # メッセージ数と長さの計算
-                if conv.messages:
-                    user_messages = [m for m in conv.messages if m.get('role') == 'user']
+                conv_logs = ConversationLog.query.filter_by(session_id=conv.id).all()
+                if conv_logs:
+                    user_messages = [log for log in conv_logs if log.speaker == 'user']
                     stats['total_messages'] += len(user_messages)
                     
                     if user_messages:
-                        avg_length = sum(len(m.get('content', '')) for m in user_messages) / len(user_messages)
+                        avg_length = sum(len(log.message) for log in user_messages) / len(user_messages)
                         stats['avg_message_length'] = (
                             stats['avg_message_length'] * (stats['count'] - 1) + avg_length
                         ) / stats['count']
@@ -164,7 +165,7 @@ class LearningDashboard:
                 # 関連する強み分析結果があれば追加
                 analysis = StrengthAnalysisResult.query.filter_by(
                     user_id=user_id,
-                    session_id=conv.session_id
+                    session_id=conv.id
                 ).first()
                 
                 if analysis and analysis.analysis_result:
@@ -244,16 +245,16 @@ class LearningDashboard:
     # プライベートメソッド
     def _get_total_sessions(self, user_id: int) -> int:
         """総セッション数を取得"""
-        return ConversationHistory.query.filter_by(user_id=user_id).count()
+        return PracticeSession.query.filter_by(user_id=user_id).count()
     
     def _get_total_practice_time(self, user_id: int) -> int:
         """総練習時間を取得（分単位）"""
-        conversations = ConversationHistory.query.filter_by(user_id=user_id).all()
+        conversations = PracticeSession.query.filter_by(user_id=user_id).all()
         total_minutes = 0
         
         for conv in conversations:
-            if conv.created_at and conv.updated_at:
-                duration = (conv.updated_at - conv.created_at).total_seconds() / 60
+            if conv.started_at and conv.ended_at:
+                duration = (conv.ended_at - conv.started_at).total_seconds() / 60
                 total_minutes += duration
         
         return int(total_minutes)
@@ -283,17 +284,19 @@ class LearningDashboard:
     
     def _get_recent_activity(self, user_id: int) -> List[Dict[str, Any]]:
         """最近のアクティビティを取得"""
-        recent_conversations = ConversationHistory.query.filter_by(
+        recent_conversations = PracticeSession.query.filter_by(
             user_id=user_id
-        ).order_by(ConversationHistory.created_at.desc()).limit(5).all()
+        ).order_by(PracticeSession.started_at.desc()).limit(5).all()
         
         activities = []
         for conv in recent_conversations:
+            # メッセージ数を取得
+            message_count = ConversationLog.query.filter_by(session_id=conv.id).count()
             activities.append({
-                'date': conv.created_at.isoformat(),
-                'session_type': conv.session_type,
+                'date': conv.started_at.isoformat(),
+                'session_type': conv.session_type.value if hasattr(conv.session_type, 'value') else conv.session_type,
                 'scenario_id': conv.scenario_id,
-                'message_count': len(conv.messages) if conv.messages else 0
+                'message_count': message_count
             })
         
         return activities

@@ -308,3 +308,240 @@ from sqlalchemy import Index
 # 複合インデックス
 Index('idx_session_user_date', PracticeSession.user_id, PracticeSession.started_at)
 Index('idx_log_session_timestamp', ConversationLog.session_id, ConversationLog.timestamp)
+
+
+# ========== AI PERSONA MODELS ==========
+
+class PersonaIndustry(enum.Enum):
+    """業界分類"""
+    IT = "IT・ソフトウェア"
+    SALES = "営業・販売"
+    MANUFACTURING = "製造業"
+    HEALTHCARE = "医療・福祉"
+    EDUCATION = "教育"
+    FINANCE = "金融"
+    RETAIL = "小売・サービス"
+    CONSULTING = "コンサルティング"
+    GOVERNMENT = "公務員・行政"
+    CREATIVE = "クリエイティブ・メディア"
+
+
+class PersonaRole(enum.Enum):
+    """役職・ポジション"""
+    JUNIOR = "新入社員"
+    SENIOR = "先輩社員"
+    TEAM_LEAD = "チームリーダー"
+    MANAGER = "マネージャー"
+    EXECUTIVE = "役員"
+    CLIENT = "クライアント"
+    COLLEAGUE = "同僚"
+    SUBORDINATE = "部下"
+    MENTOR = "メンター"
+    HR = "人事担当"
+
+
+class PersonaPersonality(enum.Enum):
+    """性格タイプ"""
+    ANALYTICAL = "分析的"
+    DRIVER = "推進力重視"
+    AMIABLE = "協調的"
+    EXPRESSIVE = "表現豊か"
+    DETAIL_ORIENTED = "細部重視"
+    BIG_PICTURE = "全体俯瞰"
+    INNOVATIVE = "革新的"
+    TRADITIONAL = "伝統重視"
+
+
+class EmotionalState(enum.Enum):
+    """感情状態"""
+    NEUTRAL = "中立"
+    HAPPY = "喜び"
+    STRESSED = "ストレス"
+    FRUSTRATED = "フラストレーション"
+    EXCITED = "興奮"
+    CONCERNED = "懸念"
+    CONFIDENT = "自信"
+    UNCERTAIN = "不安"
+    SATISFIED = "満足"
+    DISAPPOINTED = "失望"
+
+
+class AIPersona(db.Model):
+    """AIペルソナプロファイル"""
+    __tablename__ = 'ai_personas'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    persona_code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    name_reading = db.Column(db.String(100))
+    age = db.Column(db.Integer)
+    gender = db.Column(db.String(20))
+    
+    # 業界・役職情報
+    industry = db.Column(db.Enum(PersonaIndustry), nullable=False)
+    role = db.Column(db.Enum(PersonaRole), nullable=False)
+    years_experience = db.Column(db.Integer, default=5)
+    company_size = db.Column(db.String(50))
+    
+    # 性格・行動特性
+    personality_type = db.Column(db.Enum(PersonaPersonality), nullable=False)
+    communication_style = db.Column(db.JSON)
+    stress_triggers = db.Column(db.JSON)
+    motivation_factors = db.Column(db.JSON)
+    
+    # 背景ストーリー
+    background_story = db.Column(db.Text)
+    current_challenges = db.Column(db.JSON)
+    goals = db.Column(db.JSON)
+    
+    # 専門知識・スキル
+    expertise_areas = db.Column(db.JSON)
+    technical_skills = db.Column(db.JSON)
+    soft_skills = db.Column(db.JSON)
+    
+    # 会話特性
+    speech_patterns = db.Column(db.JSON)
+    vocabulary_level = db.Column(db.String(20), default="professional")
+    response_speed = db.Column(db.String(20), default="moderate")
+    humor_level = db.Column(db.Float, default=0.3)
+    
+    # メタ情報
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    
+    # リレーションシップ
+    memories = db.relationship('PersonaMemory', back_populates='persona', lazy='dynamic', cascade="all, delete-orphan")
+    scenario_configs = db.relationship('PersonaScenarioConfig', back_populates='persona', lazy='dynamic', cascade="all, delete-orphan")
+    interactions = db.relationship('UserPersonaInteraction', back_populates='persona', lazy='dynamic')
+    
+    def __repr__(self):
+        return f'<AIPersona {self.name} ({self.persona_code})>'
+    
+    def get_current_emotional_state(self, context=None):
+        """現在の感情状態を取得（コンテキストに基づいて動的に決定）"""
+        if not context:
+            return EmotionalState.NEUTRAL
+        return EmotionalState.NEUTRAL
+
+
+class PersonaMemory(db.Model):
+    """ペルソナの記憶・コンテキスト管理"""
+    __tablename__ = 'persona_memories'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey('ai_personas.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('practice_sessions.id'))
+    
+    # 記憶の種類と内容
+    memory_type = db.Column(db.String(50), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    importance_score = db.Column(db.Float, default=0.5)
+    
+    # コンテキスト情報
+    context_tags = db.Column(db.JSON)
+    related_entities = db.Column(db.JSON)
+    
+    # 時系列管理
+    occurred_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    expires_at = db.Column(db.DateTime(timezone=True))
+    access_count = db.Column(db.Integer, default=0)
+    last_accessed = db.Column(db.DateTime(timezone=True))
+    
+    # リレーションシップ
+    persona = db.relationship('AIPersona', back_populates='memories')
+    user = db.relationship('User', backref='persona_memories')
+    session = db.relationship('PracticeSession', backref='persona_memories')
+    
+    def __repr__(self):
+        return f'<PersonaMemory {self.memory_type}: {self.content[:50]}...>'
+
+
+class PersonaScenarioConfig(db.Model):
+    """ペルソナのシナリオ別設定"""
+    __tablename__ = 'persona_scenario_configs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey('ai_personas.id'), nullable=False, index=True)
+    scenario_id = db.Column(db.Integer, db.ForeignKey('scenarios.id'), nullable=False, index=True)
+    
+    # シナリオでの役割と態度
+    scenario_role = db.Column(db.String(100))
+    initial_attitude = db.Column(db.String(50))
+    cooperation_level = db.Column(db.Float, default=0.7)
+    
+    # シナリオ固有の設定
+    scenario_goals = db.Column(db.JSON)
+    hidden_agenda = db.Column(db.Text)
+    trigger_points = db.Column(db.JSON)
+    
+    # 難易度調整
+    difficulty_modifier = db.Column(db.Float, default=1.0)
+    hint_availability = db.Column(db.Boolean, default=True)
+    
+    # カスタム台詞・反応
+    custom_greetings = db.Column(db.JSON)
+    custom_responses = db.Column(db.JSON)
+    
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    
+    # リレーションシップ
+    persona = db.relationship('AIPersona', back_populates='scenario_configs')
+    scenario = db.relationship('Scenario', backref='persona_configs')
+    
+    # 複合ユニーク制約
+    __table_args__ = (
+        db.UniqueConstraint('persona_id', 'scenario_id', name='_persona_scenario_uc'),
+    )
+    
+    def __repr__(self):
+        return f'<PersonaScenarioConfig {self.persona_id}:{self.scenario_id}>'
+
+
+class UserPersonaInteraction(db.Model):
+    """ユーザーとペルソナの相互作用履歴"""
+    __tablename__ = 'user_persona_interactions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    persona_id = db.Column(db.Integer, db.ForeignKey('ai_personas.id'), nullable=False, index=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('practice_sessions.id'), nullable=False)
+    
+    # 相互作用の評価
+    rapport_level = db.Column(db.Float, default=0.5)
+    interaction_quality = db.Column(db.Float)
+    emotional_trajectory = db.Column(db.JSON)
+    
+    # 重要なイベント
+    key_moments = db.Column(db.JSON)
+    breakthroughs = db.Column(db.JSON)
+    conflicts = db.Column(db.JSON)
+    
+    # 学習成果
+    skills_demonstrated = db.Column(db.JSON)
+    areas_for_improvement = db.Column(db.JSON)
+    
+    # 統計情報
+    total_exchanges = db.Column(db.Integer, default=0)
+    user_word_count = db.Column(db.Integer, default=0)
+    persona_word_count = db.Column(db.Integer, default=0)
+    session_duration = db.Column(db.Integer)
+    
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    
+    # リレーションシップ
+    user = db.relationship('User', backref='persona_interactions')
+    persona = db.relationship('AIPersona', back_populates='interactions')
+    session = db.relationship('PracticeSession', backref='persona_interaction')
+    
+    def __repr__(self):
+        return f'<UserPersonaInteraction User:{self.user_id} Persona:{self.persona_id}>'
+
+
+# ペルソナ関連インデックス
+Index('idx_persona_industry_role', AIPersona.industry, AIPersona.role)
+Index('idx_persona_active', AIPersona.is_active)
+Index('idx_memory_persona_user', PersonaMemory.persona_id, PersonaMemory.user_id)
+Index('idx_memory_type_importance', PersonaMemory.memory_type, PersonaMemory.importance_score)
+Index('idx_interaction_user_rapport', UserPersonaInteraction.user_id, UserPersonaInteraction.rapport_level)
