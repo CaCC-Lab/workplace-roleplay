@@ -10,7 +10,7 @@ from app import app, load_scenarios
 from api_key_manager import get_google_api_key, record_api_usage, handle_api_error, get_api_key_manager
 
 
-class TestAll30Scenarios:
+class TestAll35Scenarios:
     """全30シナリオをすべてテスト（省略なし）"""
 
     @pytest.fixture(scope="session")
@@ -382,6 +382,6 @@ class TestScenarioMetrics:
         for scenario in scenario_list[:10]:
             print(f"   {scenario}")
         
-        print(f"   ... (残り20個)")
+        print(f"   ... (残り25個)")
         
-        assert len(scenarios) == 30, f"シナリオ数が30ではない: {len(scenarios)}"
+        assert len(scenarios) == 35, f"シナリオ数が35ではない: {len(scenarios)}"

@@ -639,11 +639,27 @@ class AsyncChatClient {
         if (errorContainer) {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${errorInfo.severity}`;
-            alertDiv.innerHTML = `
-                <span class="error-message">${errorInfo.userMessage}</span>
-                ${errorInfo.type === 'reconnecting' ? '<span class="spinner"></span>' : ''}
-                <button class="close-button" onclick="this.parentElement.remove()">×</button>
-            `;
+            
+            // XSS対策: textContentを使用してテキストを安全に設定
+            const errorMessage = document.createElement('span');
+            errorMessage.className = 'error-message';
+            errorMessage.textContent = errorInfo.userMessage;
+            alertDiv.appendChild(errorMessage);
+            
+            // スピナーの追加（必要な場合）
+            if (errorInfo.type === 'reconnecting') {
+                const spinner = document.createElement('span');
+                spinner.className = 'spinner';
+                alertDiv.appendChild(spinner);
+            }
+            
+            // 閉じるボタンの追加
+            const closeButton = document.createElement('button');
+            closeButton.className = 'close-button';
+            closeButton.textContent = '×';
+            closeButton.addEventListener('click', () => alertDiv.remove());
+            alertDiv.appendChild(closeButton);
+            
             errorContainer.appendChild(alertDiv);
             
             // 自動的に消える（再接続中以外）

@@ -498,26 +498,47 @@ function showErrorNotification(errorInfo) {
         alertDiv.classList.add('alert-reconnecting');
     }
     
-    let iconHtml = '';
+    // XSS対策: DOM操作で安全に要素を構築
+    // アイコンの追加
+    let iconClass = '';
     switch (errorInfo.severity) {
         case 'critical':
         case 'error':
-            iconHtml = '<i class="fas fa-exclamation-circle"></i>';
+            iconClass = 'fas fa-exclamation-circle';
             break;
         case 'warning':
-            iconHtml = '<i class="fas fa-exclamation-triangle"></i>';
+            iconClass = 'fas fa-exclamation-triangle';
             break;
         case 'info':
-            iconHtml = '<i class="fas fa-info-circle"></i>';
+            iconClass = 'fas fa-info-circle';
             break;
     }
     
-    alertDiv.innerHTML = `
-        ${iconHtml}
-        <span class="error-message">${errorInfo.userMessage}</span>
-        ${errorInfo.type === 'reconnecting' ? '<span class="spinner"></span>' : ''}
-        <button class="close-button" onclick="this.parentElement.remove()">×</button>
-    `;
+    if (iconClass) {
+        const icon = document.createElement('i');
+        icon.className = iconClass;
+        alertDiv.appendChild(icon);
+    }
+    
+    // エラーメッセージの追加
+    const errorMessage = document.createElement('span');
+    errorMessage.className = 'error-message';
+    errorMessage.textContent = errorInfo.userMessage;
+    alertDiv.appendChild(errorMessage);
+    
+    // スピナーの追加（必要な場合）
+    if (errorInfo.type === 'reconnecting') {
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner';
+        alertDiv.appendChild(spinner);
+    }
+    
+    // 閉じるボタンの追加
+    const closeButton = document.createElement('button');
+    closeButton.className = 'close-button';
+    closeButton.textContent = '×';
+    closeButton.addEventListener('click', () => alertDiv.remove());
+    alertDiv.appendChild(closeButton);
     
     errorContainer.appendChild(alertDiv);
     

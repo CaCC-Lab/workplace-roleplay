@@ -8,16 +8,28 @@ import re
 from typing import Dict, Any
 
 # モジュールレベルの変数でシナリオデータをキャッシュ
+# スレッドセーフな実装のためのインポート
+import threading
+
 _scenarios_cache = None
+_cache_lock = threading.Lock()
 
 def load_scenarios() -> Dict[str, Any]:
     """
     scenarios/dataディレクトリ内の全シナリオYAMLファイルをロードする
+    
+    スレッドセーフなキャッシュ機構を使用して、一度読み込んだ
+    シナリオデータを再利用します。
+    
+    Returns:
+        Dict[str, Any]: シナリオID をキーとするシナリオデータの辞書
     """
     global _scenarios_cache
     
-    if _scenarios_cache is not None:
-        return _scenarios_cache
+    # スレッドセーフなキャッシュチェック
+    with _cache_lock:
+        if _scenarios_cache is not None:
+            return _scenarios_cache
     
     scenarios = {}
     data_dir = os.path.join(os.path.dirname(__file__), 'data')
@@ -54,8 +66,9 @@ def load_scenarios() -> Dict[str, Any]:
     print(f"Loaded {len(sorted_scenarios)} scenarios in natural sort order")
     print(f"First 5 scenarios: {scenario_order[:5] if len(scenario_order) >= 5 else scenario_order}")
     
-    # キャッシュに保存
-    _scenarios_cache = sorted_scenarios
+    # スレッドセーフにキャッシュに保存
+    with _cache_lock:
+        _scenarios_cache = sorted_scenarios
     return sorted_scenarios
 
 

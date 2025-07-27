@@ -5,7 +5,7 @@
 """
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from urllib.parse import urlparse
+from urllib.parse import urlparse  # werkzeug.urls.url_parseから標準ライブラリに変更
 from models import db, User
 from forms import LoginForm, RegistrationForm
 from services import UserService
