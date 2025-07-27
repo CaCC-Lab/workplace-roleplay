@@ -232,6 +232,33 @@ class UserAchievement(db.Model):
         return f'<UserAchievement {self.user_id}:{self.achievement_id}>'
 
 
+class StrengthAnalysisResult(db.Model):
+    """強み分析結果（新形式）"""
+    __tablename__ = 'strength_analysis_results'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    session_id = db.Column(db.Integer, db.ForeignKey('practice_sessions.id'))
+    task_id = db.Column(db.String(100))  # Celeryタスクid
+    analysis_type = db.Column(db.String(50))  # 'chat', 'scenario'
+    
+    # 分析結果
+    skill_scores = db.Column(db.JSON)  # {'empathy': 4.2, 'clarity': 3.8, ...}
+    overall_score = db.Column(db.Float)
+    top_strengths = db.Column(db.JSON)  # ['empathy', 'active_listening', ...]
+    encouragement_messages = db.Column(db.JSON)  # メッセージのリスト
+    raw_analysis = db.Column(db.Text)  # LLMからの生の分析結果
+    
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    
+    # リレーション
+    user = db.relationship('User', backref='strength_analysis_results')
+    session = db.relationship('PracticeSession', backref='strength_analysis_results')
+    
+    def __repr__(self):
+        return f'<StrengthAnalysisResult {self.id} - User {self.user_id}>'
+
+
 class UserPreferences(db.Model):
     """ユーザー設定"""
     __tablename__ = 'user_preferences'

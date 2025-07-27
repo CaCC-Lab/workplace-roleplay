@@ -1,6 +1,7 @@
 id: 6
 title: 新人への仕事の教え方と指導法
-description: 配属されたばかりの新人に、複雑な業務フローを教える必要があります。理解度にばらつきがあり、何度も同じ質問をされています。効果的な指導方法を実践する場面です。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: 配属されたばかりの新人に、複雑な業務フローを教える必要があります。理解度にばらつきがあり、何度も同じ質問をされています。効果的な指導方法を実践する場面です。
+  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: beginner
 tags:
 - 指導
@@ -79,3 +80,9 @@ skill_focus:
   - 説明力
   - 相手のペースに合わせる力
   workplace_relevance: 指導・教育力は職場での信頼関係構築の基礎
+metadata:
+  target_strengths:
+  - empathy
+  - active_listening
+  - clarity
+  difficulty: 2

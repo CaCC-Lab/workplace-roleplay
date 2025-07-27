@@ -4,7 +4,7 @@ Celery + Redis Pub/Subを使用した非同期ストリーミング実装
 """
 import uuid
 import logging
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from flask_login import current_user
 from utils.redis_sse import RedisSSEBridge, AsyncTaskManager
 from tasks.llm import stream_chat_response, generate_feedback
@@ -67,9 +67,9 @@ def stream_chat():
             practice_session = None
         
         # 会話履歴の取得（セッション or メモリから）
-        if request.session.get('chat_memory'):
+        if session.get('chat_memory'):
             messages = []
-            for item in request.session['chat_memory']:
+            for item in session['chat_memory']:
                 if 'human' in item:
                     messages.append({'role': 'user', 'content': item['human']})
                 if 'ai' in item:
@@ -111,8 +111,8 @@ def stream_chat():
             )
         
         # セッションへの保存（メモリ）
-        if 'chat_memory' not in request.session:
-            request.session['chat_memory'] = []
+        if 'chat_memory' not in session:
+            session['chat_memory'] = []
         
         # SSEレスポンスを返す
         response = RedisSSEBridge.create_sse_response(channel)
@@ -158,8 +158,8 @@ def async_chat_feedback():
         
         # 会話履歴の取得
         conversation_history = []
-        if request.session.get('chat_memory'):
-            for item in request.session['chat_memory']:
+        if session.get('chat_memory'):
+            for item in session['chat_memory']:
                 if 'human' in item:
                     conversation_history.append({'role': 'user', 'content': item['human']})
                 if 'ai' in item:
@@ -256,17 +256,14 @@ def save_chat_response():
             )
         
         # セッションメモリへの保存
-        if 'chat_memory' not in request.session:
-            request.session['chat_memory'] = []
+        if 'chat_memory' not in session:
+            session['chat_memory'] = []
         
         # 最後のエントリにAIレスポンスを追加
-        if request.session['chat_memory'] and 'ai' not in request.session['chat_memory'][-1]:
-            request.session['chat_memory'][-1]['ai'] = message
-        else:
-            request.session['chat_memory'].append({'ai': message})
-        
-        # セッションを保存
-        request.session.modified = True
+        if session['chat_memory'] and 'ai' not in session['chat_memory'][-1]:
+            session['chat_memory'][-1]['ai'] = message
+        session['chat_memory'].append({'ai': message})
+        session.modified = True
         
         return jsonify({
             'status': 'success',
@@ -337,10 +334,9 @@ def stream_scenario_chat():
             practice_session = None
         
         # シナリオメモリの取得
-        if f'scenario_memory_{scenario_id}' not in request.session:
-            request.session[f'scenario_memory_{scenario_id}'] = []
-        
-        scenario_memory = request.session[f'scenario_memory_{scenario_id}']
+        if f'scenario_memory_{scenario_id}' not in session:
+            session[f'scenario_memory_{scenario_id}'] = []
+        scenario_memory = session[f'scenario_memory_{scenario_id}']
         
         # 会話履歴の構築
         messages = []
@@ -397,7 +393,7 @@ def stream_scenario_chat():
         # メモリへの保存
         if message:
             scenario_memory.append({'human': message})
-            request.session.modified = True
+            session.modified = True
         
         # SSEレスポンスを返す
         response = RedisSSEBridge.create_sse_response(channel)
@@ -451,8 +447,8 @@ def async_scenario_feedback():
         
         # 会話履歴の取得
         conversation_history = []
-        if f'scenario_memory_{scenario_id}' in request.session:
-            for item in request.session[f'scenario_memory_{scenario_id}']:
+        if f'scenario_memory_{scenario_id}' in session:
+            for item in session[f'scenario_memory_{scenario_id}']:
                 if 'human' in item:
                     conversation_history.append({'role': 'user', 'content': item['human']})
                 if 'ai' in item:
@@ -660,8 +656,8 @@ def stream_watch_start():
         task_manager.notify_task_start(channel, task.id, 'watch_streaming')
         
         # メモリの初期化
-        if 'watch_memory' not in request.session:
-            request.session['watch_memory'] = []
+        if 'watch_memory' not in session:
+            session['watch_memory'] = []
         
         # SSEレスポンスを返す
         response = RedisSSEBridge.create_sse_response(channel)
@@ -706,7 +702,7 @@ def stream_watch_next():
         model_b = data.get('model_b', 'gemini/gemini-1.5-flash')
         
         # 会話履歴の取得
-        watch_memory = request.session.get('watch_memory', [])
+        watch_memory = session.get('watch_memory', [])
         if not watch_memory:
             raise ValidationError("会話履歴がありません")
         
@@ -792,17 +788,17 @@ def save_watch_message():
             )
         
         # セッションメモリへの保存
-        if 'watch_memory' not in request.session:
-            request.session['watch_memory'] = []
+        if 'watch_memory' not in session:
+            session['watch_memory'] = []
         
-        request.session['watch_memory'].append({
+        session['watch_memory'].append({
             'speaker': speaker,
             'message': message,
             'timestamp': uuid.uuid4().hex  # タイムスタンプ代わり
         })
         
         # セッションを保存
-        request.session.modified = True
+        session.modified = True
         
         return jsonify({
             'status': 'success',
@@ -814,3 +810,112 @@ def save_watch_message():
     except Exception as e:
         logger.error(f"Save watch message error: {str(e)}", exc_info=True)
         return jsonify({'error': '保存に失敗しました'}), 500
+
+
+@async_chat_bp.route('/strength-analysis/start', methods=['POST'])
+def start_strength_analysis():
+    """
+    強み分析を非同期で開始するエンドポイント
+    
+    Request JSON:
+        {
+            "session_type": str ('chat' or 'scenario'),
+            "scenario_id": str (optional, for scenario type),
+            "session_id": str (optional)
+        }
+    
+    Returns:
+        {
+            "task_id": str,
+            "status": str,
+            "message": str
+        }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            raise ValidationError("リクエストボディが必要です")
+        
+        session_type = data.get('session_type', 'chat')
+        scenario_id = data.get('scenario_id')
+        session_id = data.get('session_id', str(uuid.uuid4()))
+        
+        # ユーザーIDの取得（認証済みの場合）
+        user_id = current_user.id if current_user.is_authenticated else 0
+        
+        # 会話履歴の取得
+        conversation_history = []
+        
+        if session_type == 'chat':
+            # 雑談練習の履歴
+            if 'chat_memory' in session:
+                for item in session['chat_memory']:
+                    if 'human' in item:
+                        conversation_history.append({'role': 'user', 'content': item['human']})
+                    if 'ai' in item:
+                        conversation_history.append({'role': 'assistant', 'content': item['ai']})
+        elif session_type == 'scenario' and scenario_id:
+            # シナリオ練習の履歴
+            if f'scenario_memory_{scenario_id}' in session:
+                for item in session[f'scenario_memory_{scenario_id}']:
+                    if 'human' in item:
+                        conversation_history.append({'role': 'user', 'content': item['human']})
+                    if 'ai' in item:
+                        conversation_history.append({'role': 'assistant', 'content': item['ai']})
+        else:
+            raise ValidationError("無効なセッションタイプです")
+        
+        if not conversation_history:
+            raise ValidationError("分析する会話履歴がありません")
+        
+        # 強み分析タスクの起動
+        from tasks.strength_analysis import analyze_conversation_strengths_task
+        task = analyze_conversation_strengths_task.delay(
+            user_id=user_id,
+            conversation_history=conversation_history,
+            session_type=session_type
+        )
+        
+        return jsonify({
+            'task_id': task.id,
+            'status': 'processing',
+            'message': '強み分析を開始しました'
+        })
+        
+    except ValidationError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Start strength analysis error: {str(e)}", exc_info=True)
+        return jsonify({'error': '予期しないエラーが発生しました'}), 500
+
+
+@async_chat_bp.route('/strength-analysis/status/<task_id>', methods=['GET'])
+def get_strength_analysis_status(task_id):
+    """
+    強み分析タスクのステータスと進捗を取得
+    
+    Returns:
+        {
+            "task_id": str,
+            "state": str,
+            "current": int,
+            "total": int,
+            "status": str,
+            "result": dict (optional, when completed)
+        }
+    """
+    try:
+        from tasks.strength_analysis import get_analysis_status_task
+        
+        # ステータス取得タスクを実行（軽量なので同期的に実行）
+        result = get_analysis_status_task(task_id)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Get strength analysis status error: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': 'ステータスの取得に失敗しました',
+            'task_id': task_id,
+            'state': 'ERROR'
+        }), 500

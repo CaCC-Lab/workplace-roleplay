@@ -15,10 +15,64 @@ services:
       timeout: 3s
       retries: 5
 
-  # Celeryワーカー
-  celery_worker:
+  # デフォルトワーカー（汎用タスク用）
+  celery_worker_default:
     build: .
-    command: celery -A celery_app worker --loglevel=info --concurrency=4 -Q default,llm,feedback,analytics
+    command: celery -A celery_app worker --loglevel=info --concurrency=4 -Q default -n worker.default@%h
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # LLMワーカー（重いAI処理用、並行度低め）
+  celery_worker_llm:
+    build: .
+    command: celery -A celery_app worker --loglevel=info --concurrency=2 -Q llm -n worker.llm@%h
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 分析ワーカー（強み分析等）
+  celery_worker_analytics:
+    build: .
+    command: celery -A celery_app worker --loglevel=info --concurrency=3 -Q analytics,feedback -n worker.analytics@%h
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 高速処理ワーカー（軽量タスク用、並行度高め）
+  celery_worker_quick:
+    build: .
+    command: celery -A celery_app worker --loglevel=info --concurrency=8 -Q quick -n worker.quick@%h
     volumes:
       - .:/app
     environment:

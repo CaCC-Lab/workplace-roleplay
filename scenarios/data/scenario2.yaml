@@ -73,3 +73,9 @@ skill_focus:
   - 感情の表現
   - 相互援助の意識
   workplace_relevance: チームワークと信頼関係の構築
+metadata:
+  target_strengths:
+  - empathy
+  - clarity
+  - positivity
+  difficulty: 1

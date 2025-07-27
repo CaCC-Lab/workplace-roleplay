@@ -73,3 +73,7 @@ skill_focus:
   - 場の空気を読む力
   - 沈黙への対処
   workplace_relevance: エレベーターでの適切な振る舞いは、社会人としての基本マナー
+metadata:
+  target_strengths:
+  - professionalism
+  difficulty: 1

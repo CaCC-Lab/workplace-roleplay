@@ -1,6 +1,7 @@
 id: 27
 title: コンプライアンス違反への対応と再発防止
-description: チーム内でコンプライアンス違反が発覚しました。意図的ではありませんでしたが、規則への理解不足が原因です。適切に対処し、今後の再発防止策を講じる必要があります。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: チーム内でコンプライアンス違反が発覚しました。意図的ではありませんでしたが、規則への理解不足が原因です。適切に対処し、今後の再発防止策を講じる必要があります。
+  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: intermediate
 tags:
 - コンプライアンス
@@ -79,3 +80,9 @@ skill_focus:
   - 敬語
   - 価値観の理解
   workplace_relevance: 世代間コミュニケーションは職場での信頼関係構築の基礎
+metadata:
+  target_strengths:
+  - adaptability
+  - positivity
+  - empathy
+  difficulty: 3

@@ -1,5 +1,5 @@
 """
-全30シナリオの包括的テスト（モックなし・実際のGemini API使用）
+全35シナリオの包括的テスト（モックなし・実際のGemini API使用）
 CLAUDE.md原則: モック禁止、実際のAPI使用でのテスト実装
 """
 import pytest
@@ -11,7 +11,7 @@ from scenarios import load_scenarios
 
 
 class TestComprehensiveScenarios:
-    """全30シナリオの包括的テスト"""
+    """全35シナリオの包括的テスト"""
 
     @pytest.fixture
     def client(self):
@@ -35,8 +35,8 @@ class TestComprehensiveScenarios:
         return load_scenarios()
 
     def test_all_scenarios_loaded(self, scenarios_data):
-        """全30シナリオが正しく読み込まれているか確認"""
-        assert len(scenarios_data) == 30, f"期待: 30シナリオ, 実際: {len(scenarios_data)}"
+        """全35シナリオが正しく読み込まれているか確認"""
+        assert len(scenarios_data) == 35, f"期待: 35シナリオ, 実際: {len(scenarios_data)}"
         
         # 各シナリオが必要な情報を持っているか確認
         required_fields = ['title', 'description', 'difficulty', 'character_setting']
@@ -44,7 +44,7 @@ class TestComprehensiveScenarios:
             for field in required_fields:
                 assert field in scenario, f"シナリオ{scenario_id}に{field}フィールドがありません"
 
-    @pytest.mark.parametrize("scenario_id", [f"scenario{i}" for i in range(1, 31)])
+    @pytest.mark.parametrize("scenario_id", [f"scenario{i}" for i in range(1, 36)])
     def test_individual_scenario_with_real_ai(self, client, csrf_token, scenario_id, scenarios_data):
         """各シナリオで実際のGemini APIが動作することを確認"""
         # レート制限対策として少し待機
@@ -146,7 +146,7 @@ class TestComprehensiveScenarios:
             print(f"\n不完全なキャラクター設定: {incomplete_scenarios}")
         
         # 90%以上のシナリオが完全な設定を持っていることを確認
-        completion_rate = (30 - len(incomplete_scenarios)) / 30
+        completion_rate = (35 - len(incomplete_scenarios)) / 35
         assert completion_rate >= 0.9, f"キャラクター設定完成率が低い: {completion_rate:.1%}"
 
     def test_learning_points_quality(self, scenarios_data):
@@ -163,7 +163,7 @@ class TestComprehensiveScenarios:
             print(f"\n学習ポイントが不足しているシナリオ: {scenarios_without_learning_points}")
         
         # 90%以上のシナリオが適切な学習ポイントを持っていることを確認
-        quality_rate = (30 - len(scenarios_without_learning_points)) / 30
+        quality_rate = (35 - len(scenarios_without_learning_points)) / 35
         assert quality_rate >= 0.9, f"学習ポイント品質率が低い: {quality_rate:.1%}"
 
     def test_scenario_response_consistency(self, client, csrf_token, scenarios_data):
@@ -240,7 +240,7 @@ class TestScenarioAPIEndpoints:
         
         scenarios = response.get_json()
         assert isinstance(scenarios, dict)
-        assert len(scenarios) == 30
+        assert len(scenarios) == 35
         
         # 各シナリオが適切な構造を持っているか確認
         for scenario_id, scenario in scenarios.items():

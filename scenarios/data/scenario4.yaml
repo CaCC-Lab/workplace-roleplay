@@ -57,3 +57,7 @@ skill_focus:
   - 明確な表現
   - 学習意欲の表明
   workplace_relevance: 成長意欲と問題解決能力
+metadata:
+  target_strengths:
+  - active_listening
+  difficulty: 2

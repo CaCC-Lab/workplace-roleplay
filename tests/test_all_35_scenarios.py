@@ -1,5 +1,5 @@
 """
-全30シナリオの完全テスト（省略なし）
+全35シナリオの完全テスト（省略なし）
 ユーザーの要求「全てのシナリオで？すべての雑談練習で？省略するなよ？」に対応
 複数APIキーローテーションシステムを使用してレート制限を回避
 """
@@ -10,15 +10,15 @@ from app import app, load_scenarios
 from api_key_manager import get_google_api_key, record_api_usage, handle_api_error, get_api_key_manager
 
 
-class TestAll30Scenarios:
-    """全30シナリオをすべてテスト（省略なし）"""
+class TestAll35Scenarios:
+    """全35シナリオをすべてテスト（省略なし）"""
 
     @pytest.fixture(scope="session")
     def all_scenarios(self):
         """全シナリオデータの読み込み"""
         scenarios = load_scenarios()
         print(f"読み込まれたシナリオ数: {len(scenarios)}")
-        assert len(scenarios) == 30, f"30シナリオが期待されるが{len(scenarios)}個のみ読み込まれた"
+        assert len(scenarios) == 35, f"35シナリオが期待されるが{len(scenarios)}個のみ読み込まれた"
         return scenarios
 
     @pytest.fixture
@@ -38,7 +38,7 @@ class TestAll30Scenarios:
         response = client.get('/api/csrf-token')
         return response.get_json().get('csrf_token', '')
 
-    @pytest.mark.parametrize("scenario_number", list(range(1, 31)))
+    @pytest.mark.parametrize("scenario_number", list(range(1, 36)))
     def test_individual_scenario_complete(self, client, csrf_token, all_scenarios, scenario_number):
         """各シナリオを個別に完全テスト（複数APIキーローテーション使用）"""
         scenario_key = f"scenario{scenario_number}"
@@ -47,7 +47,7 @@ class TestAll30Scenarios:
         if not scenario:
             pytest.fail(f"シナリオ{scenario_number}が見つかりません")
         
-        print(f"\n=== シナリオ{scenario_number}/30: {scenario.get('title', 'タイトル不明')} ===")
+        print(f"\n=== シナリオ{scenario_number}/35: {scenario.get('title', 'タイトル不明')} ===")
         
         # APIキー管理システムの状態確認
         manager = get_api_key_manager()
@@ -228,14 +228,14 @@ class TestAll30Scenarios:
                     if not has_keywords:
                         print(f"ℹ️ シナリオ{scenario_number}: カテゴリー'{tag}'のキーワードが少ない")
 
-    def test_all_30_scenarios_coverage(self, all_scenarios):
-        """全30シナリオの網羅性確認"""
+    def test_all_35_scenarios_coverage(self, all_scenarios):
+        """全35シナリオの網羅性確認"""
         scenario_ids = list(all_scenarios.keys())
-        expected_ids = [f"scenario{i}" for i in range(1, 31)]
+        expected_ids = [f"scenario{i}" for i in range(1, 36)]
         
         print(f"📊 シナリオ網羅性確認:")
         print(f"   読み込まれたシナリオ数: {len(scenario_ids)}")
-        print(f"   期待されるシナリオ数: 30")
+        print(f"   期待されるシナリオ数: 35")
         
         missing_scenarios = [sid for sid in expected_ids if sid not in scenario_ids]
         extra_scenarios = [sid for sid in scenario_ids if sid not in expected_ids]
@@ -247,9 +247,9 @@ class TestAll30Scenarios:
             print(f"   ℹ️ 追加のシナリオ: {extra_scenarios}")
         
         assert len(missing_scenarios) == 0, f"シナリオが不足: {missing_scenarios}"
-        assert len(scenario_ids) == 30, f"シナリオ数が30ではない: {len(scenario_ids)}"
+        assert len(scenario_ids) == 35, f"シナリオ数が35ではない: {len(scenario_ids)}"
         
-        print(f"   ✅ 全30シナリオが確認されました")
+        print(f"   ✅ 全35シナリオが確認されました")
 
     def test_scenario_difficulty_distribution(self, all_scenarios):
         """シナリオの難易度分布確認"""
@@ -371,7 +371,7 @@ class TestScenarioMetrics:
         
         # シナリオリスト
         scenario_list = []
-        for i in range(1, 31):
+        for i in range(1, 36):
             scenario_key = f"scenario{i}"
             scenario = scenarios.get(scenario_key, {})
             title = scenario.get('title', '不明')
@@ -382,6 +382,6 @@ class TestScenarioMetrics:
         for scenario in scenario_list[:10]:
             print(f"   {scenario}")
         
-        print(f"   ... (残り20個)")
+        print(f"   ... (残り25個)")
         
-        assert len(scenarios) == 30, f"シナリオ数が30ではない: {len(scenarios)}"
+        assert len(scenarios) == 35, f"シナリオ数が35ではない: {len(scenarios)}"

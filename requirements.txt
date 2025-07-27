@@ -1,23 +1,29 @@
-flask
-flask-session
-requests
-python-dotenv
+# Webフレームワークと基本依存関係
+flask==3.0.3  # 最新安定版（セキュリティパッチ適用済み）
+flask-session==0.8.0  # セッション管理の最新版
+requests==2.32.3  # セキュリティ修正を含む最新版
+python-dotenv==1.0.1  # 環境変数管理
 # 🚨 セキュリティ修正: langchain 0.0.27には重大な脆弱性（CVE-2023-46229, CVE-2023-36281等）が存在
 # 最新版にアップデート - SSRF、RCE、SQLインジェクション脆弱性を修正
 langchain==0.3.26
 langchain-core==0.3.69
 langchain-community==0.3.27
-langchain-google-genai==2.1.8
+langchain-google-genai==2.0.0
 langchain-text-splitters==0.3.8
-google-generativeai==0.8.5
-google-ai-generativelanguage==0.6.15
-redis==5.1.1
+google-generativeai==0.7.2
+google-ai-generativelanguage==0.6.6
+redis==4.5.4
+numpy==1.24.3
+scipy==1.10.1
 pydub==0.25.1
 Pillow==10.4.0
 pydantic==2.9.2
 Flask-SQLAlchemy==3.1.1
+Flask-SocketIO==5.3.6
+python-socketio==5.9.0
 celery[redis]==5.3.4
 kombu==5.3.4
+flower==2.0.1
 
 # PostgreSQL adapter - 最新パッチリリースに更新
 psycopg2-binary==2.9.10
@@ -29,3 +35,9 @@ Flask-Bcrypt==1.0.1
 Flask-WTF==1.2.1
 WTForms==3.1.2
 email-validator==2.2.0
+
+# セキュリティ依存関係（明示的に安全なバージョンを指定）
+Werkzeug==3.0.4  # Flask依存、セキュリティパッチ適用済み
+Jinja2==3.1.4  # テンプレートエンジン、XSS対策強化版
+itsdangerous==2.2.0  # セッション署名用
+MarkupSafe==2.1.5  # HTMLエスケープ処理

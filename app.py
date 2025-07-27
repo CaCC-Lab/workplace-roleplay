@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, g
 from flask_session import Session
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
+from flask_socketio import SocketIO
 import requests
 import os
 from typing import Optional, Dict, List, Tuple, Any
@@ -110,6 +111,11 @@ from services import (
 # Celeryタスクのインポート
 from tasks.achievement import check_achievements_task
 
+# リアルタイムコーチング関連のインポート
+from services.websocket_service import WebSocketCoachingService
+from services.ab_testing import ExperimentationFramework
+from services.feedback_widget import FeedbackWidget
+
 """
 要件:
 1. Google Gemini APIを使用したAIチャット
@@ -140,6 +146,12 @@ login_manager.login_message = 'このページにアクセスするにはログ�
 login_manager.login_message_category = 'info'
 
 bcrypt = Bcrypt(app)
+
+# SocketIO の初期化
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# WebSocketコーチングサービスの初期化は後で行う（循環インポート回避）
+websocket_service = None
 
 # セッション設定
 app.config["SESSION_TYPE"] = config.SESSION_TYPE
@@ -214,6 +226,13 @@ Session(app)
 # データベースの初期化
 database_available = init_database(app)
 
+# WebSocketコーチングサービスの初期化
+websocket_service = WebSocketCoachingService(socketio)
+
+# A/Bテストフレームワークとフィードバックウィジェットの初期化
+experiment_framework = ExperimentationFramework()
+feedback_widget = FeedbackWidget()
+
 # CSRF対策ミドルウェアの初期化
 csrf = CSRFMiddleware(app)
 
@@ -235,6 +254,18 @@ app.register_blueprint(async_chat_bp)
 # タスク進捗監視APIの登録
 from routes.task_progress import progress_bp
 app.register_blueprint(progress_bp)
+
+# 分析APIの登録
+from api.analytics import analytics_bp
+app.register_blueprint(analytics_bp)
+
+# フィードバックAPIの登録
+from api.feedback import feedback_bp
+app.register_blueprint(feedback_bp)
+
+# 推薦APIの登録
+from api.recommendations import recommendations_bp
+app.register_blueprint(recommendations_bp)
 
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)
@@ -1785,6 +1816,12 @@ def view_journal():
         total_practice_time=total_practice_time
     )
 
+# 分析ダッシュボードを表示するルートを追加
+@app.route("/analytics")
+def analytics_dashboard():
+    """学習成果分析ダッシュボード"""
+    return render_template("analytics.html")
+
 # 雑談練習開始用のエンドポイントを追加
 @app.route("/api/start_chat", methods=["POST"])
 def start_chat() -> Any:
@@ -2760,8 +2797,9 @@ def init_db_command():
 
 # ========== メイン起動 ==========
 if __name__ == "__main__":
-    # 設定に基づいてサーバーを起動
-    app.run(
+    # 設定に基づいてサーバーを起動（SocketIO対応）
+    socketio.run(
+        app,
         debug=config.DEBUG,
         host=config.HOST,
         port=config.PORT,

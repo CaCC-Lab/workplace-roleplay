@@ -229,3 +229,7 @@ def get_error_metadata(error: LLMError) -> Dict[str, Any]:
         'is_permanent': isinstance(error, PermanentLLMError),
         'is_temporary': isinstance(error, TemporaryLLMError)
     }
+
+
+# 後方互換性のためのエイリアス
+classify_gemini_error = classify_error

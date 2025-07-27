@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}学習成果ダッシュボード - AI職場ロールプレイ{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div id="analytics-root"></div>
+</div>
+
+<!-- 通知コンテナ -->
+<div id="notification-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+{% endblock %}
+
+{% block scripts %}
+<!-- React & ReactDOM -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Analytics Script -->
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+
+<!-- Initialize Analytics Dashboard -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const root = ReactDOM.createRoot(document.getElementById('analytics-root'));
+        root.render(React.createElement(AnalyticsDashboard));
+    });
+</script>
+
+<style>
+    /* Analytics Dashboard Styles */
+    .analytics-dashboard {
+        min-height: 600px;
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .analytics-loading {
+        text-align: center;
+        padding: 5rem 0;
+    }
+
+    /* Stat Cards */
+    .stat-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .stat-card h5 {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #212529;
+    }
+
+    /* Recommendation Card */
+    .recommendation-card {
+        background: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+        padding: 1.5rem;
+        border-radius: 4px;
+    }
+
+    /* Skill Cards */
+    .skill-card {
+        background: #fff;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .skill-card h6 {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Activity List */
+    .activity-list {
+        background: #fff;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .activity-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-date {
+        font-size: 0.875rem;
+        color: #6c757d;
+        min-width: 100px;
+    }
+
+    /* Growth Items */
+    .growth-item {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .growth-rate {
+        font-weight: bold;
+    }
+
+    /* Skill Details Modal */
+    .skill-details-modal .card {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    /* Scenario Lists */
+    .scenario-list {
+        background: #fff;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .scenario-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+    }
+
+    .scenario-item:last-child {
+        border-bottom: none;
+    }
+
+    .scenario-item .rank {
+        font-weight: bold;
+        color: #6c757d;
+        margin-right: 0.5rem;
+    }
+
+    /* Comparison Stats */
+    .comparison-item {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .percentile-bar {
+        position: relative;
+    }
+
+    .percentile-label {
+        font-size: 0.875rem;
+        font-weight: bold;
+        color: #28a745;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Milestone Items */
+    .milestone-item {
+        padding: 0.5rem;
+        border-left: 3px solid #ffc107;
+        margin-bottom: 0.5rem;
+        background: #fffbf0;
+    }
+
+    .milestone-date {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .time-filter {
+            margin-top: 1rem;
+        }
+    }
+</style>
+{% endblock %}

@@ -73,3 +73,7 @@ skill_focus:
   - 境界線の設定
   - 共感の獲得
   workplace_relevance: 上司との適切な関係構築
+metadata:
+  target_strengths:
+  - clarity
+  difficulty: 1

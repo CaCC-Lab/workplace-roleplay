@@ -5,8 +5,11 @@
 
 import json
 import random
-from datetime import datetime
-from typing import Dict, List, Any, Tuple
+import logging
+from typing import Dict, List, Any
+
+# ログ設定
+logger = logging.getLogger(__name__)
 
 
 # コミュニケーションスキルの強み項目定義
@@ -113,78 +116,107 @@ def create_strength_analysis_prompt(conversation_history: List[Dict[str, str]]) 
     """
     会話履歴から強み分析用のプロンプトを作成
     """
+    # 会話履歴をフォーマット
+    formatted_history = []
+    for msg in conversation_history:
+        role = msg.get('role', 'user')
+        content = msg.get('content', '')
+        if role == 'user':
+            formatted_history.append(f"ユーザー: {content}")
+        elif role == 'assistant':
+            formatted_history.append(f"AI: {content}")
+    
+    conversation_text = "\n".join(formatted_history)
+    
     # 強み項目の説明を整形
     categories_description = []
     for key, category in STRENGTH_CATEGORIES.items():
         indicators = "\n    - ".join(category["indicators"])
         categories_description.append(
-            f'{key}: {category["name"]} - {category["description"]}\n    - {indicators}'
+            f'{key}: {category["name"]} - {category["description"]}\n    指標: {indicators}'
         )
     
     prompt = f"""以下の会話履歴から、ユーザーのコミュニケーションスキルの強みを分析してください。
 
 会話履歴:
-{conversation_history}
+{conversation_text}
 
 評価項目:
 {chr(10).join(categories_description)}
 
-以下のJSON形式で、各項目を0-100点で評価し、具体的な根拠を示してください：
+分析のポイント:
+1. ユーザーの発言のみを評価対象とする（AIの発言は参考程度）
+2. 具体的な発言内容に基づいて評価する
+3. 各項目は0-100点で評価（50点が平均的なレベル）
+4. 証拠となる具体的な発言を引用する
+
+以下の形式で回答してください：
 {{
-    "scores": {{
-        "empathy": {{"score": 0-100の数値, "evidence": "具体的な発言例"}},
-        "clarity": {{"score": 0-100の数値, "evidence": "具体的な発言例"}},
-        "active_listening": {{"score": 0-100の数値, "evidence": "具体的な発言例"}},
-        "adaptability": {{"score": 0-100の数値, "evidence": "具体的な発言例"}},
-        "positivity": {{"score": 0-100の数値, "evidence": "具体的な発言例"}},
-        "professionalism": {{"score": 0-100の数値, "evidence": "具体的な発言例"}}
-    }},
-    "overall_impression": "全体的な印象と特筆すべき強み",
-    "growth_areas": "さらに伸ばせる可能性のある分野"
+    "empathy": XX,
+    "clarity": XX,
+    "active_listening": XX,
+    "adaptability": XX,
+    "positivity": XX,
+    "professionalism": XX
 }}
 
-注意：
-- ユーザーの発言のみを評価対象とする
-- 具体的な発言を根拠として示す
-- ポジティブな面に焦点を当てる
-- 成長の可能性を前向きに示す"""
+重要: 必ず上記の6つの項目すべてに0-100の数値を入れてください。JSONのみを返し、他の説明は不要です。"""
     
     return prompt
 
 
-def parse_strength_analysis(analysis_response: str) -> Dict[str, Any]:
+def parse_strength_analysis(analysis_response: str) -> Dict[str, float]:
     """
     AI分析結果をパースして構造化データに変換
     """
     try:
-        # JSONとして解析を試みる
-        result = json.loads(analysis_response)
+        # レスポンスからJSON部分を抽出（前後の余分なテキストを削除）
+        json_start = analysis_response.find('{')
+        json_end = analysis_response.rfind('}') + 1
+        if json_start != -1 and json_end > json_start:
+            json_str = analysis_response[json_start:json_end]
+        else:
+            json_str = analysis_response
         
-        # スコアのみ抽出（シンプルな形式に変換）
+        # JSONとして解析
+        result = json.loads(json_str)
+        
+        # スコアの検証と正規化
         scores = {}
-        for key, data in result.get("scores", {}).items():
-            if isinstance(data, dict):
-                scores[key] = data.get("score", 0)
+        for key in STRENGTH_CATEGORIES:
+            value = result.get(key, 50)
+            # 数値でない場合はデフォルト値
+            if isinstance(value, (int, float)):
+                # 0-100の範囲に制限
+                scores[key] = max(0, min(100, value))
             else:
-                scores[key] = data
+                scores[key] = 50
         
-        return {
-            "scores": scores,
-            "overall_impression": result.get("overall_impression", ""),
-            "growth_areas": result.get("growth_areas", "")
-        }
-    except json.JSONDecodeError:
+        return scores
+        
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning(f"Failed to parse strength analysis: {e}")
         # JSON解析に失敗した場合、デフォルト値を返す
-        return {
-            "scores": {key: 50 for key in STRENGTH_CATEGORIES.keys()},
-            "overall_impression": "分析中にエラーが発生しました",
-            "growth_areas": ""
-        }
+        return {key: 50 for key in STRENGTH_CATEGORIES}
 
 
 def get_top_strengths(scores: Dict[str, float], top_n: int = 3) -> List[Dict[str, Any]]:
     """
-    トップNの強みを取得
+    スコアからトップNの強みを取得
+    
+    スコアが高い順に指定された数の強みを返します。
+    各強みには名前、説明、スコアが含まれます。
+    
+    Args:
+        scores (Dict[str, float]): 各スキルのスコア
+        top_n (int, optional): 取得する強みの数。デフォルトは3
+    
+    Returns:
+        List[Dict[str, Any]]: トップNの強み情報のリスト
+            各要素は以下のキーを含む：
+            - name (str): スキル名
+            - description (str): スキルの説明
+            - score (float): スコア
     """
     sorted_strengths = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     top_strengths = []

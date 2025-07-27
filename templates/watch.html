@@ -13,6 +13,9 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
+    <!-- エラー通知コンテナ -->
+    <div id="error-container"></div>
+    
     <div id="chat-container">
         <header class="chat-header">
             <h1><i class="fas fa-eye"></i> 会話観戦モード</h1>
@@ -94,9 +97,15 @@
         </a>
     </div>
 
+    <!-- Socket.IO for real-time coaching -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
     <script src="{{ url_for('static', filename='js/csrf-manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/retry_handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/async-chat.js') }}"></script>
     <script src="{{ url_for('static', filename='js/watch-async.js') }}"></script>
+    
+    <!-- Real-time coaching client -->
+    <script src="{{ url_for('static', filename='js/realtime_coaching.js') }}"></script>
 </body>
 </html>

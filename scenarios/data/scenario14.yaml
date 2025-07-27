@@ -1,6 +1,7 @@
 id: 14
 title: 異なる部門との調整と合意形成
-description: 新システム導入プロジェクトで、IT部門と営業部門の要求が対立しています。IT部門はセキュリティを重視し、営業部門は使いやすさを求めています。両部門の要求を調整して合意点を見つける必要があります。 このシナリオを通じて、あなたの成長を一緒に確認しましょう。
+description: 新システム導入プロジェクトで、IT部門と営業部門の要求が対立しています。IT部門はセキュリティを重視し、営業部門は使いやすさを求めています。両部門の要求を調整して合意点を見つける必要があります。
+  このシナリオを通じて、あなたの成長を一緒に確認しましょう。
 difficulty: intermediate
 tags:
 - 部門調整
@@ -79,3 +80,9 @@ skill_focus:
   - 要約力
   - 判断力
   workplace_relevance: 報連相は職場での信頼関係構築の基礎
+metadata:
+  target_strengths:
+  - adaptability
+  - empathy
+  - clarity
+  difficulty: 3

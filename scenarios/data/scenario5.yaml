@@ -57,3 +57,8 @@ skill_focus:
   - 相槌
   - 会話の終わらせ方
   workplace_relevance: 職場の雰囲気作りと人間関係
+metadata:
+  target_strengths:
+  - clarity
+  - professionalism
+  difficulty: 2

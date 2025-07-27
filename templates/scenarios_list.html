@@ -18,6 +18,23 @@
         <div class="scenarios-intro content-section">
             <p><i class="fas fa-info-circle"></i> 以下のシナリオから練習したい場面を選択してください。各シナリオは実際の職場で起こりうる場面を想定しています。</p>
         </div>
+
+        <!-- おすすめシナリオセクション -->
+        <div id="recommended-scenarios-section" class="content-section" style="display: none;">
+            <h2><i class="fas fa-star"></i> あなたにおすすめのシナリオ</h2>
+            <p class="recommendation-description">スキル分析結果に基づいて、あなたの成長に最適なシナリオを推薦します。</p>
+            <div id="recommended-scenarios-list" class="scenarios-list recommendation-list">
+                <!-- 推薦シナリオがここに動的に追加されます -->
+            </div>
+            <div class="recommendation-actions">
+                <button id="refresh-recommendations" class="secondary-button">
+                    <i class="fas fa-refresh"></i> 推薦を更新
+                </button>
+                <button id="show-recommendation-explanation" class="secondary-button">
+                    <i class="fas fa-question-circle"></i> 推薦理由を見る
+                </button>
+            </div>
+        </div>
         
         <div class="filter-container content-section">
             <h2><i class="fas fa-filter"></i> シナリオを絞り込む</h2>
