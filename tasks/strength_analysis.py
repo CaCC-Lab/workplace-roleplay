@@ -5,10 +5,8 @@ Celeryを使用して会話履歴の強み分析処理を非同期化し、
 メインのリクエスト/レスポンスサイクルから重い処理を分離
 """
 import logging
-import json
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from celery import shared_task, current_task
-from celery.exceptions import MaxRetriesExceededError, Retry
 from .llm import LLMTask
 from celery_app import celery
 from .retry_strategy import retry_with_backoff
@@ -77,10 +75,8 @@ def analyze_conversation_strengths_task(self, user_id: int, conversation_history
             create_strength_analysis_prompt,
             parse_strength_analysis,
             get_top_strengths,
-            generate_encouragement_messages,
-            analyze_user_strengths
+            generate_encouragement_messages
         )
-        from services import SessionService
         
         with app.app_context():
             # 進捗を更新
@@ -189,7 +185,7 @@ def analyze_conversation_strengths_task(self, user_id: int, conversation_history
         logger.error(f"Error in strength analysis task: {str(exc)}")
         
         # エラーが発生した場合はリトライ
-        raise self.retry(exc=exc, countdown=60)
+        raise self.retry(exc=exc, countdown=60) from exc
 
 
 @shared_task(

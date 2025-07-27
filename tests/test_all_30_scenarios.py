@@ -18,7 +18,7 @@ class TestAll35Scenarios:
         """全シナリオデータの読み込み"""
         scenarios = load_scenarios()
         print(f"読み込まれたシナリオ数: {len(scenarios)}")
-        assert len(scenarios) == 30, f"30シナリオが期待されるが{len(scenarios)}個のみ読み込まれた"
+        assert len(scenarios) == 35, f"35シナリオが期待されるが{len(scenarios)}個のみ読み込まれた"
         return scenarios
 
     @pytest.fixture
