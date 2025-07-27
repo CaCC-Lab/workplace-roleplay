@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
     name='tasks.strength_analysis.analyze_conversation_strengths',
     max_retries=3,
     default_retry_delay=60,  # 60秒後にリトライ
+    retry_backoff=True,  # 指数的バックオフを有効化
+    retry_jitter=True,   # ジッターを有効化
+    retry_backoff_max=600,  # 最大バックオフ時間（10分）
     queue='analytics'  # analyticsキューを使用
 )
 @retry_with_backoff
@@ -59,13 +62,23 @@ def analyze_conversation_strengths_task(self, user_id: int, conversation_history
     try:
         logger.info(f"Starting strength analysis task for user {user_id}, session type: {session_type}")
         
+        # リトライ時は部分レスポンスをチェック
+        partial_result = None
+        if self.request.retries > 0:
+            from .retry_strategy import PartialResponseManager
+            partial_data = PartialResponseManager.get_partial_response(self.request.id)
+            if partial_data:
+                partial_result = partial_data.get('partial_analysis')
+                logger.info(f"Resuming from partial response for task {self.request.id}")
+        
         # 進捗を更新
         current_task.update_state(
             state='PROGRESS',
             meta={
                 'current': 10,
                 'total': 100,
-                'status': '分析を開始しています...'
+                'status': '分析を開始しています...',
+                'partial_response': partial_result
             }
         )
         
@@ -117,13 +130,28 @@ def analyze_conversation_strengths_task(self, user_id: int, conversation_history
                 # 分析結果をパース
                 analysis_result = parse_strength_analysis(analysis_text)
                 
-                # 進捗を更新
+                # 進捗を更新（部分結果を保存）
                 current_task.update_state(
                     state='PROGRESS',
                     meta={
                         'current': 60,
                         'total': 100,
-                        'status': '分析結果を処理中...'
+                        'status': '分析結果を処理中...',
+                        'partial_response': {
+                            'analysis_text': analysis_text,
+                            'parsed_result': analysis_result
+                        }
+                    }
+                )
+                
+                # 部分レスポンスをRedisにも保存
+                from .retry_strategy import PartialResponseManager
+                PartialResponseManager.save_partial_response(
+                    self.request.id,
+                    chunks=[{'content': analysis_text, 'type': 'analysis_result'}],
+                    metadata={
+                        'partial_analysis': analysis_result,
+                        'stage': 'analysis_completed'
                     }
                 )
                 

@@ -25,19 +25,22 @@ celery.conf.update(
     timezone='Asia/Tokyo',
     enable_utc=True,
     
-    # タスクルーティング
+    # タスクルーティング（優先度付き）
     task_routes={
-        'tasks.llm.*': {'queue': 'llm'},
-        'tasks.feedback.*': {'queue': 'feedback'},
-        'tasks.analytics.*': {'queue': 'analytics'},
+        'tasks.llm.*': {'queue': 'llm', 'priority': 3},
+        'tasks.feedback.*': {'queue': 'feedback', 'priority': 5},
+        'tasks.analytics.*': {'queue': 'analytics', 'priority': 7},
+        'tasks.strength_analysis.*': {'queue': 'analytics', 'priority': 6},
+        'tasks.quick.*': {'queue': 'quick', 'priority': 9},  # 高速処理用
     },
     
-    # キュー設定
+    # キュー設定（優先度とルーティング設定）
     task_queues=(
-        Queue('default', routing_key='task.#'),
-        Queue('llm', routing_key='llm.#'),
-        Queue('feedback', routing_key='feedback.#'),
-        Queue('analytics', routing_key='analytics.#'),
+        Queue('default', routing_key='task.#', max_priority=5),
+        Queue('llm', routing_key='llm.#', max_priority=3),  # 重いタスク、低優先度
+        Queue('feedback', routing_key='feedback.#', max_priority=5),
+        Queue('analytics', routing_key='analytics.#', max_priority=7),
+        Queue('quick', routing_key='quick.#', max_priority=9),  # 軽量タスク、高優先度
     ),
     
     # ワーカー設定
