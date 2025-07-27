@@ -11,7 +11,7 @@ from scenarios import load_scenarios
 
 
 class TestComprehensiveScenarios:
-    """全30シナリオの包括的テスト"""
+    """全35シナリオの包括的テスト"""
 
     @pytest.fixture
     def client(self):

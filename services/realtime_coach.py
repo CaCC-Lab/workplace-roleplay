@@ -9,7 +9,7 @@ from datetime import datetime
 import asyncio
 from collections import defaultdict
 
-from database import db, StrengthAnalysisResult
+from models import db, StrengthAnalysisResult
 from scenarios import load_scenarios
 
 

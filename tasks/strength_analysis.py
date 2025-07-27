@@ -48,245 +48,173 @@ def analyze_conversation_strengths_task(self, user_id: int, conversation_history
             - user_id (int): ユーザーID
             - session_type (str): セッション種別
             - analysis (dict): 分析結果（scores, top_strengths, encouragement_messages）
-            - task_id (str): CeleryタスクID
-            - error (str, optional): エラーメッセージ（失敗時のみ）
-        
+            - task_id (str): タスクID
+            - error (str): エラーメッセージ（エラー時のみ）
+            
     Raises:
-        Retry: エラー発生時にリトライを実行
-        
-    Note:
-        - 進捗は current_task.update_state() で更新される
-        - LLMエラー時は自動的にリトライされる（最大3回）
-        - 会話履歴が空の場合はエラーを返す
+        各種例外はLLMTaskとretry_with_backoffデコレータによって処理される
     """
     try:
-        logger.info(f"Starting strength analysis task for user {user_id}, session type: {session_type}")
+        # タスクIDとメタデータを記録
+        task_id = current_task.request.id
+        logger.info(f"Starting strength analysis task {task_id} for user {user_id}")
         
-        # リトライ時は部分レスポンスをチェック
-        partial_result = None
-        if self.request.retries > 0:
-            from .retry_strategy import PartialResponseManager
-            partial_data = PartialResponseManager.get_partial_response(self.request.id)
-            if partial_data:
-                partial_result = partial_data.get('partial_analysis')
-                logger.info(f"Resuming from partial response for task {self.request.id}")
-        
-        # 進捗を更新
+        # 進捗状態を更新 (20%)
         current_task.update_state(
-            state='PROGRESS',
+            state='PROCESSING',
             meta={
-                'current': 10,
+                'current': 20,
                 'total': 100,
-                'status': '分析を開始しています...',
-                'partial_response': partial_result
+                'status': '会話履歴を分析中...'
             }
         )
         
-        # Flaskアプリケーションコンテキストが必要なため、ここで設定
-        from app import app
-        from strength_analyzer import (
-            create_strength_analysis_prompt,
-            parse_strength_analysis,
-            get_top_strengths,
-            generate_encouragement_messages
+        # 分析前のバリデーション
+        if not conversation_history:
+            logger.warning(f"Empty conversation history for user {user_id}")
+            return {
+                'success': False,
+                'user_id': user_id,
+                'session_type': session_type,
+                'task_id': task_id,
+                'error': '会話履歴が空です'
+            }
+        
+        logger.info(f"Analyzing {len(conversation_history)} messages for user {user_id}")
+        
+        # 進捗状態を更新 (40%)
+        current_task.update_state(
+            state='PROCESSING',
+            meta={
+                'current': 40,
+                'total': 100,
+                'status': 'AIモデルに分析を依頼中...'
+            }
         )
         
-        with app.app_context():
-            # 進捗を更新
-            current_task.update_state(
-                state='PROGRESS',
-                meta={
-                    'current': 30,
-                    'total': 100,
-                    'status': 'AIモデルによる分析を実行中...'
-                }
-            )
-            
-            # LLMプロバイダーを取得してプロンプトを生成
-            if conversation_history and len(conversation_history) > 0:
-                # プロンプトを作成
-                prompt = create_strength_analysis_prompt(conversation_history)
-                
-                # LLMで分析（実際のGemini APIを使用）
-                model_name = "gemini/gemini-1.5-flash"  # 高速な分析用モデル
-                llm = self.get_llm(model_name)
-                
-                # プロンプトメッセージの構築
-                messages = [
-                    {"role": "system", "content": "あなたは職場コミュニケーションの専門家です。会話履歴を分析し、ユーザーの強みを数値化してください。"},
-                    {"role": "user", "content": prompt}
-                ]
-                
-                # LLMで分析実行
-                from langchain_core.messages import SystemMessage, HumanMessage
-                langchain_messages = [
-                    SystemMessage(content=messages[0]["content"]),
-                    HumanMessage(content=messages[1]["content"])
-                ]
-                
-                response = llm.invoke(langchain_messages)
-                analysis_text = response.content
-                
-                # 分析結果をパース
-                analysis_result = parse_strength_analysis(analysis_text)
-                
-                # 進捗を更新（部分結果を保存）
-                current_task.update_state(
-                    state='PROGRESS',
-                    meta={
-                        'current': 60,
-                        'total': 100,
-                        'status': '分析結果を処理中...',
-                        'partial_response': {
-                            'analysis_text': analysis_text,
-                            'parsed_result': analysis_result
-                        }
-                    }
-                )
-                
-                # 部分レスポンスをRedisにも保存
-                from .retry_strategy import PartialResponseManager
-                PartialResponseManager.save_partial_response(
-                    self.request.id,
-                    chunks=[{'content': analysis_text, 'type': 'analysis_result'}],
-                    metadata={
-                        'partial_analysis': analysis_result,
-                        'stage': 'analysis_completed'
-                    }
-                )
-                
-                # トップ強みを取得
-                top_strengths = get_top_strengths(analysis_result, top_n=3)
-                
-                # 励ましメッセージを生成
-                # 履歴は空のリストとして扱う（非同期タスクではセッション管理が複雑なため）
-                encouragement_messages = generate_encouragement_messages(analysis_result, [])
-                
-                # 進捗を更新
-                current_task.update_state(
-                    state='PROGRESS',
-                    meta={
-                        'current': 80,
-                        'total': 100,
-                        'status': '結果を保存中...'
-                    }
-                )
-                
-                # 結果を保存（必要に応じてDBに保存）
-                result = {
-                    'success': True,
-                    'user_id': user_id,
-                    'session_type': session_type,
-                    'analysis': {
-                        'scores': analysis_result,
-                        'top_strengths': top_strengths,
-                        'encouragement_messages': encouragement_messages
-                    },
-                    'task_id': self.request.id
-                }
-                
-                # 進捗を更新（完了）
-                current_task.update_state(
-                    state='PROGRESS',
-                    meta={
-                        'current': 100,
-                        'total': 100,
-                        'status': '分析が完了しました！'
-                    }
-                )
-                
-                logger.info(f"Strength analysis completed for user {user_id}")
-                return result
-                
-            else:
-                # 会話履歴が空の場合
-                logger.warning(f"No conversation history for user {user_id}")
-                return {
-                    'success': False,
-                    'user_id': user_id,
-                    'session_type': session_type,
-                    'error': 'No conversation history available',
-                    'task_id': self.request.id
-                }
-                
-    except Exception as exc:
-        logger.error(f"Error in strength analysis task: {str(exc)}")
+        # 強み分析を実行（strength_analyzer.pyから移動）
+        from strength_analyzer import analyze_conversation_strengths
+        analysis_result = analyze_conversation_strengths(conversation_history, session_type)
         
-        # エラーが発生した場合はリトライ
-        raise self.retry(exc=exc, countdown=60) from exc
+        # 進捗状態を更新 (80%)
+        current_task.update_state(
+            state='PROCESSING',
+            meta={
+                'current': 80,
+                'total': 100,
+                'status': '分析結果を処理中...'
+            }
+        )
+        
+        # 結果の構築
+        result = {
+            'success': True,
+            'user_id': user_id,
+            'session_type': session_type,
+            'task_id': task_id,
+            'analysis': analysis_result
+        }
+        
+        # 進捗状態を更新 (100%)
+        current_task.update_state(
+            state='SUCCESS',
+            meta={
+                'current': 100,
+                'total': 100,
+                'status': '分析が完了しました'
+            }
+        )
+        
+        logger.info(f"Successfully completed strength analysis task {task_id} for user {user_id}")
+        return result
+        
+    except Exception as e:
+        # エラーログとタスクの失敗を記録
+        logger.error(f"Error in strength analysis task for user {user_id}: {str(e)}")
+        
+        # エラー情報をタスクステートに記録
+        current_task.update_state(
+            state='FAILURE',
+            meta={
+                'current': 0,
+                'total': 100,
+                'status': f'エラーが発生しました: {str(e)}'
+            }
+        )
+        
+        # エラー結果を返す
+        return {
+            'success': False,
+            'user_id': user_id,
+            'session_type': session_type,
+            'task_id': current_task.request.id,
+            'error': str(e)
+        }
 
 
-@shared_task(
-    bind=True,
+@celery.task(
     name='tasks.strength_analysis.get_analysis_status',
     queue='analytics'
 )
-def get_analysis_status_task(self, task_id: str) -> Dict[str, Any]:
+def get_analysis_status_task(task_id: str) -> Dict[str, Any]:
     """
-    分析タスクのステータスと進捗を取得
-    
-    指定されたタスクIDの現在の状態、進捗、結果を取得します。
-    このタスクは軽量なため、同期的に実行されます。
+    分析タスクの進捗状況を取得
     
     Args:
-        task_id (str): 確認するCeleryタスクのID
+        task_id (str): タスクID
         
     Returns:
-        Dict[str, Any]: タスクの状態情報を含む辞書。以下のキーを含む：
-            - state (str): タスクの状態（PENDING, PROGRESS, SUCCESS, FAILURE, ERROR）
-            - current (int): 現在の進捗値（0-100）
-            - total (int): 進捗の最大値（通常100）
-            - status (str): 人間が読めるステータスメッセージ
-            - result (dict, optional): 完了時の結果（SUCCESS時のみ）
-            - error (str, optional): エラーメッセージ（FAILURE/ERROR時のみ）
-            
-    Note:
-        - PENDING: タスクがまだ開始されていない
-        - PROGRESS: タスクが実行中で進捗を報告している
-        - SUCCESS: タスクが正常に完了した
-        - FAILURE: タスクが失敗した
-        - ERROR: ステータス取得中にエラーが発生した
+        Dict[str, Any]: 進捗情報を含む辞書
+            - state (str): タスクの状態
+            - meta (dict): 進捗メタデータ
+            - result (Any): タスク結果（完了時）
+    """
+    from celery.result import AsyncResult
+    result = AsyncResult(task_id, app=celery)
+    
+    response = {
+        'task_id': task_id,
+        'state': result.state,
+        'meta': result.info if result.info else {}
+    }
+    
+    if result.state == 'SUCCESS':
+        response['result'] = result.result
+    elif result.state == 'FAILURE':
+        response['error'] = str(result.info)
+        
+    return response
+
+
+def get_latest_analysis_result(user_id: int) -> Dict[str, Any]:
+    """
+    ユーザーの最新の分析結果を取得（同期関数）
+    
+    Args:
+        user_id: ユーザーID
+        
+    Returns:
+        最新の分析結果またはNone
     """
     try:
-        from celery.result import AsyncResult
+        # 実際の実装では、データベースやRedisから最新の結果を取得
+        # ここでは簡易的な実装
+        from database import db, StrengthAnalysisResult
+        from sqlalchemy import desc
         
-        result = AsyncResult(task_id)
+        latest_result = db.session.query(StrengthAnalysisResult)\
+            .filter_by(user_id=user_id)\
+            .order_by(desc(StrengthAnalysisResult.created_at))\
+            .first()
         
-        if result.state == 'PENDING':
-            response = {
-                'state': result.state,
-                'current': 0,
-                'total': 100,
-                'status': 'タスクが開始されるのを待っています...'
+        if latest_result:
+            return {
+                'strengths_analysis': {
+                    'skill_scores': latest_result.skill_scores,
+                    'overall_score': latest_result.overall_score
+                }
             }
-        elif result.state != 'FAILURE':
-            response = {
-                'state': result.state,
-                'current': result.info.get('current', 0),
-                'total': result.info.get('total', 100),
-                'status': result.info.get('status', '')
-            }
-            
-            if result.state == 'SUCCESS':
-                response['result'] = result.info
-        else:
-            # エラーが発生した場合
-            response = {
-                'state': result.state,
-                'current': 0,
-                'total': 100,
-                'status': 'エラーが発生しました',
-                'error': str(result.info)
-            }
-            
-        return response
-        
-    except Exception as exc:
-        logger.error(f"Error getting task status: {str(exc)}")
-        return {
-            'state': 'ERROR',
-            'current': 0,
-            'total': 100,
-            'status': 'ステータス取得中にエラーが発生しました',
-            'error': str(exc)
-        }
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching latest analysis result for user {user_id}: {str(e)}")
+        return None

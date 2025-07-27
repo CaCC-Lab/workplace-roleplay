@@ -14,7 +14,7 @@ from flask import session
 
 from services.realtime_coach import RealTimeCoach
 from services.ab_testing import ExperimentationFramework
-from database import db, StrengthAnalysisResult
+from models import db, StrengthAnalysisResult
 
 logger = logging.getLogger(__name__)
 

@@ -12,7 +12,7 @@ from app import app, load_scenarios
 
 
 class TestScenariosComprehensive:
-    """全30シナリオの包括的テスト"""
+    """全35シナリオの包括的テスト"""
 
     @pytest.fixture(scope="session")
     def all_scenarios(self):

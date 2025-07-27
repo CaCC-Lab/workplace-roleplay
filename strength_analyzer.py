@@ -6,8 +6,7 @@
 import json
 import random
 import logging
-from datetime import datetime
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 
 # ログ設定
 logger = logging.getLogger(__name__)
@@ -184,7 +183,7 @@ def parse_strength_analysis(analysis_response: str) -> Dict[str, float]:
         
         # スコアの検証と正規化
         scores = {}
-        for key in STRENGTH_CATEGORIES.keys():
+        for key in STRENGTH_CATEGORIES:
             value = result.get(key, 50)
             # 数値でない場合はデフォルト値
             if isinstance(value, (int, float)):
@@ -198,7 +197,7 @@ def parse_strength_analysis(analysis_response: str) -> Dict[str, float]:
     except (json.JSONDecodeError, ValueError) as e:
         logger.warning(f"Failed to parse strength analysis: {e}")
         # JSON解析に失敗した場合、デフォルト値を返す
-        return {key: 50 for key in STRENGTH_CATEGORIES.keys()}
+        return {key: 50 for key in STRENGTH_CATEGORIES}
 
 
 def get_top_strengths(scores: Dict[str, float], top_n: int = 3) -> List[Dict[str, Any]]:
