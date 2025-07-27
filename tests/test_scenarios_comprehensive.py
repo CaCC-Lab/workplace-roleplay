@@ -1,5 +1,5 @@
 """
-全30シナリオの包括的テスト（モックなし・実際のGemini API使用）
+全35シナリオの包括的テスト（モックなし・実際のGemini API使用）
 CLAUDE.md原則: モック禁止、実際のAPIでの包括的テスト
 """
 import pytest
@@ -71,8 +71,8 @@ class TestScenariosComprehensive:
             print(f"レスポンス内容: {test_response.data.decode('utf-8')}")
     
     def test_all_scenarios_loaded(self, all_scenarios):
-        """全30シナリオが正しく読み込まれることを確認"""
-        assert len(all_scenarios) == 30, f"シナリオ数が不正: {len(all_scenarios)}"
+        """全35シナリオが正しく読み込まれることを確認"""
+        assert len(all_scenarios) == 35, f"シナリオ数が不正: {len(all_scenarios)}"
         
         # 各シナリオのIDが重複していないことを確認（キー自体がIDなので重複はない）
         scenario_ids = list(all_scenarios.keys())
@@ -130,7 +130,7 @@ class TestScenariosComprehensive:
         print(f"シナリオ品質スコア: {quality_score:.1f}%")
         assert quality_score >= 80, f"シナリオ品質が基準に満たない: {quality_score:.1f}%"
 
-    @pytest.mark.parametrize("scenario_id", list(range(1, 31)))
+    @pytest.mark.parametrize("scenario_id", list(range(1, 36)))
     def test_individual_scenario_with_real_gemini(self, client, all_scenarios, scenario_id):
         """各シナリオを個別に実際のGemini APIでテスト"""
         # レート制限対策
@@ -464,9 +464,9 @@ class TestScenarioPerformance:
         print(f"シナリオ読み込み時間: {load_time:.3f}秒")
         print(f"読み込まれたシナリオ数: {len(scenarios)}")
         
-        # 30個のシナリオを1秒以内に読み込めることを確認
+        # 35個のシナリオを1秒以内に読み込めることを確認
         assert load_time < 1.0, f"シナリオ読み込みが遅い: {load_time:.3f}秒"
-        assert len(scenarios) == 30, f"シナリオ数が不正: {len(scenarios)}"
+        assert len(scenarios) == 35, f"シナリオ数が不正: {len(scenarios)}"
 
     def test_scenario_memory_usage(self):
         """シナリオのメモリ使用量テスト"""

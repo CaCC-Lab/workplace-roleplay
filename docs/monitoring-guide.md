@@ -16,7 +16,7 @@ docker-compose up -d
 docker-compose up -d flower
 ```
 
-FlowerのWebインターフェースは http://localhost:5555 でアクセスできます。
+FlowerのWebインターフェースは <http://localhost:5555> でアクセスできます。
 
 ### スタンドアロンで起動
 
