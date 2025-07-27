@@ -13,6 +13,18 @@ class AsyncChatClient {
         this.onMessage = options.onMessage || this.defaultMessageHandler;
         this.onError = options.onError || this.defaultErrorHandler;
         this.onComplete = options.onComplete || this.defaultCompleteHandler;
+        
+        // 再接続設定
+        this.reconnectConfig = {
+            enabled: options.autoReconnect !== false,
+            maxRetries: options.maxRetries || 3,
+            retryDelay: options.retryDelay || 1000,
+            retryCount: 0,
+            lastError: null
+        };
+        
+        // エラー通知設定
+        this.errorNotifier = options.errorNotifier || this.defaultErrorNotifier;
     }
 
     /**
@@ -26,6 +38,9 @@ class AsyncChatClient {
             console.warn('Already streaming a message');
             return;
         }
+        
+        // 最後のメッセージデータを保存（再接続用）
+        this.lastMessageData = { message, model };
 
         try {
             const response = await fetch(`${this.baseUrl}/chat/stream`, {
@@ -54,7 +69,7 @@ class AsyncChatClient {
             this.startStreaming(response);
 
         } catch (error) {
-            this.onError(error);
+            this.handleStreamError(error);
         }
     }
 
@@ -65,6 +80,7 @@ class AsyncChatClient {
     startStreaming(response) {
         this.isStreaming = true;
         this.currentMessage = '';
+        this.reconnectConfig.retryCount = 0; // 成功したので再試行カウントをリセット
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -90,7 +106,8 @@ class AsyncChatClient {
                     }
                 }
             } catch (error) {
-                this.onError(error);
+                // エラーを分類して処理
+                this.handleStreamError(error);
             } finally {
                 this.isStreaming = false;
             }
@@ -516,6 +533,140 @@ class AsyncChatClient {
 
     defaultCompleteHandler(data) {
         console.log('Complete:', data);
+    }
+    
+    /**
+     * エラーの種類を分類
+     * @param {Error} error - エラーオブジェクト
+     * @returns {Object} エラー分類情報
+     */
+    classifyError(error) {
+        const errorMessage = error.message ? error.message.toLowerCase() : '';
+        
+        // Gemini API特有のエラー
+        if (errorMessage.includes('api key') || errorMessage.includes('authentication')) {
+            return {
+                type: 'auth',
+                severity: 'critical',
+                userMessage: 'APIキーの認証エラーが発生しました。管理者にお問い合わせください。',
+                recoverable: false
+            };
+        }
+        
+        if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
+            return {
+                type: 'rate_limit',
+                severity: 'warning',
+                userMessage: 'APIの利用制限に達しました。しばらく待ってから再試行してください。',
+                recoverable: true,
+                retryAfter: 60000 // 1分後
+            };
+        }
+        
+        if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+            return {
+                type: 'timeout',
+                severity: 'warning',
+                userMessage: 'サーバーからの応答がありません。自動的に再接続を試みます。',
+                recoverable: true
+            };
+        }
+        
+        if (errorMessage.includes('network') || errorMessage.includes('failed to fetch')) {
+            return {
+                type: 'network',
+                severity: 'warning',
+                userMessage: 'ネットワーク接続に問題があります。接続を確認してください。',
+                recoverable: true
+            };
+        }
+        
+        // その他のエラー
+        return {
+            type: 'unknown',
+            severity: 'error',
+            userMessage: `予期しないエラーが発生しました: ${error.message}`,
+            recoverable: true
+        };
+    }
+    
+    /**
+     * ストリーミングエラーを処理
+     * @param {Error} error - エラーオブジェクト
+     */
+    handleStreamError(error) {
+        const errorInfo = this.classifyError(error);
+        this.reconnectConfig.lastError = errorInfo;
+        
+        // エラー通知
+        this.errorNotifier(errorInfo);
+        
+        // 回復可能なエラーの場合、再接続を試みる
+        if (errorInfo.recoverable && this.reconnectConfig.enabled && 
+            this.reconnectConfig.retryCount < this.reconnectConfig.maxRetries) {
+            
+            this.reconnectConfig.retryCount++;
+            const delay = this.reconnectConfig.retryDelay * Math.pow(2, this.reconnectConfig.retryCount - 1);
+            
+            this.errorNotifier({
+                type: 'reconnecting',
+                severity: 'info',
+                userMessage: `再接続を試みています... (${this.reconnectConfig.retryCount}/${this.reconnectConfig.maxRetries})`,
+                retryIn: delay
+            });
+            
+            setTimeout(() => {
+                if (this.lastMessageData) {
+                    // 最後のメッセージを再送信
+                    this.sendMessage(this.lastMessageData.message, this.lastMessageData.model);
+                }
+            }, delay);
+        } else {
+            // 再接続できない場合
+            this.onError(error);
+        }
+    }
+    
+    /**
+     * デフォルトのエラー通知
+     * @param {Object} errorInfo - エラー情報
+     */
+    defaultErrorNotifier(errorInfo) {
+        console.log('Error notification:', errorInfo);
+        
+        // DOMにエラーメッセージを表示する例
+        const errorContainer = document.getElementById('error-container');
+        if (errorContainer) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${errorInfo.severity}`;
+            
+            // XSS対策: textContentを使用してテキストを安全に設定
+            const errorMessage = document.createElement('span');
+            errorMessage.className = 'error-message';
+            errorMessage.textContent = errorInfo.userMessage;
+            alertDiv.appendChild(errorMessage);
+            
+            // スピナーの追加（必要な場合）
+            if (errorInfo.type === 'reconnecting') {
+                const spinner = document.createElement('span');
+                spinner.className = 'spinner';
+                alertDiv.appendChild(spinner);
+            }
+            
+            // 閉じるボタンの追加
+            const closeButton = document.createElement('button');
+            closeButton.className = 'close-button';
+            closeButton.textContent = '×';
+            closeButton.addEventListener('click', () => alertDiv.remove());
+            alertDiv.appendChild(closeButton);
+            
+            errorContainer.appendChild(alertDiv);
+            
+            // 自動的に消える（再接続中以外）
+            if (errorInfo.type !== 'reconnecting') {
+                setTimeout(() => alertDiv.remove(), 10000);
+            }
+        }
     }
 }
 
