@@ -8,17 +8,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **🤖 AI Hyper-Real Persona System**
+  - 5つの多様なペルソナプロファイル（IT、営業、製造業等）
+  - PostgreSQL統合データベース設計
+  - Redis記憶管理システム
+  - ペルソナ専門性に基づく会話生成
+
+- **⚡ リアルタイムフィードバック機能**
+  - ペルソナ専門性に基づくフィードバック生成
+  - SSE（Server-Sent Events）によるリアルタイム配信
+  - 会話タイミング適切性判定
+  - 設定可能なフィードバック閾値とカスタマイゼーション
+
+- **🧪 TDD実装とテスト強化**
+  - Red-Green-Refactorサイクルに基づく開発
+  - 包括的テストスイート（RealtimeFeedbackService）
+  - E2Eテスト実装（Playwright）
+
 - Celeryを使用したアチーブメントチェックの非同期化
   - 指数バックオフ付きリトライ機構（最大3回、60-240秒）
   - エラー分類（リトライ可能/永続的エラー）
   - analyticsキューでの効率的な処理
 
+### Security
+- **XSS脆弱性修正**
+  - innerHTML使用からDOM API（createElement, textContent）への変更
+  - すべてのユーザー入力の安全な処理を確保
+
 ### Changed
 - アチーブメントチェック処理をメインリクエストサイクルから分離
 - APIレスポンス時間の大幅改善
+- コード品質向上（設定外部化、Enum導入、メソッド分解）
 
 ### Fixed
 - アチーブメントチェックによるAPIブロッキングの解消
+- 未使用インポートの削除
+- YAML形式の統一
+- テストデータ型の一貫性確保
 
 ## [1.4.0] - 2025-07-24
 

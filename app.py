@@ -270,6 +270,10 @@ app.register_blueprint(recommendations_bp)
 from api.persona_scenarios import persona_scenarios_bp
 app.register_blueprint(persona_scenarios_bp)
 
+# リアルタイムフィードバックAPIの登録
+from api.realtime_feedback import realtime_feedback_bp
+app.register_blueprint(realtime_feedback_bp)
+
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)
 def handle_app_error(error: AppError):
