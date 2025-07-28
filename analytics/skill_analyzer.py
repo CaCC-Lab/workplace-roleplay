@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 from collections import defaultdict
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload, selectinload
 
 from models import db, StrengthAnalysisResult, PracticeSession
 
@@ -69,10 +70,13 @@ class SkillProgressAnalyzer:
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
         
-        # 分析結果を取得
+        # 分析結果を取得（関連データを事前にロード）
         results = StrengthAnalysisResult.query.filter(
             StrengthAnalysisResult.user_id == user_id,
             StrengthAnalysisResult.created_at >= start_date
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).order_by(StrengthAnalysisResult.created_at).all()
         
         # スキルスコアの抽出
@@ -122,9 +126,12 @@ class SkillProgressAnalyzer:
         Returns:
             スキル間の比較分析結果
         """
-        # 最新の分析結果を取得
+        # 最新の分析結果を取得（関連データを事前にロード）
         latest_result = StrengthAnalysisResult.query.filter_by(
             user_id=user_id
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).order_by(StrengthAnalysisResult.created_at.desc()).first()
         
         if not latest_result or not latest_result.analysis_result:
@@ -139,6 +146,9 @@ class SkillProgressAnalyzer:
         results = StrengthAnalysisResult.query.filter(
             StrengthAnalysisResult.user_id == user_id,
             StrengthAnalysisResult.created_at >= start_date
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).all()
         
         # スキル別の成長率を計算
@@ -189,9 +199,12 @@ class SkillProgressAnalyzer:
         Returns:
             スキル相関分析結果
         """
-        # 全分析結果を取得
+        # 全分析結果を取得（関連データを事前にロード）
         results = StrengthAnalysisResult.query.filter_by(
             user_id=user_id
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).all()
         
         if len(results) < 5:
@@ -335,10 +348,15 @@ class SkillProgressAnalyzer:
     def _analyze_practice_patterns(self, user_id: int, skill_name: str, 
                                  start_date: datetime) -> Dict[str, Any]:
         """練習パターンの分析"""
-        # 会話履歴を取得
+        # 会話履歴を取得（関連データを事前にロード）
         conversations = PracticeSession.query.filter(
             PracticeSession.user_id == user_id,
             PracticeSession.started_at >= start_date
+        ).options(
+            joinedload(PracticeSession.user),
+            joinedload(PracticeSession.scenario),
+            selectinload(PracticeSession.logs),
+            joinedload(PracticeSession.analysis)
         ).all()
         
         # 曜日別・時間帯別の練習回数

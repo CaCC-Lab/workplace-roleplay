@@ -22,3 +22,6 @@ class DevelopmentConfig(Config):
     
     # 開発環境では警告を表示
     SQLALCHEMY_ECHO = True
+    
+    # 開発環境ではCSRFチェックを無効化（テスト用）
+    WTF_CSRF_ENABLED = False

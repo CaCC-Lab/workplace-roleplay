@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional
 import numpy as np
 from scipy import stats
 from collections import defaultdict
+from sqlalchemy.orm import joinedload, selectinload
 
 from models import db, StrengthAnalysisResult, PracticeSession
 
@@ -29,15 +30,23 @@ class TrendAnalyzer:
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
         
-        # データ収集
+        # データ収集（関連データを事前にロード）
         analysis_results = StrengthAnalysisResult.query.filter(
             StrengthAnalysisResult.user_id == user_id,
             StrengthAnalysisResult.created_at >= start_date
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).order_by(StrengthAnalysisResult.created_at).all()
         
         conversations = PracticeSession.query.filter(
             PracticeSession.user_id == user_id,
             PracticeSession.started_at >= start_date
+        ).options(
+            joinedload(PracticeSession.user),
+            joinedload(PracticeSession.scenario),
+            selectinload(PracticeSession.logs),
+            joinedload(PracticeSession.analysis)
         ).order_by(PracticeSession.started_at).all()
         
         if not analysis_results:
@@ -84,6 +93,9 @@ class TrendAnalyzer:
         results = StrengthAnalysisResult.query.filter(
             StrengthAnalysisResult.user_id == user_id,
             StrengthAnalysisResult.created_at >= start_date
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).order_by(StrengthAnalysisResult.created_at).all()
         
         if len(results) < 5:
@@ -138,6 +150,9 @@ class TrendAnalyzer:
         results = StrengthAnalysisResult.query.filter(
             StrengthAnalysisResult.user_id == user_id,
             StrengthAnalysisResult.created_at >= start_date
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).order_by(StrengthAnalysisResult.created_at).all()
         
         if len(results) < 10:
@@ -185,17 +200,23 @@ class TrendAnalyzer:
         mid_date = end_date - timedelta(days=30)
         start_date = end_date - timedelta(days=60)
         
-        # 期間別のデータ取得
+        # 期間別のデータ取得（関連データを事前にロード）
         recent_results = StrengthAnalysisResult.query.filter(
             StrengthAnalysisResult.user_id == user_id,
             StrengthAnalysisResult.created_at >= mid_date,
             StrengthAnalysisResult.created_at <= end_date
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).all()
         
         previous_results = StrengthAnalysisResult.query.filter(
             StrengthAnalysisResult.user_id == user_id,
             StrengthAnalysisResult.created_at >= start_date,
             StrengthAnalysisResult.created_at < mid_date
+        ).options(
+            joinedload(StrengthAnalysisResult.user),
+            joinedload(StrengthAnalysisResult.session)
         ).all()
         
         recent_conversations = PracticeSession.query.filter(

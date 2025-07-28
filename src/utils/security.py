@@ -79,6 +79,10 @@ class CSRFMiddleware:
         if "csrf_token" not in session:
             session["csrf_token"] = self._generate_csrf_token()
         
+        # CSRFチェックが無効化されている場合はスキップ
+        if not self.app.config.get("WTF_CSRF_ENABLED", True):
+            return None
+        
         # POSTリクエストの場合はCSRFチェック
         if request.method == "POST":
             # APIエンドポイントは除外（別の認証方式を使用）

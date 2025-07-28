@@ -1,3 +1,4 @@
+from functools import lru_cache
 """
 シナリオモジュールの初期化
 """

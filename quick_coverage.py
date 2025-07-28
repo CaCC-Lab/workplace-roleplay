@@ -3,7 +3,6 @@
 核心ファイルのカバレッジを迅速に測定するスクリプト
 """
 import coverage
-import subprocess
 import os
 import sys
 

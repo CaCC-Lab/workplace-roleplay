@@ -3,8 +3,8 @@ import logging
 import os
 from typing import Optional
 
-from flask import Flask, render_template
-from flask_login import LoginManager
+from flask import Flask, render_template, redirect, url_for
+from flask_login import LoginManager, AnonymousUserMixin
 from flask_session import Session
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
@@ -89,8 +89,13 @@ def initialize_extensions(app: Flask) -> None:
     
     # ログイン管理
     login_manager.init_app(app)
-    login_manager.login_view = "auth.login"
-    login_manager.login_message = "このページにアクセスするにはログインが必要です。"
+    login_manager.anonymous_user = AnonymousUserMixin
+    
+    # テンプレートコンテキストプロセッサーを追加
+    @app.context_processor
+    def inject_user():
+        from flask_login import current_user
+        return dict(current_user=current_user)
     
     # WebSocket
     socketio.init_app(
@@ -117,6 +122,10 @@ def configure_security(app: Flask) -> None:
 
 def register_blueprints(app: Flask) -> None:
     """Blueprintの登録"""
+    # 認証ブループリント
+    from .auth import auth
+    app.register_blueprint(auth)
+    
     # APIブループリント
     from .api import create_api_blueprint
     api_bp = create_api_blueprint()
@@ -128,7 +137,7 @@ def register_blueprints(app: Flask) -> None:
         return render_template("index.html")
     
     @app.route("/scenarios")
-    def scenarios():
+    def list_scenarios():
         return render_template("scenarios_list.html", scenarios={}, models=[])
     
     @app.route("/chat")
@@ -136,12 +145,41 @@ def register_blueprints(app: Flask) -> None:
         return render_template("chat.html", models=[])
     
     @app.route("/watch")
-    def watch():
+    def watch_mode():
         return render_template("watch.html", models=[])
     
     @app.route("/history")
     def history():
         return render_template("history.html")
+    
+    @app.route("/journal")
+    def view_journal():
+        return render_template("journal.html")
+    
+    @app.route("/logout")
+    def logout():
+        # 認証システムが実装されるまでのダミー
+        return redirect(url_for("index"))
+    
+    @app.route("/strength-analysis")
+    def strength_analysis_page():
+        return render_template("strength_analysis.html")
+    
+    @app.route("/breathing-guide")
+    def breathing_guide():
+        return render_template("breathing_guide.html")
+    
+    @app.route("/ambient-sounds")
+    def ambient_sounds():
+        return render_template("ambient_sounds.html")
+    
+    @app.route("/growth-tracker")
+    def growth_tracker():
+        return render_template("growth_tracker.html")
+    
+    @app.route("/analytics")
+    def analytics_dashboard():
+        return render_template("analytics.html")
 
 
 def register_error_handlers(app: Flask) -> None:
