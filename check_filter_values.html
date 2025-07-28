@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>フィルター値チェック</title>
+</head>
+<body>
+    <h1>フィルター初期値の確認</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function checkFilters() {
+            const response = await fetch('http://localhost:5001/scenarios');
+            const html = await response.text();
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const difficultyFilter = doc.getElementById('difficulty-filter');
+            const tagFilter = doc.getElementById('tag-filter');
+            
+            const results = document.getElementById('results');
+            
+            if (difficultyFilter) {
+                results.innerHTML += `<p>難易度フィルターの初期値: "${difficultyFilter.value}"</p>`;
+                results.innerHTML += `<p>選択肢: ${Array.from(difficultyFilter.options).map(o => o.value).join(', ')}</p>`;
+            }
+            
+            if (tagFilter) {
+                results.innerHTML += `<p>タグフィルターの初期値: "${tagFilter.value}"</p>`;
+                results.innerHTML += `<p>選択肢: ${Array.from(tagFilter.options).map(o => o.value).join(', ')}</p>`;
+            }
+            
+            // シナリオカードの難易度を確認
+            const cards = doc.querySelectorAll('.scenario-card');
+            const difficulties = new Set();
+            
+            cards.forEach(card => {
+                const badge = card.querySelector('.difficulty-badge');
+                if (badge) {
+                    const difficulty = badge.textContent.replace('難易度: ', '').trim();
+                    difficulties.add(difficulty);
+                }
+            });
+            
+            results.innerHTML += `<p>シナリオの難易度: ${Array.from(difficulties).join(', ')}</p>`;
+        }
+        
+        checkFilters();
+    </script>
+</body>
+</html>

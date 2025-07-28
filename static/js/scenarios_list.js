@@ -3,15 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeFilters();
     initializeRecommendations();
     
-    // ページロード完了後に強制的に初期ソートを実行
-    // DOMの準備ができていることを確認してからソート
-    setTimeout(() => {
-        const sortSelect = document.getElementById('sort-select');
-        if (sortSelect) {
-            sortScenarios('scenario-num');  // デフォルトではシナリオID順にソート
-            console.log('Applied initial sort on page load completion');
-        }
-    }, 200);
+    // ページロード完了後の追加処理は削除（initializeFilters内で処理済み）
 });
 
 // モーダル関連の機能
@@ -66,6 +58,9 @@ function initializeFilters() {
     let observer = null;
 
     function sortScenarios(order = 'scenario-num') {
+        // 毎回最新のscenarioCardsを取得
+        const scenarioCards = Array.from(document.querySelectorAll('.scenario-card'));
+        
         // ソート前にコンソールに情報を出力
         console.log(`Sorting scenarios with order: ${order}. Cards count: ${scenarioCards.length}`);
         
@@ -153,6 +148,8 @@ function initializeFilters() {
     }
 
     function filterScenarios() {
+        // 毎回最新のscenarioCardsを取得
+        const scenarioCards = Array.from(document.querySelectorAll('.scenario-card'));
         const selectedDifficulty = difficultyFilter.value;
         const selectedTag = tagFilter.value;
 
@@ -194,6 +191,10 @@ function initializeFilters() {
     // 初期ソート - シナリオID順で実行
     console.log('Initializing filters and applying initial sort');
     sortScenarios('scenario-num');
+    
+    // 初期表示時は全てのシナリオを表示（フィルターをリセット）
+    difficultyFilter.value = '';
+    tagFilter.value = '';
     
     // MutationObserverはシナリオカードが動的に追加される場合のみ必要
     // 現在のページでは初期ロード時にすべてのカードが存在するため、削除
