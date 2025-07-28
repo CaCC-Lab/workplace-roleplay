@@ -138,7 +138,16 @@ def register_blueprints(app: Flask) -> None:
     
     @app.route("/scenarios")
     def list_scenarios():
-        return render_template("scenarios_list.html", scenarios={}, models=[])
+        # シナリオデータを読み込む
+        from scenarios import load_scenarios
+        scenarios_data = load_scenarios()
+        
+        # モデル情報を取得
+        from .services.llm_service import LLMService
+        llm_service = LLMService()
+        models = llm_service.get_available_models()
+        
+        return render_template("scenarios_list.html", scenarios=scenarios_data, models=models)
     
     @app.route("/chat")
     def chat():
@@ -180,6 +189,24 @@ def register_blueprints(app: Flask) -> None:
     @app.route("/analytics")
     def analytics_dashboard():
         return render_template("analytics.html")
+    
+    @app.route("/scenario/<scenario_id>")
+    def show_scenario(scenario_id):
+        # シナリオデータを読み込む
+        from scenarios import load_scenarios
+        scenarios_data = load_scenarios()
+        
+        # モデル情報を取得
+        from .services.llm_service import LLMService
+        llm_service = LLMService()
+        models = llm_service.get_available_models()
+        
+        # 指定されたシナリオを取得
+        scenario = scenarios_data.get(scenario_id)
+        if not scenario:
+            return render_template("errors/404.html", message="シナリオが見つかりません"), 404
+        
+        return render_template("scenario.html", scenario=scenario, scenario_id=scenario_id, models=models)
 
 
 def register_error_handlers(app: Flask) -> None:

@@ -60,6 +60,10 @@ function initializeFilters() {
     const tagFilter = document.getElementById('tag-filter');
     const scenariosList = document.querySelector('.scenarios-list');
     const scenarioCards = Array.from(document.querySelectorAll('.scenario-card'));
+    
+    // MutationObserverのフラグ管理
+    let isUpdatingDOM = false;
+    let observer = null;
 
     function sortScenarios(order = 'scenario-num') {
         // ソート前にコンソールに情報を出力
@@ -121,6 +125,14 @@ function initializeFilters() {
             return href.match(/scenario\d+/)[0];
         }).join(', '));
 
+        // DOM更新フラグをセット（MutationObserverによる再実行を防ぐ）
+        isUpdatingDOM = true;
+        
+        // Observerを一時的に切断
+        if (observer) {
+            observer.disconnect();
+        }
+
         // 既存のカードをすべて削除
         while (scenariosList.firstChild) {
             scenariosList.removeChild(scenariosList.firstChild);
@@ -132,6 +144,12 @@ function initializeFilters() {
         });
         
         console.log('Sort completed and DOM updated');
+        
+        // DOM更新が完了したらフラグをリセットし、Observerを再開
+        isUpdatingDOM = false;
+        if (observer) {
+            observer.observe(scenariosList, { childList: true });
+        }
     }
 
     function filterScenarios() {
@@ -177,8 +195,14 @@ function initializeFilters() {
     console.log('Initializing filters and applying initial sort');
     sortScenarios('scenario-num');
     
-    // DOM変更をトラッキング
-    const observer = new MutationObserver((mutations) => {
+    // MutationObserverはシナリオカードが動的に追加される場合のみ必要
+    // 現在のページでは初期ロード時にすべてのカードが存在するため、削除
+    // 必要な場合は以下のコメントを解除してください：
+    /*
+    observer = new MutationObserver((mutations) => {
+        // DOM更新中の場合は何もしない（無限ループ防止）
+        if (isUpdatingDOM) return;
+        
         // DOMに変更があった場合に再ソート
         if (mutations.some(mutation => mutation.type === 'childList')) {
             console.log('DOM changes detected, reapplying sort');
@@ -188,6 +212,7 @@ function initializeFilters() {
     
     // 監視の開始
     observer.observe(scenariosList, { childList: true });
+    */
 }
 
 // 推薦機能の初期化
@@ -494,4 +519,4 @@ function showFeedbackThanks() {
         thanksElement.style.animation = 'slideInFromRight 0.3s ease-in reverse';
         setTimeout(() => thanksElement.remove(), 300);
     }, 3000);
-} 
+}
