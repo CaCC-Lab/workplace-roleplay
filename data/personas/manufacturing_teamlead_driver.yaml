@@ -90,12 +90,12 @@ scenario_behaviors:
     stress_level: high
     cooperation: commanding
     communication: direct
-  
+
   safety_incident:
     stress_level: very_high
     cooperation: protective
     communication: firm
-  
+
   improvement_meeting:
     stress_level: low
     cooperation: collaborative

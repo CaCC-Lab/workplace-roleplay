@@ -277,9 +277,9 @@ class TestPersonaDataIntegrity:
                 assert persona.personality_type is not None
                 assert persona.years_experience >= 0
                 
-                # コミュニケーションスタイルが配列であることを確認
+                # コミュニケーションスタイルが辞書であることを確認
                 if persona.communication_style:
-                    assert isinstance(persona.communication_style, list)
+                    assert isinstance(persona.communication_style, dict)
     
     def test_persona_enum_values(self, client):
         """Enumの値が正しいことを確認"""

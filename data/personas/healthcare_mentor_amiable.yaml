@@ -90,12 +90,12 @@ scenario_behaviors:
     stress_level: low
     cooperation: nurturing
     communication: encouraging
-  
+
   emergency_situation:
     stress_level: moderate
     cooperation: decisive
     communication: clear
-  
+
   team_conflict:
     stress_level: moderate
     cooperation: mediating

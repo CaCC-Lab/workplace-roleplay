@@ -90,12 +90,12 @@ scenario_behaviors:
     stress_level: high
     cooperation: apologetic
     communication: empathetic
-  
+
   team_meeting:
     stress_level: low
     cooperation: enthusiastic
     communication: energetic
-  
+
   negotiation:
     stress_level: moderate
     cooperation: strategic
