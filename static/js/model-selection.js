@@ -11,7 +11,14 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             // Geminiモデルを取得
             data.models.forEach(model => {
-                if (model.startsWith('gemini/')) {
+                // modelはオブジェクト形式 {id: "gemini/...", name: "...", provider: "gemini"}
+                if (typeof model === 'object' && model.id && model.id.startsWith('gemini/')) {
+                    geminiModels.push({
+                        value: model.id,
+                        label: model.name || model.id.replace('gemini/', '')
+                    });
+                } else if (typeof model === 'string' && model.startsWith('gemini/')) {
+                    // 旧形式の互換性のため
                     geminiModels.push({
                         value: model,
                         label: model.replace('gemini/', '')
