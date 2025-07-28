@@ -2806,5 +2806,6 @@ if __name__ == "__main__":
         debug=config.DEBUG,
         host=config.HOST,
         port=config.PORT,
-        use_reloader=config.HOT_RELOAD
+        use_reloader=config.HOT_RELOAD,
+        allow_unsafe_werkzeug=True
     )
