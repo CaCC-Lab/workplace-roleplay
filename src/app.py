@@ -1,0 +1,177 @@
+"""Flaskアプリケーションファクトリー"""
+import logging
+import os
+from typing import Optional
+
+from flask import Flask, render_template
+from flask_login import LoginManager
+from flask_session import Session
+from flask_socketio import SocketIO
+from flask_sqlalchemy import SQLAlchemy
+
+from .config import get_config
+from .utils.security import SecurityHeaders, CSRFMiddleware
+
+# 拡張機能のインスタンス（初期化は後で）
+db = SQLAlchemy()
+login_manager = LoginManager()
+socketio = SocketIO()
+
+
+def create_app(config_name: Optional[str] = None) -> Flask:
+    """アプリケーションファクトリー
+    
+    Args:
+        config_name: 設定名（development, production, testing）
+        
+    Returns:
+        Flask: 設定済みのFlaskアプリケーション
+    """
+    # Flaskアプリケーションの作成
+    app = Flask(
+        __name__,
+        template_folder="../templates",
+        static_folder="../static"
+    )
+    
+    # 設定の読み込み
+    config_cls = get_config(config_name)
+    app.config.from_object(config_cls)
+    
+    # ロギングの設定
+    configure_logging(app)
+    
+    # 拡張機能の初期化
+    initialize_extensions(app)
+    
+    # セキュリティの設定
+    configure_security(app)
+    
+    # Blueprintの登録
+    register_blueprints(app)
+    
+    # エラーハンドラーの登録
+    register_error_handlers(app)
+    
+    # シェルコンテキストの設定
+    configure_shell_context(app)
+    
+    return app
+
+
+def configure_logging(app: Flask) -> None:
+    """ロギングの設定"""
+    log_level = getattr(logging, app.config["LOG_LEVEL"].upper())
+    
+    # ハンドラーの設定
+    handler = logging.StreamHandler()
+    handler.setLevel(log_level)
+    
+    # フォーマッターの設定
+    formatter = logging.Formatter(app.config["LOG_FORMAT"])
+    handler.setFormatter(formatter)
+    
+    # アプリケーションロガーの設定
+    app.logger.addHandler(handler)
+    app.logger.setLevel(log_level)
+    
+    # Werkzeugロガーの設定
+    logging.getLogger("werkzeug").setLevel(log_level)
+
+
+def initialize_extensions(app: Flask) -> None:
+    """拡張機能の初期化"""
+    # データベース
+    db.init_app(app)
+    
+    # セッション
+    Session(app)
+    
+    # ログイン管理
+    login_manager.init_app(app)
+    login_manager.login_view = "auth.login"
+    login_manager.login_message = "このページにアクセスするにはログインが必要です。"
+    
+    # WebSocket
+    socketio.init_app(
+        app,
+        cors_allowed_origins="*",
+        async_mode="threading"
+    )
+    
+    # ユーザーローダー（ダミー実装）
+    @login_manager.user_loader
+    def load_user(user_id):
+        # 認証機能を使用しない場合のダミー実装
+        return None
+
+
+def configure_security(app: Flask) -> None:
+    """セキュリティの設定"""
+    # セキュリティヘッダー
+    SecurityHeaders(app)
+    
+    # CSRF保護
+    CSRFMiddleware(app)
+
+
+def register_blueprints(app: Flask) -> None:
+    """Blueprintの登録"""
+    # APIブループリント
+    from .api import create_api_blueprint
+    api_bp = create_api_blueprint()
+    app.register_blueprint(api_bp, url_prefix="/api")
+    
+    # メインルート
+    @app.route("/")
+    def index():
+        return render_template("index.html")
+    
+    @app.route("/scenarios")
+    def scenarios():
+        return render_template("scenarios_list.html", scenarios={}, models=[])
+    
+    @app.route("/chat")
+    def chat():
+        return render_template("chat.html", models=[])
+    
+    @app.route("/watch")
+    def watch():
+        return render_template("watch.html", models=[])
+    
+    @app.route("/history")
+    def history():
+        return render_template("history.html")
+
+
+def register_error_handlers(app: Flask) -> None:
+    """エラーハンドラーの登録"""
+    @app.errorhandler(404)
+    def not_found(error):
+        if hasattr(error, "description"):
+            message = error.description
+        else:
+            message = "ページが見つかりません"
+        return render_template("errors/404.html", message=message), 404
+    
+    @app.errorhandler(500)
+    def internal_error(error):
+        app.logger.error(f"Internal error: {error}")
+        return render_template("errors/500.html"), 500
+    
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        app.logger.error(f"Unhandled exception: {error}", exc_info=True)
+        if app.config["DEBUG"]:
+            raise
+        return render_template("errors/500.html"), 500
+
+
+def configure_shell_context(app: Flask) -> None:
+    """シェルコンテキストの設定"""
+    @app.shell_context_processor
+    def make_shell_context():
+        return {
+            "db": db,
+            "app": app
+        }

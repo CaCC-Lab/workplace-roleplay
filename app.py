@@ -224,7 +224,13 @@ redis_session_manager = initialize_session_store()
 Session(app)
 
 # データベースの初期化
-database_available = init_database(app)
+# データベース初期化を環境変数で制御
+USE_DATABASE = os.environ.get("USE_DATABASE", "false").lower() == "true"
+if USE_DATABASE:
+    database_available = init_database(app)
+else:
+    database_available = False
+    print("📁 データベース初期化をスキップ（ファイルシステムモード）")
 
 # WebSocketコーチングサービスの初期化
 websocket_service = WebSocketCoachingService(socketio)
@@ -361,8 +367,17 @@ except Exception as e:
 def get_available_gemini_models():
     """
     利用可能なGeminiモデルのリストを返す
-    廃止されたモデルを除外し、代替モデルを提供する
+    ※ genai.list_models()のブロッキング問題を修正
     """
+    # 固定のモデルリストを返す（API呼び出しを避ける）
+    # これにより分単位の遅延を回避
+    default_models = [
+        "gemini/gemini-1.5-pro",
+        "gemini/gemini-1.5-flash",
+        "gemini/gemini-1.5-pro-latest",
+        "gemini/gemini-1.5-flash-latest"
+    ]
+    
     try:
         # Gemini APIの設定を確認
         if not GOOGLE_API_KEY:
@@ -372,46 +387,15 @@ def get_available_gemini_models():
         if not GENAI_AVAILABLE or genai is None:
             print("Warning: google.generativeai not available")
             return []
-            
-        # 利用可能なモデルを取得
-        models = genai.list_models()
         
-        # 廃止されたモデルと代替モデルのマッピング
-        deprecated_models = {
-            'gemini-1.0-pro-vision': 'gemini-1.5-flash',
-            'gemini-1.0-pro-vision-latest': 'gemini-1.5-flash-latest'
-        }
-        
-        # Geminiモデルをフィルタリング
-        gemini_models = []
-        for model in models:
-            if "gemini" in model.name.lower():
-                # モデル名を取得
-                model_short_name = model.name.split('/')[-1]
-                
-                # 廃止されたモデルの場合は代替を使用
-                if model_short_name in deprecated_models:
-                    alternative = deprecated_models[model_short_name]
-                    print(f"Replacing deprecated model {model_short_name} with {alternative}")
-                    model_name = f"gemini/{alternative}"
-                    # 代替モデルを追加（重複を避けるため）
-                    if model_name not in gemini_models:
-                        gemini_models.append(model_name)
-                else:
-                    # モデル名を整形（gemini/プレフィックスを追加）
-                    model_name = f"gemini/{model_short_name}"
-                    gemini_models.append(model_name)
-        
-        print(f"Available Gemini models: {gemini_models}")
-        return gemini_models
+        # API呼び出しをスキップして固定リストを返す
+        # TODO: 将来的にはキャッシュやタイムアウト付きの実装に変更
+        print(f"Available Gemini models (cached): {default_models}")
+        return default_models
         
     except Exception as e:
-        print(f"Error fetching Gemini models: {str(e)}")
-        # エラー時は最新のモデルリストを返す（廃止されたモデルを除外）
-        return [
-            "gemini/gemini-1.5-pro",
-            "gemini/gemini-1.5-flash"
-        ]
+        print(f"Error in get_available_gemini_models: {str(e)}")
+        return default_models
 
 def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
     """
