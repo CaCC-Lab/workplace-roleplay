@@ -4,7 +4,7 @@ from flask import Blueprint
 
 def create_api_blueprint() -> Blueprint:
     """APIブループリントを作成"""
-    from . import chat, models, scenarios
+    from . import chat, models, scenarios, recommendations
     
     # ブループリントの作成
     api_bp = Blueprint("api", __name__)
@@ -32,6 +32,12 @@ def create_api_blueprint() -> Blueprint:
         "/scenarios/<scenario_id>/feedback",
         view_func=scenarios.scenario_feedback,
         methods=["POST"]
+    )
+    
+    api_bp.add_url_rule(
+        "/recommended_scenarios",
+        view_func=recommendations.get_recommended_scenarios,
+        methods=["GET"]
     )
     
     return api_bp

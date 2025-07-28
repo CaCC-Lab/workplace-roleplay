@@ -32,9 +32,9 @@ class SecurityHeaders:
             csp = [
                 "default-src 'self'",
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com",
                 "img-src 'self' data: https:",
-                "font-src 'self' https://cdn.jsdelivr.net",
+                "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdnjs.cloudflare.com",
                 "connect-src 'self' wss: https:",
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
