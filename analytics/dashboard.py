@@ -7,7 +7,6 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 import redis
-from flask import current_app
 from collections import defaultdict
 import numpy as np
 
