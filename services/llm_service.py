@@ -2,6 +2,8 @@
 LLM（Language Model）関連のサービス
 """
 import os
+import hashlib
+import json
 from typing import Optional, Dict, List, Any, Union
 from datetime import datetime
 import google.generativeai as genai
@@ -32,6 +34,10 @@ class LLMService:
         self._available_models_cache = None
         self._cache_timestamp = None
         self._cache_duration = 300  # 5分間キャッシュ
+        
+        # レスポンスキャッシュ
+        self._response_cache = {}
+        self._cache_max_size = 100  # 最大100件のレスポンスをキャッシュ
     
     def get_available_gemini_models(self) -> List[Dict[str, Any]]:
         """利用可能なGeminiモデルのリストを取得"""
@@ -171,9 +177,10 @@ class LLMService:
         self, 
         llm: Any, 
         messages_or_prompt: Union[List[BaseMessage], str], 
-        extract: bool = True
+        extract: bool = True,
+        use_cache: bool = True
     ) -> str:
-        """LLMから応答を取得"""
+        """LLMから応答を取得（キャッシュ機能付き）"""
         try:
             if isinstance(messages_or_prompt, str):
                 # 文字列の場合はHumanMessageに変換
@@ -181,10 +188,23 @@ class LLMService:
             else:
                 messages = messages_or_prompt
             
+            # キャッシュ機能を使用する場合
+            if use_cache:
+                cache_key = self._generate_cache_key(messages, llm.model_name if hasattr(llm, 'model_name') else 'default')
+                cached_response = self._get_cached_response(cache_key)
+                if cached_response:
+                    import logging
+                    logging.info(f"Using cached response for key: {cache_key[:16]}...")
+                    return cached_response
+            
             response = llm.invoke(messages)
             
             if extract:
-                return self.extract_content(response)
+                content = self.extract_content(response)
+                # キャッシュに保存
+                if use_cache:
+                    self._cache_response(cache_key, content)
+                return content
             return response
             
         except Exception as e:
@@ -259,3 +279,35 @@ class LLMService:
         else:
             print(f"予期しないLLMエラー: {error}")
             return None
+    
+    def _generate_cache_key(self, messages: List[BaseMessage], model_name: str) -> str:
+        """メッセージとモデル名からキャッシュキーを生成"""
+        # メッセージを文字列に変換
+        messages_str = ""
+        for msg in messages:
+            if hasattr(msg, 'content'):
+                messages_str += f"{msg.__class__.__name__}:{msg.content}|"
+        
+        # モデル名を追加
+        cache_string = f"{model_name}:{messages_str}"
+        
+        # ハッシュ化
+        return hashlib.sha256(cache_string.encode()).hexdigest()
+    
+    def _get_cached_response(self, cache_key: str) -> Optional[str]:
+        """キャッシュから応答を取得"""
+        return self._response_cache.get(cache_key)
+    
+    def _cache_response(self, cache_key: str, content: str) -> None:
+        """応答をキャッシュに保存"""
+        # キャッシュサイズ制限チェック
+        if len(self._response_cache) >= self._cache_max_size:
+            # 最も古いエントリを削除（簡易的なLRU）
+            oldest_key = next(iter(self._response_cache))
+            del self._response_cache[oldest_key]
+        
+        self._response_cache[cache_key] = content
+    
+    def clear_response_cache(self) -> None:
+        """レスポンスキャッシュをクリア"""
+        self._response_cache.clear()

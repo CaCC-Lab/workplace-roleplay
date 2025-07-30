@@ -4,10 +4,13 @@ from flask import Blueprint
 
 def create_api_blueprint() -> Blueprint:
     """APIブループリントを作成"""
-    from . import chat, models, scenarios, recommendations, security
+    from . import chat, models, scenarios, recommendations, security, async_scenario, scenarios_list
     
     # ブループリントの作成
     api_bp = Blueprint("api", __name__)
+    
+    # 子ブループリントの登録
+    api_bp.register_blueprint(async_scenario.bp)
     
     # ルートの登録
     api_bp.add_url_rule(
@@ -43,6 +46,18 @@ def create_api_blueprint() -> Blueprint:
     api_bp.add_url_rule(
         "/csrf-token",
         view_func=security.get_csrf_token,
+        methods=["GET"]
+    )
+    
+    api_bp.add_url_rule(
+        "/scenarios",
+        view_func=scenarios_list.get_paginated_scenarios,
+        methods=["GET"]
+    )
+    
+    api_bp.add_url_rule(
+        "/scenario-tags",
+        view_func=scenarios_list.get_scenario_tags,
         methods=["GET"]
     )
     

@@ -5,6 +5,7 @@ A/Bテストフレームワーク
 """
 import hashlib
 import json
+import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -13,6 +14,8 @@ from flask import current_app
 import redis
 
 from models import db
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -53,7 +56,17 @@ A/Bテストと機能フラグの管理
     """
     
     def __init__(self):
-        self.redis_client = self._get_redis_client()
+        # Redisはオプション、接続できなくてもエラーにしない
+        self.redis_client = None
+        try:
+            self.redis_client = self._get_redis_client()
+            # Redisに接続してping送信してみる
+            if self.redis_client:
+                self.redis_client.ping()
+        except Exception as e:
+            logger.warning(f"Redis not available, using in-memory fallback: {e}")
+            self.redis_client = None
+        
         self.experiments = self._initialize_experiments()
         self.metrics_buffer = defaultdict(list)  # メトリクスのバッファ
         self.user_assignments = {}  # テスト用のユーザー割り当て記録
@@ -165,9 +178,12 @@ A/Bテストと機能フラグの管理
         # 既に割り当てがあるかチェック
         cache_key = f"variant:{experiment_name}:{user_id}"
         if self.redis_client:
-            cached_variant = self.redis_client.get(cache_key)
-            if cached_variant:
-                return json.loads(cached_variant)
+            try:
+                cached_variant = self.redis_client.get(cache_key)
+                if cached_variant:
+                    return json.loads(cached_variant)
+            except Exception as e:
+                logger.warning(f"Redis cache read failed: {e}")
         
         experiment = self.experiments.get(experiment_name)
         if not experiment or not experiment.active:
@@ -199,8 +215,11 @@ A/Bテストと機能フラグの管理
         }
         
         if self.redis_client:
-            # 24時間キャッシュ
-            self.redis_client.setex(cache_key, 86400, json.dumps(variant_config))
+            try:
+                # 24時間キャッシュ
+                self.redis_client.setex(cache_key, 86400, json.dumps(variant_config))
+            except Exception as e:
+                logger.warning(f"Redis cache write failed: {e}")
         
         # 割り当てを記録
         self._record_assignment(user_id, experiment_name, selected_variant.name)
@@ -262,10 +281,13 @@ A/Bテストと機能フラグの管理
         
         # Redisに記録
         if self.redis_client:
-            metric_key = f"metrics:{experiment_name}:{metric_name}:{timestamp.strftime('%Y%m%d')}"
-            self.redis_client.lpush(metric_key, json.dumps(metric_data))
-            # 30日間保存
-            self.redis_client.expire(metric_key, 86400 * 30)
+            try:
+                metric_key = f"metrics:{experiment_name}:{metric_name}:{timestamp.strftime('%Y%m%d')}"
+                self.redis_client.lpush(metric_key, json.dumps(metric_data))
+                # 30日間保存
+                self.redis_client.expire(metric_key, 86400 * 30)
+            except Exception as e:
+                logger.warning(f"Redis metric tracking failed: {e}")
         
         # バッファに追加（即座解析用）
         buffer_key = f"{experiment_name}:{metric_name}"

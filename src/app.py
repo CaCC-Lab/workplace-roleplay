@@ -56,6 +56,10 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # シェルコンテキストの設定
     configure_shell_context(app)
     
+    # Socket.IOハンドラーの登録
+    from .socketio_handlers import register_socketio_handlers
+    register_socketio_handlers(socketio)
+    
     return app
 
 
