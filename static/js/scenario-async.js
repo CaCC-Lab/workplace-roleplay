@@ -306,7 +306,10 @@ async function getScenarioFeedback() {
         }
     } catch (error) {
         console.error('フィードバック取得エラー:', error);
-        content.innerHTML = '<div class="error-message">フィードバックの取得に失敗しました</div>';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = 'フィードバックの取得に失敗しました';
+        content.appendChild(errorDiv);
         content.classList.add('active', 'error');
     } finally {
         button.disabled = false;
