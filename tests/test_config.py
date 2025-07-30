@@ -55,24 +55,24 @@ class TestConfigBase:
     
     def test_デフォルト値が設定される(self):
         """デフォルト値が正しく設定されることを確認"""
-        # conftest.pyの環境変数を一時的にクリア
-        with patch.dict(os.environ, {}, clear=True):
+        # SECRET_KEYは必須なので設定する
+        with patch.dict(os.environ, {'FLASK_SECRET_KEY': 'test-default-secret-key'}):
             # テスト用のConfigクラスを作成（.envを読まない）
             TestConfig = create_test_config_class(Config)
             config = TestConfig()
             
             # 基本設定
-            assert config.SECRET_KEY == "default-secret-key-change-in-production"
+            assert config.SECRET_KEY == "test-default-secret-key"
             assert config.DEFAULT_TEMPERATURE == 0.7
             assert config.DEFAULT_MODEL == "gemini/gemini-1.5-flash"
-        
-        # セッション設定
-        assert config.SESSION_TYPE == "filesystem"
-        assert config.SESSION_LIFETIME_MINUTES == 30
-        
-        # ログ設定
-        assert config.LOG_LEVEL == "INFO"
-        assert config.LOG_FORMAT == "json"
+            
+            # セッション設定
+            assert config.SESSION_TYPE == "filesystem"
+            assert config.SESSION_LIFETIME_MINUTES == 30
+            
+            # ログ設定
+            assert config.LOG_LEVEL == "INFO"
+            assert config.LOG_FORMAT == "json"
     
     def test_環境変数からの読み込み(self):
         """環境変数から値が読み込まれることを確認"""
@@ -177,7 +177,10 @@ class TestEnvironmentConfigs:
     def test_開発環境設定(self):
         """開発環境の設定が正しく適用されることを確認"""
         # conftest.pyの影響を避けるため環境をクリア
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(os.environ, {
+            'FLASK_SECRET_KEY': 'dev-test-secret-key',
+            'FLASK_ENV': 'development'  # 明示的に開発環境を指定
+        }):
             TestDevelopmentConfig = create_test_config_class(DevelopmentConfig)
             config = TestDevelopmentConfig()
             
@@ -206,7 +209,11 @@ class TestEnvironmentConfigs:
     def test_テスト環境設定(self):
         """テスト環境の設定が正しく適用されることを確認"""
         # conftest.pyやenvからの影響を避けるため環境をクリア
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(os.environ, {
+            'FLASK_SECRET_KEY': 'test-env-secret-key',
+            'FLASK_ENV': 'testing',  # 明示的にテスト環境を指定
+            'SESSION_TYPE': 'dict'  # 明示的にメモリ内セッションを指定
+        }):
             TestConfigForTesting = create_test_config_class(ConfigForTesting)
             config = TestConfigForTesting()
             
@@ -256,19 +263,25 @@ class TestConfigValidation:
     def test_モデル名の検証(self):
         """サポートされているモデル名のみ受け付けることを確認"""
         valid_models = [
-            "gemini/gemini-1.5-pro",
-            "gemini/gemini-1.5-flash"
+            "gemini-1.5-pro",  # プレフィックスなし
+            "gemini-1.5-flash",
+            "gemini/gemini-1.5-pro",  # プレフィックスあり
+            "gemini/gemini-1.5-flash",
+            "gemini/gemini-1.5-flash-8b",
+            "gemini/gemini-2.0-flash-exp"
         ]
         
         TestConfig = create_test_config_class(Config)
         
         for model in valid_models:
-            with patch.dict(os.environ, {'DEFAULT_MODEL': model}):
+            with patch.dict(os.environ, {'DEFAULT_AI_MODEL': model}):
                 config = TestConfig()
-                assert config.DEFAULT_MODEL == model
+                # バリデーターがプレフィックスを追加するため、確認
+                expected = model if model.startswith("gemini/") else f"gemini/{model}"
+                assert config.DEFAULT_MODEL == expected
         
         # 無効なモデル名
-        with patch.dict(os.environ, {'DEFAULT_MODEL': 'invalid-model'}):
+        with patch.dict(os.environ, {'DEFAULT_AI_MODEL': 'invalid-model'}):
             with pytest.raises(ValueError, match="Unsupported model"):
                 TestConfig()
     
@@ -314,7 +327,10 @@ class TestConfigSerialization:
     def test_環境別の設定出力(self):
         """環境に応じて適切な情報が出力されることを確認"""
         # conftest.pyの環境変数をクリア
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(os.environ, {
+            'FLASK_SECRET_KEY': 'output-test-secret-key',
+            'FLASK_ENV': 'development'
+        }):
             TestDevelopmentConfig = create_test_config_class(DevelopmentConfig)
             dev_config = TestDevelopmentConfig()
             dev_dict = dev_config.to_dict()

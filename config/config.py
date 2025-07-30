@@ -28,7 +28,7 @@ class Config(BaseSettings):
     DEFAULT_TEMPERATURE: float = Field(default=0.7, alias="DEFAULT_TEMPERATURE")
     DEFAULT_MODEL: str = Field(
         default="gemini/gemini-1.5-flash",
-        alias="DEFAULT_MODEL"
+        alias="DEFAULT_AI_MODEL"  # 環境変数名を変更
     )
     API_BASE_URL: Optional[str] = Field(default=None, alias="API_BASE_URL")
     
@@ -82,9 +82,15 @@ class Config(BaseSettings):
     @field_validator("DEFAULT_MODEL")
     def validate_model(cls, v):
         """モデル名のバリデーション"""
+        # プレフィックスなしの形式もサポート
+        if not v.startswith("gemini/"):
+            v = f"gemini/{v}"
+        
         supported_models = [
             "gemini/gemini-1.5-pro",
-            "gemini/gemini-1.5-flash"
+            "gemini/gemini-1.5-flash",
+            "gemini/gemini-1.5-flash-8b",
+            "gemini/gemini-2.0-flash-exp"
         ]
         if v not in supported_models:
             raise ValueError(f"Unsupported model: {v}")
