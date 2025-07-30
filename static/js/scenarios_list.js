@@ -1,9 +1,30 @@
+// 仮想スクロールの有効/無効を制御するフラグ
+const ENABLE_VIRTUAL_SCROLL = true;
+const VIRTUAL_SCROLL_THRESHOLD = 30; // この数以上のシナリオがある場合に仮想スクロールを有効化
+
+// グローバル変数
+let virtualScroller = null;
+let allScenarios = {};
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeModal();
-    initializeFilters();
-    initializeRecommendations();
     
-    // ページロード完了後の追加処理は削除（initializeFilters内で処理済み）
+    // シナリオデータを取得して初期化
+    fetchScenarios().then(scenarios => {
+        allScenarios = scenarios;
+        const scenarioCount = Object.keys(scenarios).length;
+        
+        // シナリオ数に基づいて仮想スクロールを使用するか決定
+        if (ENABLE_VIRTUAL_SCROLL && scenarioCount >= VIRTUAL_SCROLL_THRESHOLD) {
+            console.log(`${scenarioCount} scenarios found. Using virtual scroll.`);
+            initializeVirtualScroll(scenarios);
+        } else {
+            console.log(`${scenarioCount} scenarios found. Using regular rendering.`);
+            initializeFilters();
+        }
+    });
+    
+    initializeRecommendations();
 });
 
 // モーダル関連の機能
@@ -50,7 +71,19 @@ window.continuePreviousScenario = function(scenarioId) {
 function initializeFilters() {
     const difficultyFilter = document.getElementById('difficulty-filter');
     const tagFilter = document.getElementById('tag-filter');
-    const scenariosList = document.querySelector('.scenarios-list');
+    // メインのscenarios-listを取得（推薦用ではないもの）
+    const allLists = document.querySelectorAll('.scenarios-list');
+    let scenariosList = null;
+    for (const list of allLists) {
+        if (!list.classList.contains('recommendation-list')) {
+            scenariosList = list;
+            break;
+        }
+    }
+    if (!scenariosList) {
+        console.error('Main scenarios list not found');
+        return;
+    }
     const scenarioCards = Array.from(document.querySelectorAll('.scenario-card'));
     
     // MutationObserverのフラグ管理
@@ -90,20 +123,22 @@ function initializeFilters() {
                 let valueA = 1;
                 let valueB = 1;
                 
-                if (difficultyA.includes('初級')) {
-                    valueA = 1;
-                } else if (difficultyA.includes('中級')) {
-                    valueA = 2;
-                } else if (difficultyA.includes('上級')) {
-                    valueA = 3;
-                }
+                // 難易度の値をマッピング
+                const difficultyMap = {
+                    '入門': 1,
+                    '初級': 2,
+                    '中級': 3,
+                    '上級': 4
+                };
                 
-                if (difficultyB.includes('初級')) {
-                    valueB = 1;
-                } else if (difficultyB.includes('中級')) {
-                    valueB = 2;
-                } else if (difficultyB.includes('上級')) {
-                    valueB = 3;
+                // 各難易度テキストから値を取得
+                for (let [text, value] of Object.entries(difficultyMap)) {
+                    if (difficultyA.includes(text)) {
+                        valueA = value;
+                    }
+                    if (difficultyB.includes(text)) {
+                        valueB = value;
+                    }
                 }
                 
                 if (order === 'asc') {
@@ -195,6 +230,9 @@ function initializeFilters() {
     // 初期表示時は全てのシナリオを表示（フィルターをリセット）
     difficultyFilter.value = '';
     tagFilter.value = '';
+    
+    // フィルターを適用して全てのシナリオを表示
+    filterScenarios();
     
     // MutationObserverはシナリオカードが動的に追加される場合のみ必要
     // 現在のページでは初期ロード時にすべてのカードが存在するため、削除
@@ -462,6 +500,155 @@ function submitRecommendationFeedback(scenarioId, feedbackType) {
     .catch(error => {
         console.error('Error submitting feedback:', error);
     });
+}
+
+// シナリオデータをフェッチ
+async function fetchScenarios() {
+    try {
+        // サーバーからシナリオデータを取得（または既存のDOMから抽出）
+        const scenarioCards = document.querySelectorAll('.scenario-card');
+        const scenarios = {};
+        
+        scenarioCards.forEach(card => {
+            const link = card.querySelector('.primary-button');
+            const href = link.getAttribute('href');
+            const scenarioId = href.match(/scenario\/(.+)/)[1];
+            
+            const title = card.querySelector('h3').textContent.trim();
+            const description = card.querySelector('.scenario-description').textContent.trim();
+            const difficultyBadge = card.querySelector('.difficulty-badge');
+            const difficulty = difficultyBadge.className.match(/difficulty-(\S+)/)[1];
+            const tags = Array.from(card.querySelectorAll('.tag')).map(tag => tag.textContent.trim());
+            
+            // カテゴリを推測（アイコンから）
+            let category = 'general';
+            const icon = card.querySelector('h3 i');
+            if (icon) {
+                if (icon.classList.contains('fa-comments')) category = 'communication';
+                else if (icon.classList.contains('fa-exclamation-triangle')) category = 'conflict';
+                else if (icon.classList.contains('fa-handshake')) category = 'negotiation';
+                else if (icon.classList.contains('fa-users')) category = 'leadership';
+                else if (icon.classList.contains('fa-comment-dots')) category = 'feedback';
+            }
+            
+            scenarios[scenarioId] = {
+                id: scenarioId,
+                title,
+                description,
+                difficulty,
+                tags,
+                category
+            };
+        });
+        
+        return scenarios;
+    } catch (error) {
+        console.error('Error fetching scenarios:', error);
+        return {};
+    }
+}
+
+// 仮想スクロールの初期化
+function initializeVirtualScroll(scenarios) {
+    // 仮想スクロールスクリプトを動的に読み込み
+    const script = document.createElement('script');
+    script.src = '/static/js/virtual-scroll.js';
+    script.onload = () => {
+        // スクリプトが読み込まれたら仮想スクロールを初期化
+        virtualScroller = initializeScenarioVirtualScroll(scenarios);
+        
+        // フィルター機能を仮想スクロール用に調整
+        initializeFiltersForVirtualScroll();
+    };
+    document.head.appendChild(script);
+}
+
+// 仮想スクロール用のフィルター初期化
+function initializeFiltersForVirtualScroll() {
+    const difficultyFilter = document.getElementById('difficulty-filter');
+    const tagFilter = document.getElementById('tag-filter');
+    const sortSelect = document.getElementById('sort-select') || createSortSelect();
+    
+    function applyFiltersAndSort() {
+        if (!virtualScroller) return;
+        
+        const selectedDifficulty = difficultyFilter.value;
+        const selectedTag = tagFilter.value;
+        const sortOrder = sortSelect.value;
+        
+        // フィルター関数
+        const filterFn = (scenario) => {
+            const difficultyMatch = !selectedDifficulty || scenario.difficulty === selectedDifficulty;
+            const tagMatch = !selectedTag || scenario.tags.includes(selectedTag);
+            return difficultyMatch && tagMatch;
+        };
+        
+        // ソート関数
+        const sortFn = getSortFunction(sortOrder);
+        
+        // フィルターとソートを適用
+        virtualScroller.filterItems(filterFn);
+        virtualScroller.sortItems(sortFn);
+    }
+    
+    // イベントリスナーの設定
+    difficultyFilter.addEventListener('change', applyFiltersAndSort);
+    tagFilter.addEventListener('change', applyFiltersAndSort);
+    sortSelect.addEventListener('change', applyFiltersAndSort);
+    
+    // 初期ソート
+    applyFiltersAndSort();
+}
+
+// ソートセレクトボックスの作成（既存のものがない場合）
+function createSortSelect() {
+    const sortSelect = document.createElement('select');
+    sortSelect.id = 'sort-select';
+    sortSelect.className = 'styled-select';
+    sortSelect.innerHTML = `
+        <option value="scenario-num">シナリオ番号順</option>
+        <option value="asc">難易度：低い順</option>
+        <option value="desc">難易度：高い順</option>
+    `;
+    
+    const filterGroup = document.createElement('div');
+    filterGroup.className = 'filter-group';
+    const label = document.createElement('label');
+    label.htmlFor = 'sort-select';
+    label.textContent = '並び替え';
+    filterGroup.appendChild(label);
+    filterGroup.appendChild(sortSelect);
+    
+    const filterOptions = document.querySelector('.filter-options');
+    if (filterOptions) {
+        filterOptions.appendChild(filterGroup);
+    }
+    
+    return sortSelect;
+}
+
+// ソート関数を取得
+function getSortFunction(order) {
+    if (order === 'scenario-num') {
+        return (a, b) => {
+            const idA = parseInt(a.id.match(/scenario(\d+)/)[1]) || 0;
+            const idB = parseInt(b.id.match(/scenario(\d+)/)[1]) || 0;
+            return idA - idB;
+        };
+    } else {
+        const difficultyMap = {
+            'pre-beginner': 1,
+            'beginner': 2,
+            'intermediate': 3,
+            'advanced': 4
+        };
+        
+        return (a, b) => {
+            const valueA = difficultyMap[a.difficulty] || 2;
+            const valueB = difficultyMap[b.difficulty] || 2;
+            return order === 'asc' ? valueA - valueB : valueB - valueA;
+        };
+    }
 }
 
 // フィードバック完了の表示

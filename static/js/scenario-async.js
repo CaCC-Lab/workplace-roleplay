@@ -22,6 +22,8 @@ let messageIdCounter = 0;
 let asyncChatClient = null;
 let currentStreamingMessage = null;
 let isStreaming = false;
+let lastUserMessage = '';  // 最後のユーザーメッセージを保存
+let isFirstMessage = true;  // 初回メッセージかどうか
 
 // 非同期チャットクライアントの初期化
 function initializeAsyncChat() {
@@ -31,6 +33,11 @@ function initializeAsyncChat() {
         onError: handleStreamingError,
         onComplete: handleStreamingComplete
     });
+    
+    // 会話マネージャーの初期化
+    if (window.conversationManager) {
+        window.conversationManager.startConversation(scenarioId);
+    }
 }
 
 // ストリーミングメッセージのハンドリング
@@ -40,6 +47,9 @@ function handleStreamingMessage(data) {
             // 新しいメッセージコンテナを作成
             currentStreamingMessage = createStreamingMessage();
             chatMessages.appendChild(currentStreamingMessage);
+            
+            // 読み込み中インジケータを表示
+            showLoadingIndicator();
         }
         
         // コンテンツを更新
@@ -59,8 +69,11 @@ function handleStreamingError(error) {
 }
 
 // ストリーミング完了のハンドリング
-function handleStreamingComplete(data) {
+async function handleStreamingComplete(data) {
     console.log('Streaming complete:', data);
+    
+    // 読み込み中インジケータを非表示
+    hideLoadingIndicator();
     
     // TTSとキャラクター画像を処理
     if (currentStreamingMessage) {
@@ -76,6 +89,51 @@ function handleStreamingComplete(data) {
         if (enableImageGeneration) {
             const emotion = detectEmotion(fullText.replace('相手役: ', ''));
             generateCharacterImageAsync(currentStreamingMessage, emotion, fullText.replace('相手役: ', ''));
+        }
+    }
+    
+    // 会話履歴を保存
+    try {
+        // ローカルストレージに保存
+        if (window.conversationManager) {
+            if (lastUserMessage && !isFirstMessage) {
+                window.conversationManager.addMessage('user', lastUserMessage);
+            }
+            window.conversationManager.addMessage('assistant', data.content);
+        }
+        
+        // サーバーに保存
+        const response = await fetch('/api/async/scenario/save-history', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
+            },
+            body: JSON.stringify({
+                scenario_id: scenarioId,
+                message: lastUserMessage,
+                response: data.content,
+                is_initial: isFirstMessage
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save history to server');
+        } else {
+            const result = await response.json();
+            console.log('History saved:', result);
+        }
+        
+        // フラグをリセット
+        if (isFirstMessage) {
+            isFirstMessage = false;
+        }
+        lastUserMessage = '';
+        
+    } catch (error) {
+        console.error('Error saving history:', error);
+        if (window.errorHandler) {
+            window.errorHandler.logError(error, { context: 'saving history' });
         }
     }
     
@@ -166,19 +224,21 @@ async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg || isStreaming) return;
 
-    const selectedModel = localStorage.getItem('selectedModel');
-    if (!selectedModel) {
-        displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
-        return;
-    }
+    // デフォルトモデルを使用
+    const selectedModel = 'gemini-1.5-flash';
 
     displayMessage("あなた: " + msg, "user-message");
     messageInput.value = "";
+    
+    // ユーザーメッセージを保存
+    lastUserMessage = msg;
+    
     isStreaming = true;
     updateUIState();
 
     try {
-        await asyncChatClient.sendScenarioMessage(msg, selectedModel, scenarioId);
+        console.log('Sending message:', { msg, selectedModel, scenarioId });
+        await asyncChatClient.sendScenarioMessage(msg, selectedModel, scenarioId, false);
     } catch (error) {
         console.error("Send message error:", error);
         displayMessage("メッセージの送信に失敗しました: " + error.message, "error-message");
@@ -189,17 +249,18 @@ async function sendMessage() {
 
 // 初期メッセージの取得（非同期版）
 async function getInitialMessage() {
-    const selectedModel = localStorage.getItem('selectedModel');
-    if (!selectedModel) {
-        displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
-        return;
-    }
+    // デフォルトモデルを使用
+    const selectedModel = 'gemini-1.5-flash';
 
+    // 初回メッセージフラグを設定
+    isFirstMessage = true;
+    lastUserMessage = "";
+    
     isStreaming = true;
     updateUIState();
 
     try {
-        await asyncChatClient.sendScenarioMessage("", selectedModel, scenarioId);
+        await asyncChatClient.sendScenarioMessage("", selectedModel, scenarioId, true);
     } catch (error) {
         console.error("Initial message error:", error);
         displayMessage("初期メッセージの取得に失敗しました: " + error.message, "error-message");
@@ -219,10 +280,8 @@ async function getScenarioFeedback() {
     button.textContent = "フィードバック生成中...";
     
     try {
-        const selectedModel = localStorage.getItem('selectedModel');
-        if (!selectedModel) {
-            throw new Error("モデルが選択されていません");
-        }
+        // モデル選択はサーバー側で管理されるため、デフォルトモデルを使用
+        const selectedModel = 'gemini-1.5-flash';
 
         const result = await asyncChatClient.generateScenarioFeedback(selectedModel, scenarioId);
         
@@ -371,10 +430,8 @@ async function getAIAssist() {
     button.classList.add('loading');
     
     try {
-        const selectedModel = localStorage.getItem('selectedModel');
-        if (!selectedModel) {
-            throw new Error("モデルが選択されていません");
-        }
+        // モデル選択はサーバー側で管理されるため、デフォルトモデルを使用
+        const selectedModel = 'gemini-1.5-flash';
 
         const result = await asyncChatClient.getScenarioAssist(selectedModel, scenarioId, getCurrentContext());
         
@@ -413,10 +470,25 @@ function getCurrentContext() {
     return Array.from(messages).slice(-3).map(msg => msg.textContent).join('\n');
 }
 
+// 最小限のヒントシステムのインスタンス
+let minimalHintSystem = null;
+
 // イベントリスナーの設定
 document.addEventListener('DOMContentLoaded', function() {
     // 非同期チャットクライアントの初期化
     initializeAsyncChat();
+    
+    // 最小限のヒントシステムの初期化
+    minimalHintSystem = new MinimalHintSystem('minimal-hint-container');
+    minimalHintSystem.init(scenarioId);
+    
+    // 会話履歴を取得する関数を設定
+    minimalHintSystem.getCurrentConversationHistory = () => {
+        if (window.conversationManager) {
+            return window.conversationManager.getCurrentConversation();
+        }
+        return [];
+    };
     
     // イベントリスナー設定
     sendButton.addEventListener('click', sendMessage);
@@ -468,6 +540,38 @@ async function waitForCSRFAndInitialize() {
     } catch (err) {
         console.error("Error:", err);
         displayMessage("エラーが発生しました: " + err.message, "error-message");
+    }
+}
+
+// 読み込み中インジケータの表示/非表示
+function showLoadingIndicator() {
+    // 応答時間の予測表示（gemini-1.5-flashの場合）
+    const estimatedTime = 20; // 秒（実際の平均的な応答時間）
+    const loadingMessage = `AIが応答を生成中です... (約${estimatedTime}秒かかります)`;
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'ai-loading-indicator';
+    loadingDiv.className = 'ai-loading';
+    loadingDiv.innerHTML = `
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <span class="loading-text">${loadingMessage}</span>
+        </div>
+    `;
+    
+    // 既存のインジケータがあれば削除
+    const existing = document.getElementById('ai-loading-indicator');
+    if (existing) existing.remove();
+    
+    // チャットエリアに追加
+    chatMessages.appendChild(loadingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function hideLoadingIndicator() {
+    const indicator = document.getElementById('ai-loading-indicator');
+    if (indicator) {
+        indicator.remove();
     }
 }
 

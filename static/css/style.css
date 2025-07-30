@@ -539,6 +539,27 @@ button {
     font-size: 0.9rem;
 }
 
+/* 難易度別のスタイル */
+.difficulty-pre-beginner {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.difficulty-beginner {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.difficulty-intermediate {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+.difficulty-advanced {
+    background: #fce4ec;
+    color: #c2185b;
+}
+
 .scenario-description {
     color: #666;
     line-height: 1.6;
@@ -1214,5 +1235,106 @@ body {
 
 .strength-score {
     font-weight: 700;
+}
+
+/* AI読み込み中インジケータ */
+.ai-loading {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 10px 0;
+}
+
+.loading-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(66, 153, 225, 0.1);
+    padding: 15px 25px;
+    border-radius: 8px;
+    border: 1px solid rgba(66, 153, 225, 0.3);
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #4299e1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    color: #4299e1;
+    font-size: 14px;
+}
+
+/* ========== 仮想スクロール用スタイル ========== */
+.scenarios-list.virtual-scroll-enabled {
+    height: 600px;
+    overflow-y: auto;
+    position: relative;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.virtual-scroll-container {
+    position: relative;
+}
+
+.virtual-scroll-item {
+    position: absolute;
+    left: 0;
+    right: 0;
+    padding: 10px;
+}
+
+/* 仮想スクロール使用時のシナリオカード調整 */
+.virtual-scroll-enabled .scenario-card {
+    margin-bottom: 10px;
+    height: 230px; /* 固定高さで一貫性を保つ */
+    overflow: hidden;
+}
+
+.virtual-scroll-enabled .scenario-card-header {
+    margin-bottom: 10px;
+}
+
+.virtual-scroll-enabled .scenario-content {
+    max-height: 120px;
+    overflow: hidden;
+}
+
+.virtual-scroll-enabled .scenario-description {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* スクロールバーのスタイリング（オプション） */
+.virtual-scroll-enabled::-webkit-scrollbar {
+    width: 10px;
+}
+
+.virtual-scroll-enabled::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.virtual-scroll-enabled::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.virtual-scroll-enabled::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 

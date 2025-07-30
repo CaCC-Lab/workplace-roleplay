@@ -110,3 +110,78 @@ class LLMService:
         except Exception as e:
             current_app.logger.error(f"LLM generation error: {e}")
             return "申し訳ありません。応答の生成中にエラーが発生しました。"
+    
+    def generate_stream(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        chat_history: List[Dict[str, str]] = None,
+        model_id: Optional[str] = None,
+        **kwargs
+    ):
+        """ストリーミング形式で応答を生成
+        
+        Args:
+            prompt: ユーザーのプロンプト
+            system_prompt: システムプロンプト
+            chat_history: 会話履歴
+            model_id: モデルID
+            **kwargs: その他のパラメータ
+            
+        Yields:
+            応答のチャンク
+        """
+        if model_id is None:
+            model_id = current_app.config.get("DEFAULT_MODEL", "gemini-1.5-flash")
+        
+        # モデル名の正規化
+        if model_id.startswith("gemini/"):
+            model_name = model_id.replace("gemini/", "")
+        else:
+            model_name = model_id
+        
+        # LLMインスタンスの取得（ストリーミング対応版）
+        api_key = current_app.config.get("GOOGLE_API_KEY")
+        if not api_key:
+            yield "APIキーが設定されていません。"
+            return
+        
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+            
+            # ストリーミング対応のLLMインスタンスを作成
+            llm = ChatGoogleGenerativeAI(
+                model=model_name,
+                google_api_key=api_key,
+                temperature=0.7,
+                max_output_tokens=2048,
+                timeout=30,
+                max_retries=1,
+                streaming=True  # ストリーミングを有効化
+            )
+            
+            # メッセージの構築
+            messages = []
+            if system_prompt:
+                messages.append(SystemMessage(content=system_prompt))
+            
+            # 会話履歴を追加
+            if chat_history:
+                for msg in chat_history:
+                    if msg["role"] == "user":
+                        messages.append(HumanMessage(content=msg["content"]))
+                    elif msg["role"] == "assistant":
+                        messages.append(AIMessage(content=msg["content"]))
+            
+            # 現在のプロンプトを追加
+            messages.append(HumanMessage(content=prompt))
+            
+            # ストリーミング応答を生成
+            for chunk in llm.stream(messages):
+                if hasattr(chunk, 'content'):
+                    yield chunk.content
+            
+        except Exception as e:
+            current_app.logger.error(f"Streaming error: {e}")
+            yield f"エラーが発生しました: {str(e)}"
