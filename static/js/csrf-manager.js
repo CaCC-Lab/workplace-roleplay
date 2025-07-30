@@ -23,7 +23,17 @@ class CSRFManager {
                 '/api/conversation_history',
                 '/api/tts',
                 '/api/generate_character_image',
-                '/api/strength_analysis'
+                '/api/strength_analysis',
+                '/api/async/scenario/stream',
+                '/api/async/scenario/save-history',
+                '/api/async/scenario/sync-history',
+                '/api/async/scenario/assist',
+                '/api/async/scenario/feedback',
+                '/api/async/chat/stream',
+                '/api/async/chat/feedback',
+                '/api/async/task',
+                '/api/hint/minimal',
+                '/api/self-reflection/submit'
             ]
         };
         
