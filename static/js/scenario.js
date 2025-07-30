@@ -16,7 +16,8 @@ async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg) return;
 
-    const selectedModel = localStorage.getItem('selectedModel');
+    // モデル選択はサーバー側で管理されるためnullを使用
+    const selectedModel = null;
     if (!selectedModel) {
         displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
         return;
@@ -78,7 +79,8 @@ async function waitForCSRFAndInitialize() {
             console.warn('CSRF token not available, continuing without it');
         }
         
-        const selectedModel = localStorage.getItem('selectedModel');
+        // モデル選択はサーバー側で管理されるためnullを使用
+    const selectedModel = null;
         if (!selectedModel) {
             throw new Error("モデルが選択されていません。トップページでモデルを選択してください。");
         }

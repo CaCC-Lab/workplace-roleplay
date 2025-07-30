@@ -15,7 +15,8 @@ const modelDisplayNames = {
 
 startButton.addEventListener('click', async function() {
     if (!conversationStarted) {
-        const selectedModel = localStorage.getItem('selectedModel');
+        // モデル選択はサーバー側で管理されるためnullを使用
+        const selectedModel = null;
         if (!selectedModel) {
             displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
             return;

@@ -43,11 +43,11 @@ class AsyncChatClient {
         this.lastMessageData = { message, model };
 
         try {
-            const response = await fetch(`${this.baseUrl}/chat/stream`, {
+            const response = await fetch('/api/async/chat/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     message: message,
@@ -138,39 +138,34 @@ class AsyncChatClient {
         try {
             const parsedData = JSON.parse(data);
             
-            switch (parsedData.type || eventType) {
-                case 'connected':
-                    console.log('SSE connected:', parsedData.channel);
-                    break;
-                    
-                case 'chunk':
-                    this.currentMessage += parsedData.content;
-                    this.onMessage({
-                        type: 'streaming',
-                        content: parsedData.content,
-                        fullContent: this.currentMessage
-                    });
-                    break;
-                    
-                case 'complete':
-                    this.onComplete({
-                        content: parsedData.total_content || this.currentMessage,
-                        tokenCount: parsedData.token_count,
-                        responseTime: parsedData.response_time
-                    });
-                    this.saveResponse(parsedData.total_content || this.currentMessage);
-                    break;
-                    
-                case 'error':
-                    this.onError(new Error(parsedData.message || parsedData.error));
-                    break;
-                    
-                case 'heartbeat':
-                    // ハートビートは無視
-                    break;
-                    
-                default:
-                    console.log('Unknown SSE event:', eventType, parsedData);
+            // contentがある場合はチャンクとして処理
+            if (parsedData.content !== undefined) {
+                this.currentMessage += parsedData.content;
+                this.onMessage({
+                    type: 'streaming',
+                    content: parsedData.content,
+                    fullContent: this.currentMessage
+                });
+            } else if (parsedData.status === 'complete') {
+                this.onComplete({
+                    content: this.currentMessage,
+                    tokenCount: parsedData.token_count,
+                    responseTime: parsedData.response_time
+                });
+            } else if (parsedData.error) {
+                this.onError(new Error(parsedData.error));
+            } else {
+                // その他のメッセージタイプ
+                switch (parsedData.type || eventType) {
+                    case 'connected':
+                        console.log('SSE connected:', parsedData.channel);
+                        break;
+                    case 'heartbeat':
+                        // ハートビートは無視
+                        break;
+                    default:
+                        console.log('Unknown SSE event:', eventType, parsedData);
+                }
             }
         } catch (error) {
             console.error('Failed to parse SSE data:', error);
@@ -183,11 +178,11 @@ class AsyncChatClient {
      */
     async saveResponse(message) {
         try {
-            await fetch(`${this.baseUrl}/chat/save-response`, {
+            await fetch('/api/async/chat/save-response', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     session_id: this.sessionId,
@@ -210,7 +205,7 @@ class AsyncChatClient {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     session_id: this.sessionId,
@@ -249,7 +244,7 @@ class AsyncChatClient {
         
         while (Date.now() - startTime < timeout) {
             try {
-                const response = await fetch(`${this.baseUrl}/task/${taskId}/status`);
+                const response = await fetch(`/api/async/task/${taskId}/status`);
                 const result = await response.json();
                 
                 if (result.status === 'SUCCESS') {
@@ -285,25 +280,27 @@ class AsyncChatClient {
      * @param {string} message - ユーザーのメッセージ
      * @param {string} model - 使用するモデル
      * @param {string} scenarioId - シナリオID
+     * @param {boolean} isInitial - 初期メッセージかどうか
      */
-    async sendScenarioMessage(message, model = 'gemini/gemini-1.5-flash', scenarioId) {
+    async sendScenarioMessage(message, model = 'gemini/gemini-1.5-flash', scenarioId, isInitial = false) {
         if (this.isStreaming) {
             console.warn('Already streaming a message');
             return;
         }
 
         try {
-            const response = await fetch(`${this.baseUrl}/scenario/stream`, {
+            const response = await fetch('/api/async/scenario/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     message: message,
                     model: model,
                     scenario_id: scenarioId,
-                    session_id: this.sessionId
+                    session_id: this.sessionId,
+                    is_initial: isInitial
                 })
             });
 
@@ -332,11 +329,11 @@ class AsyncChatClient {
      */
     async generateScenarioFeedback(model = 'gemini/gemini-1.5-flash', scenarioId) {
         try {
-            const response = await fetch(`${this.baseUrl}/scenario/feedback`, {
+            const response = await fetch('/api/async/scenario/feedback', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     scenario_id: scenarioId,
@@ -374,11 +371,11 @@ class AsyncChatClient {
      */
     async getScenarioAssist(model = 'gemini/gemini-1.5-flash', scenarioId, context) {
         try {
-            const response = await fetch(`${this.baseUrl}/scenario/assist`, {
+            const response = await fetch('/api/async/scenario/assist', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     scenario_id: scenarioId,
@@ -413,11 +410,11 @@ class AsyncChatClient {
         }
 
         try {
-            const response = await fetch(`${this.baseUrl}/watch/start`, {
+            const response = await fetch('/api/async/watch/start', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     model_a: settings.model_a,
@@ -459,11 +456,11 @@ class AsyncChatClient {
         }
 
         try {
-            const response = await fetch(`${this.baseUrl}/watch/next`, {
+            const response = await fetch('/api/async/watch/next', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     session_id: this.sessionId,
@@ -495,11 +492,11 @@ class AsyncChatClient {
      */
     async saveWatchMessage(speaker, message, practiceSessionId = null) {
         try {
-            await fetch(`${this.baseUrl}/watch/save-message`, {
+            await fetch('/api/async/watch/save-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getToken() : ''
+                    'X-CSRFToken': window.csrfManager ? window.csrfManager.getTokenSync() : ''
                 },
                 body: JSON.stringify({
                     session_id: this.sessionId,

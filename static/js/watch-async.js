@@ -109,7 +109,8 @@ function updateUIState() {
 // 観戦開始
 startButton.addEventListener('click', async function() {
     if (!conversationStarted && !isStreaming) {
-        const selectedModel = localStorage.getItem('selectedModel');
+        // モデル選択はサーバー側で管理されるためnullを使用
+        const selectedModel = null;
         if (!selectedModel) {
             displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
             return;
@@ -146,7 +147,8 @@ startButton.addEventListener('click', async function() {
 // 次の発言を取得
 nextButton.addEventListener('click', async function() {
     if (waitingForNext && !isStreaming) {
-        const selectedModel = localStorage.getItem('selectedModel');
+        // モデル選択はサーバー側で管理されるためnullを使用
+        const selectedModel = null;
         if (!selectedModel) {
             displayMessage("エラー: モデルが選択されていません。", "error-message");
             return;

@@ -12,7 +12,8 @@ let conversationStarted = false;
 async function startConversation() {
     if (conversationStarted) return;
 
-    const selectedModel = localStorage.getItem('selectedModel');
+    // モデル選択はサーバー側で管理されるためnullを使用
+    const selectedModel = null;
     if (!selectedModel) {
         displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
         return;
@@ -69,7 +70,8 @@ async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg) return;
 
-    const selectedModel = localStorage.getItem('selectedModel');
+    // モデル選択はサーバー側で管理されるためnullを使用
+    const selectedModel = null;
     if (!selectedModel) {
         displayMessage("エラー: モデルが選択されていません。", "error-message");
         return;
@@ -189,7 +191,8 @@ async function getFeedback() {
 // 履歴クリア処理
 async function clearHistory() {
     try {
-        const selectedModel = localStorage.getItem('selectedModel');
+        // モデル選択はサーバー側で管理されるためnullを使用
+    const selectedModel = null;
         const response = await fetch("/api/clear_history", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
