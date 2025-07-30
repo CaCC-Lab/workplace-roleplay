@@ -1,7 +1,6 @@
 """チャットサービス"""
 from typing import Optional
 
-from flask import current_app
 
 from .llm_service import LLMService
 from .session_service import SessionService

@@ -1,0 +1,181 @@
+/**
+ * ページネーションとシナリオ一覧の改善スタイル
+ */
+
+/* ローディングインジケータ */
+.loading-indicator {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* ページネーションコンテナ */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0;
+    padding: 1rem;
+    flex-wrap: wrap;
+}
+
+/* ページネーションボタン */
+.pagination-button {
+    padding: 0.5rem 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pagination-button:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ページ情報 */
+.pagination-info {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* 検索入力 */
+.styled-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.styled-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(210, 72, 72, 0.1);
+}
+
+/* シナリオカードの改善 */
+.scenario-card {
+    animation: fadeInUp 0.4s ease-out;
+    will-change: transform;
+}
+
+/* カードのアニメーション */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* 難易度バッジの色 */
+.difficulty-beginner {
+    background-color: #28a745;
+}
+
+.difficulty-intermediate {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.difficulty-advanced {
+    background-color: #dc3545;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .pagination-container {
+        gap: 0.5rem;
+    }
+    
+    .pagination-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+    }
+    
+    .pagination-info {
+        font-size: 0.85rem;
+        text-align: center;
+        width: 100%;
+        order: -1;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* パフォーマンス最適化 */
+.scenarios-list {
+    contain: layout;
+}
+
+.scenario-card {
+    contain: layout style;
+}
+
+/* スケルトンローダー（オプション） */
+.skeleton-card {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    height: 300px;
+    border-radius: var(--border-radius);
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* 仮想スクロールのためのコンテナ */
+.virtual-scroll-container {
+    height: 100vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.virtual-scroll-spacer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    pointer-events: none;
+}
+
+/* トランジション最適化 */
+.scenario-card {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+/* GPU アクセラレーション */
+.scenario-card:hover {
+    transform: translateY(-5px) translateZ(0);
+}

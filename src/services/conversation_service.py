@@ -1,5 +1,5 @@
 """会話サービス"""
-from typing import Dict, Any, List, Optional, Generator
+from typing import Dict, Any, Optional, Generator
 from flask import session
 import logging
 
