@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仮想スクロールテスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .controls button {
+            margin-right: 10px;
+            padding: 8px 16px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .controls button:hover {
+            background: #3182ce;
+        }
+        
+        .status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .test-container {
+            height: 600px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .test-item {
+            padding: 15px;
+            margin: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            height: 100px;
+        }
+        
+        .test-item h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .test-item p {
+            margin: 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>仮想スクロールテスト</h1>
+    
+    <div class="controls">
+        <button onclick="generateItems(50)">50アイテム生成</button>
+        <button onclick="generateItems(100)">100アイテム生成</button>
+        <button onclick="generateItems(500)">500アイテム生成</button>
+        <button onclick="toggleVirtualScroll()">仮想スクロール切替</button>
+        <button onclick="clearItems()">クリア</button>
+        
+        <div class="status" id="status">
+            仮想スクロール: <span id="vs-status">無効</span> | 
+            アイテム数: <span id="item-count">0</span> | 
+            表示中: <span id="visible-count">0</span>
+        </div>
+    </div>
+    
+    <div class="test-container" id="test-container">
+        <!-- テストアイテムがここに表示されます -->
+    </div>
+    
+    <script src="/static/js/virtual-scroll.js"></script>
+    <script>
+        let virtualScroller = null;
+        let useVirtualScroll = false;
+        let testItems = [];
+        
+        function generateItems(count) {
+            testItems = [];
+            for (let i = 0; i < count; i++) {
+                testItems.push({
+                    id: `item-${i}`,
+                    title: `テストアイテム ${i + 1}`,
+                    description: `これはテストアイテム ${i + 1} の説明です。仮想スクロールのパフォーマンスをテストしています。`,
+                    index: i
+                });
+            }
+            
+            updateDisplay();
+        }
+        
+        function toggleVirtualScroll() {
+            useVirtualScroll = !useVirtualScroll;
+            updateDisplay();
+        }
+        
+        function clearItems() {
+            testItems = [];
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            const container = document.getElementById('test-container');
+            
+            if (virtualScroller) {
+                virtualScroller.destroy();
+                virtualScroller = null;
+            }
+            
+            if (useVirtualScroll && testItems.length > 0) {
+                // 仮想スクロールを使用
+                container.innerHTML = '';
+                virtualScroller = new VirtualScroller({
+                    containerSelector: '#test-container',
+                    itemHeight: 130,
+                    buffer: 3,
+                    renderItem: (item) => {
+                        const div = document.createElement('div');
+                        div.className = 'test-item';
+                        div.innerHTML = `
+                            <h3>${item.title}</h3>
+                            <p>${item.description}</p>
+                            <small>インデックス: ${item.index}</small>
+                        `;
+                        return div;
+                    }
+                });
+                
+                virtualScroller.setItems(testItems);
+            } else {
+                // 通常のレンダリング
+                container.innerHTML = testItems.map(item => `
+                    <div class="test-item">
+                        <h3>${item.title}</h3>
+                        <p>${item.description}</p>
+                        <small>インデックス: ${item.index}</small>
+                    </div>
+                `).join('');
+            }
+            
+            updateStatus();
+        }
+        
+        function updateStatus() {
+            document.getElementById('vs-status').textContent = useVirtualScroll ? '有効' : '無効';
+            document.getElementById('item-count').textContent = testItems.length;
+            
+            if (virtualScroller) {
+                // 仮想スクロールの表示状態を監視
+                setInterval(() => {
+                    if (virtualScroller && virtualScroller.visibleRange) {
+                        const visible = virtualScroller.visibleRange.end - virtualScroller.visibleRange.start;
+                        document.getElementById('visible-count').textContent = visible;
+                    }
+                }, 100);
+            } else {
+                document.getElementById('visible-count').textContent = testItems.length;
+            }
+        }
+        
+        // 初期表示
+        generateItems(50);
+    </script>
+</body>
+</html>
