@@ -1,5 +1,5 @@
 """キャッシュユーティリティ"""
-from functools import wraps, lru_cache
+from functools import wraps
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, Optional
 import hashlib

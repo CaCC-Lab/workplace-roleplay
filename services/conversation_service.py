@@ -1,10 +1,9 @@
 """
 会話管理サービス
 """
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
 
-from errors import ValidationError
 
 
 class ConversationService:
@@ -74,8 +73,8 @@ class ConversationService:
         chat_settings: Dict[str, Any]
     ) -> str:
         """雑談練習のフィードバックを生成"""
-        # 会話履歴をフォーマット
-        conversation_text = self.format_conversation_history(history)
+        # ユーザーのメッセージのみをフォーマット
+        conversation_text = self.format_user_messages_only(history)
         
         # フィードバック生成プロンプト
         prompt = f"""以下の職場での雑談を分析し、建設的なフィードバックを提供してください。
@@ -85,7 +84,7 @@ class ConversationService:
 - シチュエーション: {self.get_situation_description(chat_settings.get('situation', '朝の挨拶'))}
 - 話題: {self.get_topic_description(chat_settings.get('topic', '天気'))}
 
-会話内容:
+ユーザーの発言:
 {conversation_text}
 
 以下の観点から具体的なフィードバックを提供してください：
@@ -123,6 +122,19 @@ class ConversationService:
                 formatted_lines.append(f"システム: {content}")
         
         return "\n".join(formatted_lines)
+    
+    def format_user_messages_only(self, history: List[Dict[str, Any]]) -> str:
+        """ユーザーのメッセージのみをフォーマット（フィードバック用）"""
+        formatted_lines = []
+        user_msg_count = 0
+        
+        for entry in history:
+            if entry.get("role") == "user":
+                user_msg_count += 1
+                content = entry.get("content", "")
+                formatted_lines.append(f"[{user_msg_count}] ユーザー: {content}")
+        
+        return "\n".join(formatted_lines) if formatted_lines else "（ユーザーの発言なし）"
     
     def get_partner_description(self, partner_type: str) -> str:
         """パートナータイプの説明を取得"""

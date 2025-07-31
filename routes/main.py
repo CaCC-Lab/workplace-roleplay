@@ -3,7 +3,6 @@
 """
 from flask import Blueprint, render_template, session, g, jsonify
 from flask_login import login_required, current_user
-from typing import Optional, Dict, List, Any
 from datetime import datetime
 
 from scenarios import load_scenarios

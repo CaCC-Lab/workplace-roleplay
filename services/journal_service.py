@@ -1,12 +1,11 @@
 """
 学習履歴（ジャーナル）サービス
 """
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-from models import db, User
-from errors import NotFoundError
+from models import db
 
 
 class JournalService:

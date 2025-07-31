@@ -1,7 +1,7 @@
 """
 観戦モードサービス
 """
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from datetime import datetime
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
 

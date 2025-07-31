@@ -5,7 +5,7 @@
 """
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import redis
 from collections import defaultdict
 import numpy as np

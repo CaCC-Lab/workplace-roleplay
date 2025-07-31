@@ -4,13 +4,12 @@
 個別スキルの詳細な分析と進捗追跡
 """
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Tuple
 import numpy as np
 from collections import defaultdict
-from sqlalchemy import func
 from sqlalchemy.orm import joinedload, selectinload
 
-from models import db, StrengthAnalysisResult, PracticeSession
+from models import StrengthAnalysisResult, PracticeSession
 
 
 class SkillProgressAnalyzer:

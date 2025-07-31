@@ -6,7 +6,7 @@
 """
 import logging
 import random
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from models import (

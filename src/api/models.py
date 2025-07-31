@@ -1,6 +1,6 @@
 """モデル管理API"""
 from flask import current_app, jsonify
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 
 def get_models() -> tuple[Dict[str, Any], int]:

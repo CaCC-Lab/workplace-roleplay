@@ -1,6 +1,6 @@
 """推薦API"""
 from flask import jsonify, request
-from typing import Dict, Any, List
+from typing import Dict, Any
 import random
 
 

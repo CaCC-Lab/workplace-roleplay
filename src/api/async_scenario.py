@@ -1,6 +1,6 @@
 """非同期シナリオAPIエンドポイント"""
 from flask import Blueprint, request, Response, jsonify, session
-from typing import Dict, Any, Generator, Optional
+from typing import Dict, Any, Generator
 import json
 import logging
 import traceback

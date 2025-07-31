@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import datetime
 import logging
 
-from models import User
 from scenarios import load_scenarios
 from tasks.strength_analysis import get_latest_analysis_result
 

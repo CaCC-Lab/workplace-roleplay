@@ -274,18 +274,20 @@ def generate_feedback(
 
 def _create_scenario_feedback_prompt(history: List[Dict[str, str]], scenario: Dict) -> str:
     """シナリオフィードバック用のプロンプト作成"""
+    # ユーザーのメッセージのみを抽出
+    user_messages = [msg for msg in history if msg['role'] == 'user']
     conversation_text = "\n".join([
-        f"{msg['role']}: {msg['content']}" for msg in history
+        f"ユーザー: {msg['content']}" for msg in user_messages
     ])
     
     return f"""
-以下の職場シナリオでの会話を分析し、建設的なフィードバックを提供してください。
+以下の職場シナリオでのユーザーの発言を分析し、建設的なフィードバックを提供してください。
 
 シナリオ: {scenario.get('title', '')}
 説明: {scenario.get('description', '')}
 学習ポイント: {', '.join(scenario.get('learning_points', []))}
 
-会話内容:
+ユーザーの発言:
 {conversation_text}
 
 以下の観点からフィードバックを提供してください：
@@ -300,14 +302,16 @@ def _create_scenario_feedback_prompt(history: List[Dict[str, str]], scenario: Di
 
 def _create_chat_feedback_prompt(history: List[Dict[str, str]]) -> str:
     """雑談フィードバック用のプロンプト作成"""
+    # ユーザーのメッセージのみを抽出
+    user_messages = [msg for msg in history if msg['role'] == 'user']
     conversation_text = "\n".join([
-        f"{msg['role']}: {msg['content']}" for msg in history
+        f"ユーザー: {msg['content']}" for msg in user_messages
     ])
     
     return f"""
-以下の職場での雑談を分析し、建設的なフィードバックを提供してください。
+以下の職場での雑談におけるユーザーの発言を分析し、建設的なフィードバックを提供してください。
 
-会話内容:
+ユーザーの発言:
 {conversation_text}
 
 以下の観点からフィードバックを提供してください：

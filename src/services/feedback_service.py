@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from flask import session
 
-from ..utils.error_handler import ValidationError, NotFoundError
+from ..utils.error_handler import ValidationError
 
 logger = logging.getLogger(__name__)
 

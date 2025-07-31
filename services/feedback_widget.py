@@ -7,11 +7,9 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from dataclasses import dataclass
 from enum import Enum
-from flask import render_template_string
 import json
 
 from database import db
-from models import User
 
 
 class FeedbackType(Enum):

@@ -3,7 +3,6 @@
 XSS対策、入力検証、出力エスケープ、CSRF対策など
 """
 import html
-import hashlib
 import hmac
 import json
 import logging
@@ -11,10 +10,10 @@ import re
 import secrets
 import time
 from functools import wraps
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict
 
 from flask import request, session, jsonify, g
-from markupsafe import Markup, escape
+from markupsafe import escape
 
 # ログ設定
 logger = logging.getLogger(__name__)

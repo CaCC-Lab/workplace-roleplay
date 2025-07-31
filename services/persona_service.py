@@ -7,11 +7,10 @@ import os
 import yaml
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 from sqlalchemy import and_, or_, desc
 import redis
-from flask import current_app
 
 from models import (
     db, AIPersona, PersonaMemory, PersonaScenarioConfig, 

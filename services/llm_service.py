@@ -3,15 +3,14 @@ LLM（Language Model）関連のサービス
 """
 import os
 import hashlib
-import json
 from typing import Optional, Dict, List, Any, Union
 from datetime import datetime
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
+from langchain_core.messages import HumanMessage, BaseMessage
 from pydantic import SecretStr
 
-from errors import ExternalAPIError, ValidationError
+from errors import ExternalAPIError
 
 # ConfigurationErrorを定義
 class ConfigurationError(Exception):

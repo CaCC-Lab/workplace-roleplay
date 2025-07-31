@@ -2,12 +2,12 @@
 チャット関連のAPIエンドポイント
 """
 from flask import Blueprint, request, jsonify, session, Response
-from typing import Any, Optional
+from typing import Any
 import json
 from datetime import datetime
 
 from security_utils import secure_endpoint
-from errors import ValidationError, ExternalAPIError
+from errors import ValidationError
 from services.llm_service import LLMService
 from services.session_service import SessionService
 from services.conversation_service import ConversationService

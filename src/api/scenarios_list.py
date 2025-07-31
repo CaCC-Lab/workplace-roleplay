@@ -3,7 +3,6 @@
 ページネーション、フィルタリング、検索機能をサポート
 """
 from flask import jsonify, request
-from typing import Dict, Any, List
 import math
 
 

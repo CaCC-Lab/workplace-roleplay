@@ -4,17 +4,16 @@ WebSocketコーチングサービス
 リアルタイムコーチングのWebSocket接続を管理
 """
 import asyncio
-import json
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 import logging
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit, join_room
 from flask_login import current_user
 from flask import session
 
 from services.realtime_coach import RealTimeCoach
 from services.ab_testing import ExperimentationFramework
-from models import db, StrengthAnalysisResult
+from models import StrengthAnalysisResult
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,8 @@
 """
 シナリオ管理サービス
 """
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
-
-from errors import ValidationError
 
 
 class ScenarioService:
@@ -59,8 +57,8 @@ class ScenarioService:
         history: List[Dict[str, Any]]
     ) -> str:
         """シナリオ練習のフィードバックを生成"""
-        # 会話履歴をフォーマット
-        conversation_text = self._format_scenario_conversation(history)
+        # ユーザーのメッセージのみをフォーマット
+        conversation_text = self._format_user_messages_only(history)
         
         # フィードバックポイントを取得
         feedback_points = scenario.get('feedback_points', [])
@@ -79,7 +77,7 @@ class ScenarioService:
 学習ポイント:
 {learning_points_text}
 
-会話内容:
+ユーザーの発言:
 {conversation_text}
 
 以下の観点から評価してください：
@@ -178,6 +176,19 @@ class ScenarioService:
                 formatted_lines.append(f"[{i+1}] 相手: {content}")
         
         return "\n".join(formatted_lines)
+    
+    def _format_user_messages_only(self, history: List[Dict[str, Any]]) -> str:
+        """ユーザーのメッセージのみをフォーマット（フィードバック用）"""
+        formatted_lines = []
+        user_msg_count = 0
+        
+        for entry in history:
+            if entry.get("role") == "user":
+                user_msg_count += 1
+                content = entry.get("content", "")
+                formatted_lines.append(f"[{user_msg_count}] ユーザー: {content}")
+        
+        return "\n".join(formatted_lines) if formatted_lines else "（ユーザーの発言なし）"
     
     def _get_recent_context(self, history: List[Dict[str, Any]], count: int = 3) -> str:
         """最近の会話コンテキストを取得"""

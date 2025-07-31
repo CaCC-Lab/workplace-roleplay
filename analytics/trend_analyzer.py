@@ -4,7 +4,7 @@
 時系列データの分析と将来予測
 """
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import numpy as np
 from scipy import stats
 from collections import defaultdict

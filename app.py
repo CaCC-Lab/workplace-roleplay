@@ -4,13 +4,9 @@ from flask_session import Session
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO
-import requests
 import os
-from typing import Optional, Dict, List, Tuple, Any
+from typing import Optional, List, Tuple, Any
 from datetime import datetime
-from pydantic import SecretStr  # 追加
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import json
 import time
 import logging
@@ -235,7 +231,6 @@ _response_cache = {}
 _cache_max_size = 100  # 最大100件のレスポンスをキャッシュ
 # シナリオ初期メッセージのプリロードキャッシュ
 _scenario_initial_cache = {}
-import hashlib
 
 # Flask-Login ユーザーローダー
 @login_manager.user_loader

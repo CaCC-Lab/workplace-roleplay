@@ -2,7 +2,6 @@
 """既存のアプリケーションを新しい構造に移行するスクリプト"""
 import os
 import shutil
-import sys
 
 
 def main():
