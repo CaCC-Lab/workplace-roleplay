@@ -1,0 +1,76 @@
+{
+  "test_date": "2025-07-30T23:09:29.602856",
+  "results": {
+    "cache_hits": 3,
+    "cache_misses": 5,
+    "total_requests": 8,
+    "cache_hit_times": [
+      4.0531158447265625e-06,
+      1.6689300537109375e-06,
+      5.0067901611328125e-06
+    ],
+    "cache_miss_times": [
+      3.0994415283203125e-05,
+      3.0994415283203125e-06,
+      1.9073486328125e-06,
+      2.1457672119140625e-06,
+      3.0994415283203125e-06
+    ],
+    "cache_size": 5,
+    "test_scenarios": [
+      {
+        "request_num": 1,
+        "prompt": "こんにちは。今日の調子はどうですか？",
+        "cache_status": "MISS",
+        "response_time": 3.0994415283203125e-05
+      },
+      {
+        "request_num": 2,
+        "prompt": "こんにちは。今日の調子はどうですか？",
+        "cache_status": "HIT",
+        "response_time": 4.0531158447265625e-06
+      },
+      {
+        "request_num": 3,
+        "prompt": "プロジェクトの進捗について教えてください。",
+        "cache_status": "MISS",
+        "response_time": 3.0994415283203125e-06
+      },
+      {
+        "request_num": 4,
+        "prompt": "プロジェクトの進捗について教えてください。",
+        "cache_status": "HIT",
+        "response_time": 1.6689300537109375e-06
+      },
+      {
+        "request_num": 5,
+        "prompt": "新しい提案について意見を聞かせてください。",
+        "cache_status": "MISS",
+        "response_time": 1.9073486328125e-06
+      },
+      {
+        "request_num": 6,
+        "prompt": "チームミーティングの予定を確認したいです。",
+        "cache_status": "MISS",
+        "response_time": 2.1457672119140625e-06
+      },
+      {
+        "request_num": 7,
+        "prompt": "最近の業績について報告します。",
+        "cache_status": "MISS",
+        "response_time": 3.0994415283203125e-06
+      },
+      {
+        "request_num": 8,
+        "prompt": "こんにちは。今日の調子はどうですか？",
+        "cache_status": "HIT",
+        "response_time": 5.0067901611328125e-06
+      }
+    ]
+  },
+  "analysis": {
+    "hit_rate": 37.5,
+    "avg_hit_time": 3.5762786865234375e-06,
+    "avg_miss_time": 8.249282836914063e-06
+  }
+}

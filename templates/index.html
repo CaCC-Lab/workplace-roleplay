@@ -51,14 +51,6 @@
                     <div class="usage-step">
                         <div class="step-number">1</div>
                         <div class="step-content">
-                            <h3><i class="fas fa-robot"></i> AIモデルを選択する</h3>
-                            <p>ドロップダウンメニューから、使用したいGoogle Geminiモデルを選択します。
-                            モデルによって応答の速度や特性が異なります。</p>
-                        </div>
-                    </div>
-                    <div class="usage-step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
                             <h3><i class="fas fa-theater-masks"></i> 練習モードを選択する</h3>
                             <p>目的に合わせて以下のいずれかを選択します：</p>
                             <ul>
@@ -69,7 +61,7 @@
                         </div>
                     </div>
                     <div class="usage-step">
-                        <div class="step-number">3</div>
+                        <div class="step-number">2</div>
                         <div class="step-content">
                             <h3><i class="fas fa-play"></i> シナリオを選んで練習を開始</h3>
                             <p>シナリオロールプレイを選んだ場合、様々な職場状況から練習したいものを選択します。
@@ -77,7 +69,7 @@
                         </div>
                     </div>
                     <div class="usage-step">
-                        <div class="step-number">4</div>
+                        <div class="step-number">3</div>
                         <div class="step-content">
                             <h3><i class="fas fa-comment-dots"></i> AIとの会話を実施</h3>
                             <p>メッセージ入力欄に文章を入力して送信し、AIからの返答を待ちます。
@@ -86,7 +78,7 @@
                         </div>
                     </div>
                     <div class="usage-step">
-                        <div class="step-number">5</div>
+                        <div class="step-number">4</div>
                         <div class="step-content">
                             <h3><i class="fas fa-clipboard-check"></i> フィードバックを受け取る</h3>
                             <p>会話が終了したら「フィードバックを取得」ボタンを押すことで、
@@ -95,7 +87,7 @@
                         </div>
                     </div>
                     <div class="usage-step">
-                        <div class="step-number">6</div>
+                        <div class="step-number">5</div>
                         <div class="step-content">
                             <h3><i class="fas fa-sync-alt"></i> 繰り返し練習して上達</h3>
                             <p>フィードバックを元に改善点を意識し、同じシナリオまたは別のシナリオで繰り返し練習することで、
@@ -106,23 +98,6 @@
                 </div>
             </div>
 
-            <div class="model-selection-wrapper">
-                <div class="model-selection">
-                    <h2><i class="fas fa-robot"></i> AIモデルを選択</h2>
-                    <p>会話に使用するGoogle Geminiモデルを選択してください。</p>
-                    <div class="model-select-container">
-                        <div class="select-row">
-                            <!-- モデル選択 -->
-                            <div class="select-group model-select" style="display: none;">
-                                <label for="model-select">Geminiモデル:</label>
-                                <select id="model-select" class="enhanced-select">
-                                    <!-- モデルはJavaScriptで動的に追加 -->
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <div class="features-section">
                 <div class="features-grid">
@@ -206,7 +181,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/csrf-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/model-selection.js') }}"></script>
     <script src="{{ url_for('static', filename='js/retry_handler.js') }}"></script>
 </body>
 </html>

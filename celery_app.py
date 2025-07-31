@@ -13,10 +13,23 @@ config = get_config()
 # Celeryインスタンスの作成
 celery = Celery('workplace_roleplay')
 
+# Redis URL構築（パスワード対応）
+def build_redis_url():
+    host = getattr(config, 'REDIS_HOST', 'localhost')
+    port = getattr(config, 'REDIS_PORT', 6379)
+    password = getattr(config, 'REDIS_PASSWORD', '')
+    db = getattr(config, 'REDIS_DB', 0)
+    
+    if password:
+        return f'redis://:{password}@{host}:{port}/{db}'
+    else:
+        return f'redis://{host}:{port}/{db}'
+
 # Celery設定
+default_redis_url = build_redis_url()
 celery.conf.update(
-    broker_url=os.getenv('CELERY_BROKER_URL', f'redis://{config.REDIS_HOST}:{config.REDIS_PORT}/{config.REDIS_DB}'),
-    result_backend=os.getenv('CELERY_RESULT_BACKEND', f'redis://{config.REDIS_HOST}:{config.REDIS_PORT}/{config.REDIS_DB}'),
+    broker_url=os.getenv('CELERY_BROKER_URL', default_redis_url),
+    result_backend=os.getenv('CELERY_RESULT_BACKEND', default_redis_url),
     
     # タスク設定
     task_serializer='json',

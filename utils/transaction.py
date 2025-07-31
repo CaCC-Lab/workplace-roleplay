@@ -7,7 +7,6 @@
 from contextlib import contextmanager
 import logging
 from models import db
-from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 

@@ -7,11 +7,10 @@ import os
 import yaml
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 from sqlalchemy import and_, or_, desc
 import redis
-from flask import current_app
 
 from models import (
     db, AIPersona, PersonaMemory, PersonaScenarioConfig, 
@@ -214,6 +213,15 @@ class PersonaService:
                             user_message: str,
                             conversation_history: List[Dict]) -> str:
         """ペルソナに基づいた応答生成プロンプトを作成"""
+        # 入力検証
+        if not persona:
+            raise ValueError("ペルソナは必須です")
+        if not isinstance(scenario_context, dict):
+            raise ValueError("シナリオコンテキストは辞書型である必要があります")
+        if not isinstance(user_message, str):
+            raise ValueError("ユーザーメッセージは文字列である必要があります")
+        if not isinstance(conversation_history, list):
+            raise ValueError("会話履歴はリストである必要があります")
         # ペルソナの現在の感情状態を推定
         emotional_state = self._estimate_emotional_state(
             persona, conversation_history, user_message

@@ -13,7 +13,7 @@ langchain-text-splitters==0.3.8
 google-generativeai==0.7.2
 google-ai-generativelanguage==0.6.6
 redis==4.5.4
-numpy==1.24.3
+numpy==1.26.4
 scipy==1.10.1
 pydub==0.25.1
 Pillow==10.4.0

@@ -1,0 +1,308 @@
+/**
+ * 最小限のヒントシステムのスタイル
+ * 控えめで、必要な時だけ使うことを促すデザイン
+ */
+
+.minimal-hint-system {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+}
+
+/* ヒントボタン */
+.hint-button {
+    background: #95a5a6;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    opacity: 0.8;
+}
+
+.hint-button:hover:not(.disabled) {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.hint-button.disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.hint-icon {
+    font-size: 18px;
+}
+
+.hint-count {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* 確認ダイアログ */
+.hint-confirmation {
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    width: 300px;
+    animation: slideUp 0.3s ease;
+}
+
+.confirmation-message {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.confirmation-message small {
+    display: block;
+    margin-top: 5px;
+    color: #7f8c8d;
+    font-size: 13px;
+}
+
+.confirmation-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.confirmation-buttons button {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-confirm {
+    background: #3498db;
+    color: white;
+}
+
+.btn-confirm:hover {
+    background: #2980b9;
+}
+
+.btn-cancel {
+    background: #ecf0f1;
+    color: #333;
+}
+
+.btn-cancel:hover {
+    background: #bdc3c7;
+}
+
+/* ヒント表示 */
+.hint-display {
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    width: 400px;
+    max-width: 90vw;
+    animation: slideUp 0.3s ease;
+}
+
+.hint-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.hint-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+}
+
+.hint-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #7f8c8d;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.hint-close:hover {
+    background: #ecf0f1;
+    color: #333;
+}
+
+.hint-content {
+    padding: 20px;
+}
+
+.hint-message {
+    color: #333;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 15px 0;
+}
+
+.hint-example {
+    background: #ecf0f1;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.hint-example strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.hint-example p {
+    margin: 0;
+    color: #666;
+    font-style: italic;
+}
+
+.hint-points {
+    margin-top: 15px;
+}
+
+.hint-points strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.hint-points ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.hint-points li {
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.hint-reminder {
+    margin: 0;
+    padding: 15px 20px;
+    background: #f8f9fa;
+    color: #7f8c8d;
+    font-size: 13px;
+    text-align: center;
+    border-top: 1px solid #ecf0f1;
+    border-radius: 0 0 12px 12px;
+}
+
+/* ヒント使い切りメッセージ */
+.hint-exhausted {
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    background: #e74c3c;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: shake 0.5s ease;
+}
+
+.hint-exhausted p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* ヒントタイプ別スタイル */
+.hint-type-direction {
+    border-left: 4px solid #3498db;
+    padding-left: 15px;
+}
+
+.hint-type-approach {
+    border-left: 4px solid #2ecc71;
+    padding-left: 15px;
+}
+
+.hint-type-consideration {
+    border-left: 4px solid #f39c12;
+    padding-left: 15px;
+}
+
+/* アニメーション */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-10px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(10px);
+    }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+    .minimal-hint-system {
+        bottom: 10px;
+        right: 10px;
+    }
+    
+    .hint-button {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .hint-confirmation,
+    .hint-display {
+        width: calc(100vw - 40px);
+        right: -10px;
+    }
+    
+    .hint-display {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+}
+
+/* 印刷時は非表示 */
+@media print {
+    .minimal-hint-system {
+        display: none;
+    }
+}

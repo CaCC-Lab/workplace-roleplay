@@ -80,7 +80,8 @@ function handleStreamingComplete(data) {
 async function startConversation() {
     if (conversationStarted) return;
 
-    const selectedModel = localStorage.getItem('selectedModel');
+    // モデル選択はサーバー側で管理されるためnullを使用
+    const selectedModel = null;
     if (!selectedModel) {
         displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
         return;
@@ -152,7 +153,8 @@ async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg || isStreaming) return;
 
-    const selectedModel = localStorage.getItem('selectedModel');
+    // モデル選択はサーバー側で管理されるためnullを使用
+    const selectedModel = null;
     if (!selectedModel) {
         displayMessage("エラー: モデルが選択されていません。", "error-message");
         return;
@@ -181,7 +183,8 @@ async function sendMessage() {
 async function getFeedback() {
     if (isStreaming) return;
     
-    const selectedModel = localStorage.getItem('selectedModel');
+    // モデル選択はサーバー側で管理されるためnullを使用
+    const selectedModel = null;
     if (!selectedModel) {
         displayMessage("エラー: モデルが選択されていません。", "error-message");
         return;

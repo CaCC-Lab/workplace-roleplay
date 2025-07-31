@@ -248,6 +248,7 @@ class StrengthAnalysisResult(db.Model):
     top_strengths = db.Column(db.JSON)  # ['empathy', 'active_listening', ...]
     encouragement_messages = db.Column(db.JSON)  # メッセージのリスト
     raw_analysis = db.Column(db.Text)  # LLMからの生の分析結果
+    analysis_result = db.Column(db.JSON)  # 統合分析結果 {'scores': {...}, 'insights': {...}}
     
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
     

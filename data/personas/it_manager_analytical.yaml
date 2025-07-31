@@ -90,12 +90,12 @@ scenario_behaviors:
     stress_level: high
     cooperation: focused
     communication: direct
-  
+
   team_conflict:
     stress_level: moderate
     cooperation: mediating
     communication: balanced
-  
+
   technical_discussion:
     stress_level: low
     cooperation: enthusiastic

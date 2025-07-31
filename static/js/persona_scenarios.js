@@ -18,11 +18,16 @@ class PersonaScenarioManager {
         try {
             const response = await fetch(`/api/persona-scenarios/suitable-personas/${scenarioId}`);
             if (!response.ok) {
-                throw new Error('Failed to fetch suitable personas');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Failed to fetch suitable personas: ${response.status}`);
             }
             return await response.json();
         } catch (error) {
             console.error('Error getting suitable personas:', error);
+            // ユーザーへの通知を追加
+            if (this.onError) {
+                this.onError('適切なペルソナの取得に失敗しました。再度お試しください。');
+            }
             return { personas: [] };
         }
     }
@@ -168,6 +173,13 @@ class PersonaScenarioManager {
     setStreamUpdateCallback(callback) {
         this.onStreamUpdate = callback;
     }
+    
+    /**
+     * エラー時のコールバックを設定
+     */
+    setErrorCallback(callback) {
+        this.onError = callback;
+    }
 }
 
 // UI統合の例
@@ -236,22 +248,39 @@ class PersonaScenarioUI {
         personas.forEach(persona => {
             const card = document.createElement('div');
             card.className = 'persona-card';
-            card.innerHTML = `
-                <div class="persona-info">
-                    <h4>${persona.name}</h4>
-                    <p class="persona-role">${persona.industry} - ${persona.role}</p>
-                    <p class="persona-personality">性格: ${persona.personality_type}</p>
-                    <p class="persona-experience">経験年数: ${persona.years_experience}年</p>
-                </div>
-                <button class="select-persona-btn" data-persona-code="${persona.persona_code}">
-                    このペルソナと練習
-                </button>
-            `;
+            // XSS対策: DOM APIを使用して要素を作成
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'persona-info';
             
-            const selectBtn = card.querySelector('.select-persona-btn');
+            const nameH4 = document.createElement('h4');
+            nameH4.textContent = persona.name;
+            infoDiv.appendChild(nameH4);
+            
+            const roleP = document.createElement('p');
+            roleP.className = 'persona-role';
+            roleP.textContent = `${persona.industry} - ${persona.role}`;
+            infoDiv.appendChild(roleP);
+            
+            const personalityP = document.createElement('p');
+            personalityP.className = 'persona-personality';
+            personalityP.textContent = `性格: ${persona.personality_type}`;
+            infoDiv.appendChild(personalityP);
+            
+            const experienceP = document.createElement('p');
+            experienceP.className = 'persona-experience';
+            experienceP.textContent = `経験年数: ${persona.years_experience}年`;
+            infoDiv.appendChild(experienceP);
+            
+            card.appendChild(infoDiv);
+            
+            const selectBtn = document.createElement('button');
+            selectBtn.className = 'select-persona-btn';
+            selectBtn.setAttribute('data-persona-code', persona.persona_code);
+            selectBtn.textContent = 'このペルソナと練習';
             selectBtn.addEventListener('click', () => {
                 this.selectPersona(scenarioId, persona.persona_code);
             });
+            card.appendChild(selectBtn);
             
             this.personaList.appendChild(card);
         });
@@ -326,10 +355,16 @@ class PersonaScenarioUI {
             messageDiv.setAttribute('data-persona', personaCode);
         }
         
-        messageDiv.innerHTML = `
-            <div class="message-content">${this.escapeHtml(content)}</div>
-            <div class="message-meta">${new Date().toLocaleTimeString()}</div>
-        `;
+        // XSS対策: DOM APIを使用
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = content;
+        messageDiv.appendChild(contentDiv);
+        
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'message-meta';
+        metaDiv.textContent = new Date().toLocaleTimeString();
+        messageDiv.appendChild(metaDiv);
         
         this.messageContainer.appendChild(messageDiv);
         this.scrollToBottom();
@@ -341,12 +376,17 @@ class PersonaScenarioUI {
     createStreamingMessageContainer() {
         this.streamingContainer = document.createElement('div');
         this.streamingContainer.className = 'message assistant-message streaming';
-        this.streamingContainer.innerHTML = `
-            <div class="message-content"></div>
-            <div class="typing-indicator">
-                <span></span><span></span><span></span>
-            </div>
-        `;
+        // XSS対策: DOM APIを使用
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        this.streamingContainer.appendChild(contentDiv);
+        
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'typing-indicator';
+        for (let i = 0; i < 3; i++) {
+            typingIndicator.appendChild(document.createElement('span'));
+        }
+        this.streamingContainer.appendChild(typingIndicator);
         
         this.messageContainer.appendChild(this.streamingContainer);
         this.scrollToBottom();
@@ -428,14 +468,6 @@ class PersonaScenarioUI {
         }
     }
 
-    /**
-     * HTMLエスケープ
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 }
 
 // グローバルインスタンスを作成

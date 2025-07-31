@@ -58,4 +58,18 @@ app_simple.py
 fix_dependencies.py
 
 # バッチスクリプト
-improve_scenarios_batch.py 
+improve_scenarios_batch.py
+
+# デバッグファイル（プロジェクトルートのもののみ）
+/debug_*.py
+/test_*.py
+/debug_*.html
+/test_*.html
+
+# クリーンアップレポート
+cleanup_report_*.txt
+
+# 古いカバレッジレポート
+old_coverage_reports/
+htmlcov_*/
+coverage_html_*/ 

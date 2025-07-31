@@ -10,7 +10,7 @@ from utils.redis_sse import RedisSSEBridge, AsyncTaskManager
 from tasks.llm import stream_chat_response, generate_feedback
 from service_layer import SessionService, ConversationService
 from models import SessionType
-from errors import ValidationError, AppError
+from errors import ValidationError
 
 logger = logging.getLogger(__name__)
 

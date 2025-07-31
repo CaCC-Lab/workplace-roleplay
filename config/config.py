@@ -17,7 +17,7 @@ class Config(BaseSettings):
     # Flask設定
     FLASK_ENV: str = Field(default="development", alias="FLASK_ENV")
     SECRET_KEY: str = Field(
-        default="default-secret-key-change-in-production",
+        default=None,  # 環境変数からの読み込みを必須にする
         alias="FLASK_SECRET_KEY"
     )
     DEBUG: bool = Field(default=False, alias="FLASK_DEBUG")
@@ -28,7 +28,7 @@ class Config(BaseSettings):
     DEFAULT_TEMPERATURE: float = Field(default=0.7, alias="DEFAULT_TEMPERATURE")
     DEFAULT_MODEL: str = Field(
         default="gemini/gemini-1.5-flash",
-        alias="DEFAULT_MODEL"
+        alias="DEFAULT_AI_MODEL"  # 環境変数名を変更
     )
     API_BASE_URL: Optional[str] = Field(default=None, alias="API_BASE_URL")
     
@@ -82,9 +82,15 @@ class Config(BaseSettings):
     @field_validator("DEFAULT_MODEL")
     def validate_model(cls, v):
         """モデル名のバリデーション"""
+        # プレフィックスなしの形式もサポート
+        if not v.startswith("gemini/"):
+            v = f"gemini/{v}"
+        
         supported_models = [
             "gemini/gemini-1.5-pro",
-            "gemini/gemini-1.5-flash"
+            "gemini/gemini-1.5-flash",
+            "gemini/gemini-1.5-flash-8b",
+            "gemini/gemini-2.0-flash-exp"
         ]
         if v not in supported_models:
             raise ValueError(f"Unsupported model: {v}")
@@ -156,22 +162,29 @@ class DevelopmentConfig(Config):
     """開発環境設定"""
     
     FLASK_ENV: str = Field(default="development")
-    SECRET_KEY: str = Field(default="dev-secret-key-for-development-only", alias="FLASK_SECRET_KEY")
     DEBUG: bool = True
     LOG_LEVEL: str = "DEBUG"
     HOT_RELOAD: bool = True
     
     @field_validator("SECRET_KEY", mode="before")
-    def set_dev_secret_key(cls, v):
-        """開発環境用のデフォルトシークレットキー"""
-        # 空文字列または None の場合、デフォルト値を設定
-        if v is None or v == '':
-            v = "dev-secret-key-for-development-only"
+    def validate_dev_secret_key(cls, v):
+        """開発環境でもセキュアなシークレットキーを推奨"""
+        if not v:
+            raise ValueError(
+                "SECRET_KEY (FLASK_SECRET_KEY) is required. "
+                "Generate one with: python scripts/generate_secret_key.py"
+            )
         
-        # デフォルトキー使用時に警告
-        if v in ["dev-secret-key-for-development-only", "default-secret-key-change-in-production"]:
+        # 弱いキーの検出と警告
+        weak_patterns = [
+            "dev-secret-key", "default-secret", "test-secret",
+            "password", "secret", "12345", "admin", "demo"
+        ]
+        
+        if any(pattern in v.lower() for pattern in weak_patterns):
             warnings.warn(
-                "Using default SECRET_KEY in development. Never use this in production!",
+                f"SECRET_KEY appears to be weak. Consider using a stronger key "
+                f"even in development environment.",
                 UserWarning,
                 stacklevel=2
             )
@@ -198,8 +211,11 @@ class ProductionConfig(Config):
     @field_validator("SECRET_KEY", mode="before")
     def require_secret_key(cls, v):
         """本番環境では適切なシークレットキーが必須"""
-        if not v or v == "default-secret-key-change-in-production":
-            raise ValueError("A secure SECRET_KEY is required in production")
+        if not v:
+            raise ValueError(
+                "A secure SECRET_KEY (FLASK_SECRET_KEY) is required in production. "
+                "Generate one with: python scripts/generate_secret_key.py --length 64"
+            )
         
         # 最小長チェック（32文字以上推奨）
         if len(v) < 32:
@@ -208,7 +224,8 @@ class ProductionConfig(Config):
         # 単純なパターンのチェック（完全一致またはキー全体が単純な場合のみ）
         simple_patterns = [
             'password', 'secret', '12345678', 'password123', 'secret123',
-            'admin', 'default', 'test', 'demo'
+            'admin', 'default', 'test', 'demo', 'dev-secret-key',
+            'default-secret-key-change-in-production'
         ]
         # キー全体が単純なパターンの場合、または数字のみの場合
         if v.lower() in simple_patterns or v.isdigit() or len(set(v)) < 4:

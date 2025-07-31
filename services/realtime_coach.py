@@ -4,12 +4,10 @@
 会話中にリアルタイムでヒントと改善提案を提供
 """
 import re
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Tuple
 from datetime import datetime
-import asyncio
-from collections import defaultdict
 
-from models import db, StrengthAnalysisResult
+from models import StrengthAnalysisResult
 from scenarios import load_scenarios
 
 

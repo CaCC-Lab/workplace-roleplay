@@ -1,18 +1,15 @@
 # 🚨 CodeRabbit指摘対応: 未使用importを削除
-from flask import Flask, render_template, request, jsonify, session, g
+from flask import Flask, render_template, request, jsonify, session, g, Response
 from flask_session import Session
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO
-import requests
 import os
-from typing import Optional, Dict, List, Tuple, Any
+from typing import Optional, List, Tuple, Any
 from datetime import datetime
-from pydantic import SecretStr  # 追加
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import json
 import time
+import logging
 
 # Google Generative AI - 常に利用可能にする
 try:
@@ -70,6 +67,7 @@ from api_key_manager import (
     record_api_usage,
     get_api_key_manager
 )
+from src.api import create_api_blueprint
 
 # エラーハンドリングのインポート
 from errors import (
@@ -90,8 +88,8 @@ from errors import (
 from utils.security import SecurityUtils, CSPNonce, CSRFToken, CSRFMiddleware
 from security_utils import secure_endpoint
 
-# Redis関連のインポート
-from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnectionError
+# Redis関連のインポート（無効化）
+# from utils.redis_manager import RedisSessionManager, SessionConfig, RedisConnectionError
 
 # データベース関連のインポート
 from database import init_database, create_initial_data
@@ -115,6 +113,8 @@ from tasks.achievement import check_achievements_task
 from services.websocket_service import WebSocketCoachingService
 from services.ab_testing import ExperimentationFramework
 from services.feedback_widget import FeedbackWidget
+from services.post_conversation_analyzer import PostConversationAnalyzer
+from services.minimal_hint_service import MinimalHintService
 
 """
 要件:
@@ -128,6 +128,9 @@ app = Flask(__name__)
 
 # Jinja2の自動エスケープを有効化（デフォルトで有効だが明示的に設定）
 app.jinja_env.autoescape = True
+
+# ロガーの設定
+logger = logging.getLogger(__name__)
 
 # 設定の読み込み
 config = get_cached_config()
@@ -159,36 +162,9 @@ app.config["SESSION_LIFETIME"] = config.SESSION_LIFETIME_MINUTES * 60  # 秒に�
 
 # Redis統合セッション管理の初期化
 def initialize_session_store():
-    """セッションストアの初期化（Redis優先、フォールバック対応）"""
+    """セッションストアの初期化（Filesystemのみ）"""
     try:
-        # Redis設定を試行
-        if config.SESSION_TYPE == "redis":
-            redis_manager = RedisSessionManager(
-                host=config.REDIS_HOST,
-                port=config.REDIS_PORT,
-                db=config.REDIS_DB,
-                fallback_enabled=True
-            )
-            
-            # Redis接続確認
-            health = redis_manager.health_check()
-            
-            if health['connected']:
-                # Redis設定をFlaskに適用
-                redis_config = SessionConfig.get_redis_config(os.getenv('FLASK_ENV'))
-                app.config.update(redis_config)
-                app.config["SESSION_REDIS"] = redis_manager._client
-                
-                print("✅ Redisセッションストアを使用します")
-                print(f"   接続先: {redis_manager.host}:{redis_manager.port}")
-                return redis_manager
-            else:
-                print(f"⚠️ Redis接続失敗: {health.get('error', 'Unknown error')}")
-                if redis_manager.has_fallback():
-                    print("   フォールバック機能が有効です")
-                    return redis_manager
-                else:
-                    raise RedisConnectionError("Redis接続失敗、フォールバック無効")
+        # Redis設定をスキップして、常にFilesystemを使用
         
         # Filesystem フォールバック
         print("📁 Filesystemセッションにフォールバックします")
@@ -224,7 +200,13 @@ redis_session_manager = initialize_session_store()
 Session(app)
 
 # データベースの初期化
-database_available = init_database(app)
+# データベース初期化を環境変数で制御
+USE_DATABASE = os.environ.get("USE_DATABASE", "false").lower() == "true"
+if USE_DATABASE:
+    database_available = init_database(app)
+else:
+    database_available = False
+    print("📁 データベース初期化をスキップ（ファイルシステムモード）")
 
 # WebSocketコーチングサービスの初期化
 websocket_service = WebSocketCoachingService(socketio)
@@ -233,8 +215,22 @@ websocket_service = WebSocketCoachingService(socketio)
 experiment_framework = ExperimentationFramework()
 feedback_widget = FeedbackWidget()
 
+# 事後分析サービスの初期化
+post_conversation_analyzer = PostConversationAnalyzer()
+
+# 最小限のヒントサービスの初期化
+minimal_hint_service = MinimalHintService()
+
 # CSRF対策ミドルウェアの初期化
 csrf = CSRFMiddleware(app)
+
+# LLMインスタンスのキャッシュ
+_llm_cache = {}
+# レスポンスキャッシュ（簡易的なキャッシング）
+_response_cache = {}
+_cache_max_size = 100  # 最大100件のレスポンスをキャッシュ
+# シナリオ初期メッセージのプリロードキャッシュ
+_scenario_initial_cache = {}
 
 # Flask-Login ユーザーローダー
 @login_manager.user_loader
@@ -247,9 +243,13 @@ def load_user(user_id):
 from auth import auth_bp
 app.register_blueprint(auth_bp)
 
+# APIブループリントの登録
+api_bp = create_api_blueprint()
+app.register_blueprint(api_bp, url_prefix='/api')
+
 # 非同期チャットAPIの登録
-from api.async_chat import async_chat_bp
-app.register_blueprint(async_chat_bp)
+# from api.async_chat import async_chat_bp  # Celery依存のため無効化
+# app.register_blueprint(async_chat_bp)  # Celery依存のため無効化
 
 # タスク進捗監視APIの登録
 from routes.task_progress import progress_bp
@@ -269,6 +269,10 @@ app.register_blueprint(recommendations_bp)
 # ペルソナシナリオAPIの登録
 from api.persona_scenarios import persona_scenarios_bp
 app.register_blueprint(persona_scenarios_bp)
+
+# リアルタイムフィードバックAPIの登録
+from api.realtime_feedback import realtime_feedback_bp
+app.register_blueprint(realtime_feedback_bp)
 
 # ========== エラーハンドラーの登録 ==========
 @app.errorhandler(AppError)
@@ -357,8 +361,17 @@ except Exception as e:
 def get_available_gemini_models():
     """
     利用可能なGeminiモデルのリストを返す
-    廃止されたモデルを除外し、代替モデルを提供する
+    ※ genai.list_models()のブロッキング問題を修正
     """
+    # 固定のモデルリストを返す（API呼び出しを避ける）
+    # これにより分単位の遅延を回避
+    default_models = [
+        "gemini/gemini-1.5-pro",
+        "gemini/gemini-1.5-flash",
+        "gemini/gemini-1.5-pro-latest",
+        "gemini/gemini-1.5-flash-latest"
+    ]
+    
     try:
         # Gemini APIの設定を確認
         if not GOOGLE_API_KEY:
@@ -368,58 +381,44 @@ def get_available_gemini_models():
         if not GENAI_AVAILABLE or genai is None:
             print("Warning: google.generativeai not available")
             return []
-            
-        # 利用可能なモデルを取得
-        models = genai.list_models()
         
-        # 廃止されたモデルと代替モデルのマッピング
-        deprecated_models = {
-            'gemini-1.0-pro-vision': 'gemini-1.5-flash',
-            'gemini-1.0-pro-vision-latest': 'gemini-1.5-flash-latest'
-        }
-        
-        # Geminiモデルをフィルタリング
-        gemini_models = []
-        for model in models:
-            if "gemini" in model.name.lower():
-                # モデル名を取得
-                model_short_name = model.name.split('/')[-1]
-                
-                # 廃止されたモデルの場合は代替を使用
-                if model_short_name in deprecated_models:
-                    alternative = deprecated_models[model_short_name]
-                    print(f"Replacing deprecated model {model_short_name} with {alternative}")
-                    model_name = f"gemini/{alternative}"
-                    # 代替モデルを追加（重複を避けるため）
-                    if model_name not in gemini_models:
-                        gemini_models.append(model_name)
-                else:
-                    # モデル名を整形（gemini/プレフィックスを追加）
-                    model_name = f"gemini/{model_short_name}"
-                    gemini_models.append(model_name)
-        
-        print(f"Available Gemini models: {gemini_models}")
-        return gemini_models
+        # API呼び出しをスキップして固定リストを返す
+        # TODO: 将来的にはキャッシュやタイムアウト付きの実装に変更
+        print(f"Available Gemini models (cached): {default_models}")
+        return default_models
         
     except Exception as e:
-        print(f"Error fetching Gemini models: {str(e)}")
-        # エラー時は最新のモデルリストを返す（廃止されたモデルを除外）
-        return [
-            "gemini/gemini-1.5-pro",
-            "gemini/gemini-1.5-flash"
-        ]
+        print(f"Error in get_available_gemini_models: {str(e)}")
+        return default_models
 
 def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
     """
     LangChainのGemini Chat modelインスタンス生成
     廃止されたモデルを自動的に代替モデルに置き換える
+    キャッシュを使用してパフォーマンスを向上
     """
+    global _llm_cache
+    
     try:
+        # model_nameがNoneの場合はデフォルト値を使用
+        if model_name is None:
+            model_name = "gemini-1.5-flash"
+        
+        # 8Bモデルは品質が低いため、通常のflashモデルを使用
+        # if model_name == "gemini-1.5-flash":
+        #     model_name = "gemini-1.5-flash-8b"
+        #     logger.info(f"自動的に高速モデル {model_name} に切り替えました")
+        
+        # キャッシュをチェック
+        if model_name in _llm_cache:
+            logger.info(f"Using cached Gemini model: {model_name}")
+            return _llm_cache[model_name]
+        
         # 廃止されたモデルと代替モデルのマッピング
         deprecated_models = {
             'gemini-pro-vision': 'gemini-1.5-flash',
             'gemini-1.0-pro-vision': 'gemini-1.5-flash',
-            'gemini-1.0-pro-vision-latest': 'gemini-1.5-flash-latest'
+            'gemini-1.0-pro-vision-latest': 'gemini-1.5-flash'
         }
         
         # モデル名からgemini/プレフィックスを削除
@@ -430,9 +429,9 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
         original_model = model_name
         if model_name in deprecated_models:
             model_name = deprecated_models[model_name]
-            print(f"Switching from deprecated model {original_model} to {model_name}")
+            logger.info(f"Switching from deprecated model {original_model} to {model_name}")
         
-        print(f"Initializing Gemini with model: {model_name}")
+        logger.info(f"Initializing Gemini with model: {model_name}")
         
         if not GOOGLE_API_KEY:
             raise AuthenticationError("GOOGLE_API_KEY環境変数が設定されていません")
@@ -456,11 +455,19 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
             temperature=DEFAULT_TEMPERATURE,
             google_api_key=GOOGLE_API_KEY,  # 明示的にAPIキーを渡す
             convert_system_message_to_human=True,  # システムメッセージの互換性対応
+            timeout=20,  # タイムアウトを20秒に設定（品質とのバランス）
+            max_retries=1,  # 再試行回数を1回に制限
+            streaming=False,  # ストリーミングを無効化して安定性向上
+            max_output_tokens=2048  # 出力トークン数を適度に制限（自然な応答のため）
         )
         
         # テスト呼び出しは削除（実際の使用時に検証）
             
         print("Gemini model initialized successfully")
+        
+        # キャッシュに保存
+        _llm_cache[model_name] = llm
+        
         return llm
         
     except (AuthenticationError, ValidationError, ExternalAPIError):
@@ -490,6 +497,36 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
 # ========== シナリオ（職場のあなた再現シートを想定したデータ） ==========
 # 実際にはデータベースや外部ファイルなどで管理するのがおすすめ
 scenarios = load_scenarios()
+
+# ========== シナリオプリロード ==========
+def preload_scenario_initial_messages():
+    """人気シナリオの初期メッセージを事前生成してキャッシュ"""
+    global _scenario_initial_cache
+    
+    # 人気の高いシナリオIDリスト（最初の10個）
+    popular_scenarios = ["scenario1", "scenario2", "scenario3", "scenario4", "scenario5",
+                        "scenario6", "scenario7", "scenario8", "scenario9", "scenario10"]
+    
+    logger.info("Starting preload of scenario initial messages...")
+    
+    for scenario_id in popular_scenarios:
+        if scenario_id in scenarios:
+            scenario_data = scenarios[scenario_id]
+            # 初期メッセージがある場合はそのまま使用
+            if "initial_message" in scenario_data:
+                _scenario_initial_cache[scenario_id] = scenario_data["initial_message"]
+            else:
+                # キャラクター設定から初期メッセージを生成
+                character_setting = scenario_data.get("character_setting", {})
+                initial_approach = character_setting.get("initial_approach", "")
+                if initial_approach:
+                    _scenario_initial_cache[scenario_id] = initial_approach
+    
+    logger.info(f"Preloaded {len(_scenario_initial_cache)} scenario initial messages")
+
+# アプリケーション起動時にプリロード実行
+with app.app_context():
+    preload_scenario_initial_messages()
 
 # ========== Flaskルート ==========
 @app.route("/")
@@ -603,13 +640,23 @@ def create_model_and_get_response(model_name: str, messages_or_prompt, extract=T
         レスポンス（抽出するかそのまま）
     """
     try:
+        print(f"create_model_and_get_response called with model: {model_name}")
         llm = initialize_llm(model_name)
+        print(f"LLM initialized: {type(llm)}")
+        
         response = llm.invoke(messages_or_prompt)
+        print(f"Raw response type: {type(response)}")
+        print(f"Raw response: {response}")
         
         if extract:
-            return extract_content(response)
+            extracted = extract_content(response)
+            print(f"Extracted content: {extracted}")
+            return extracted
         return response
     except Exception as e:
+        print(f"Error in create_model_and_get_response: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         # エラーはそのまま上位に伝播させる
         raise
 
@@ -705,7 +752,10 @@ def set_session_start_time(session_key, sub_key=None):
 def get_csrf_token():
     """CSRFトークンを生成して返す"""
     token = CSRFToken.get_or_create(session)
-    return jsonify({"csrf_token": token})
+    return jsonify({
+        "csrf_token": token,
+        "expires_in": CSRFToken.TOKEN_LIFETIME
+    })
 
 @app.route("/api/chat", methods=["POST"])
 @secure_endpoint  # 統合されたセキュリティ機能
@@ -1246,6 +1296,10 @@ def extract_content(resp: Any) -> str:
 def initialize_llm(model_name: str):
     """モデル名に基づいて適切なLLMを初期化"""
     try:
+        # model_nameがNoneの場合はデフォルト値を使用
+        if model_name is None:
+            model_name = "gemini-1.5-flash"
+        
         if model_name.startswith('gemini/'):
             return create_gemini_llm(model_name.replace('gemini/', ''))
         else:
@@ -1359,18 +1413,404 @@ def api_models():
         print(f"Error fetching models: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+# 非同期シナリオストリーミングAPI
+@app.route("/api/async/scenario/stream", methods=["POST"])
+def async_scenario_stream():
+    """シナリオメッセージをストリーミング形式で送信"""
+    try:
+        print("\n=== Received request to /api/async/scenario/stream ===")
+        print(f"Headers: {dict(request.headers)}")
+        
+        data = request.get_json()
+        print(f"Request data: {data}")
+        
+        if not data:
+            return jsonify({"error": "リクエストボディが必要です"}), 400
+        
+        message = data.get("message", "").strip()
+        scenario_id = data.get("scenario_id")
+        is_initial = data.get("is_initial", False)
+        # 環境変数からデフォルトモデルを取得
+        default_model = os.getenv("DEFAULT_AI_MODEL", "gemini-1.5-flash")
+        if not default_model.startswith("gemini/"):
+            default_model = f"gemini/{default_model}"
+        model_id = data.get("model", default_model)
+        
+        # model_idがNoneの場合の対処
+        if model_id is None:
+            model_id = default_model
+        
+        print(f"Model ID after processing: {model_id}")
+        
+        if not scenario_id:
+            return jsonify({"error": "scenario_idが必要です"}), 400
+        
+        if scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
+        
+        # セッションから履歴を取得（ストリーミング前に）
+        history_key = f"scenario_{scenario_id}_history"
+        scenario_history = session.get(history_key, [])
+        
+        # 応答を保存するための変数
+        full_response_text = ""
+        
+        def generate():
+            """レスポンスをストリーミング生成"""
+            nonlocal full_response_text  # 最初に宣言
+            
+            try:
+                if is_initial:
+                    # 初回メッセージの場合
+                    scenario_data = scenarios.get(scenario_id, {})
+                    character_setting = scenario_data.get("character_setting", {})
+                    
+                    # initial_approachを使用、なければデフォルト
+                    initial_message = character_setting.get("initial_approach", 
+                                                          scenario_data.get("initial_message", 
+                                                                          "こんにちは。今日はどのようなお手伝いができますか？"))
+                    
+                    # 初回メッセージをチャンクで送信
+                    for i in range(0, len(initial_message), 5):
+                        chunk = initial_message[i:i+5]
+                        yield f"data: {json.dumps({'content': chunk})}\n\n"
+                    
+                    # レスポンスを外部変数に保存
+                    full_response_text = initial_message
+                else:
+                    # 通常のメッセージ処理
+                    if not message:
+                        yield f"data: {json.dumps({'error': 'メッセージが必要です'})}\n\n"
+                        return
+                    
+                    # 履歴は外部スコープから使用
+                    
+                    # プロンプトを構築
+                    scenario_data = scenarios[scenario_id]
+                    character_setting = scenario_data.get("character_setting", {})
+                    
+                    # シナリオに基づくプロンプトを構築
+                    system_prompt = f"""あなたは以下の設定でロールプレイを行ってください：
+
+役割: {scenario_data.get('role_info', '')}
+性格: {character_setting.get('personality', '')}
+話し方: {character_setting.get('speaking_style', '')}
+状況: {character_setting.get('situation', '')}
+
+重要な注意事項:
+- この設定を厳密に守って応答してください
+- キャラクターから外れた一般的な回答はしないでください
+- 日本語で自然な会話をしてください"""
+                    
+                    prompt_parts = []
+                    prompt_parts.append(system_prompt)
+                    
+                    if scenario_history:
+                        prompt_parts.append("これまでの会話：")
+                        for h in scenario_history[-10:]:  # 直近10件まで
+                            if h["role"] == "user":
+                                prompt_parts.append(f"ユーザー: {h['content']}")
+                            else:
+                                prompt_parts.append(f"あなた: {h['content']}")
+                    
+                    prompt_parts.append(f"\nユーザー: {message}\n\n上記の会話に対して、役割に従って自然な応答をしてください。")
+                    
+                    full_prompt = "\n".join(prompt_parts)
+                    
+                    # Geminiモデルで応答を生成（ストリーミングなし）
+                    try:
+                        print(f"Calling Gemini with model: {model_id}")
+                        print(f"Prompt: {full_prompt[:200]}...")  # 最初の200文字だけログに出力
+                        
+                        full_response = create_model_and_get_response(model_id, full_prompt)
+                        
+                        print(f"Got response: {full_response[:100] if full_response else 'None'}...")
+                        
+                        if not full_response:
+                            full_response = "申し訳ありません、応答を生成できませんでした。"
+                        
+                        # レスポンスをチャンクに分けて送信
+                        chunk_size = 5
+                        for i in range(0, len(full_response), chunk_size):
+                            chunk = full_response[i:i+chunk_size]
+                            yield f"data: {json.dumps({'content': chunk})}\n\n"
+                            
+                    except Exception as e:
+                        print(f"LLM Error: {str(e)}")
+                        import traceback
+                        print(traceback.format_exc())
+                        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                        return
+                    
+                    # レスポンスを外部変数に保存
+                    full_response_text = full_response
+                
+                yield f"data: {json.dumps({'status': 'complete'})}\n\n"
+                
+            except Exception as e:
+                print(f"Streaming error: {str(e)}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        
+        # ストリーミングレスポンスを作成
+        return Response(
+            generate(),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no"
+            }
+        )
+        
+    except Exception as e:
+        import traceback
+        print(f"Async scenario stream error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+# 会話履歴を保存するエンドポイント
+@app.route("/api/async/scenario/save-history", methods=["POST"])
+def async_scenario_save_history():
+    """シナリオの会話履歴を保存"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "リクエストボディが必要です"}), 400
+        
+        scenario_id = data.get("scenario_id")
+        message = data.get("message", "")
+        response = data.get("response", "")
+        is_initial = data.get("is_initial", False)
+        
+        if not scenario_id:
+            return jsonify({"error": "scenario_idが必要です"}), 400
+        
+        if scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
+        
+        # セッションから履歴を取得
+        history_key = f"scenario_{scenario_id}_history"
+        scenario_history = session.get(history_key, [])
+        
+        # 履歴を更新
+        if not is_initial and message:
+            scenario_history.append({"role": "user", "content": message})
+        
+        if response:
+            scenario_history.append({"role": "assistant", "content": response})
+        
+        # セッションに保存
+        session[history_key] = scenario_history
+        session.modified = True
+        
+        return jsonify({"status": "success", "history_length": len(scenario_history)})
+        
+    except Exception as e:
+        print(f"履歴保存エラー: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# 会話履歴を同期するエンドポイント
+@app.route("/api/async/scenario/sync-history", methods=["POST"])
+def async_scenario_sync_history():
+    """クライアントサイドの会話履歴をサーバーと同期"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "リクエストボディが必要です"}), 400
+        
+        scenario_id = data.get("scenario_id")
+        history = data.get("history", [])
+        
+        if not scenario_id:
+            return jsonify({"error": "scenario_idが必要です"}), 400
+        
+        if scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
+        
+        # 履歴の形式を検証
+        for entry in history:
+            if not isinstance(entry, dict) or "role" not in entry or "content" not in entry:
+                return jsonify({"error": "履歴の形式が不正です"}), 400
+        
+        # セッションに履歴を保存
+        history_key = f"scenario_{scenario_id}_history"
+        session[history_key] = history
+        session.modified = True
+        
+        return jsonify({
+            "status": "success", 
+            "synced_messages": len(history),
+            "scenario_id": scenario_id
+        })
+        
+    except Exception as e:
+        print(f"履歴同期エラー: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# AIアシストのエンドポイント
+@app.route("/api/async/scenario/assist", methods=["POST"])
+def async_scenario_assist():
+    """シナリオのAIアシストを取得"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "リクエストボディが必要です"}), 400
+        
+        scenario_id = data.get("scenario_id")
+        model_id = data.get("model", "gemini/gemini-1.5-flash")
+        
+        if not scenario_id:
+            return jsonify({"error": "scenario_idが必要です"}), 400
+        
+        if scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
+        
+        # セッションから会話履歴を取得
+        history_key = f"scenario_{scenario_id}_history"
+        scenario_history = session.get(history_key, [])
+        
+        # シナリオ情報を取得
+        scenario = scenarios[scenario_id]
+        
+        # 会話履歴を構築
+        conversation_context = ""
+        if scenario_history:
+            recent_history = scenario_history[-5:]  # 直近5件
+            for h in recent_history:
+                if h["role"] == "user":
+                    conversation_context += f"ユーザー: {h['content']}\n"
+                else:
+                    conversation_context += f"相手: {h['content']}\n"
+        
+        # アシストプロンプトを作成
+        assist_prompt = f"""
+現在のシナリオ: {scenario['title']}
+状況: {scenario['description']}
+学習ポイント: {', '.join(scenario['learning_points'])}
+
+現在の会話:
+{conversation_context}
+
+このシナリオで適切な返答のヒントを1-2文で簡潔に提案してください。
+相手の性格や状況を考慮し、自然な会話になるようなアドバイスをしてください。
+"""
+
+        # Geminiで応答を生成
+        suggestion = create_model_and_get_response(model_id, assist_prompt)
+        
+        return jsonify({"suggestion": suggestion})
+        
+    except Exception as e:
+        print(f"AIアシストエラー: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# シナリオフィードバックのエンドポイント
+@app.route("/api/async/scenario/feedback", methods=["POST"])
+def async_scenario_feedback():
+    """シナリオのフィードバックを生成"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "リクエストボディが必要です"}), 400
+        
+        scenario_id = data.get("scenario_id")
+        model_id = data.get("model", "gemini/gemini-1.5-flash")
+        
+        if not scenario_id:
+            return jsonify({"error": "scenario_idが必要です"}), 400
+        
+        if scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
+        
+        # セッションから会話履歴を取得
+        history_key = f"scenario_{scenario_id}_history"
+        scenario_history = session.get(history_key, [])
+        
+        if not scenario_history:
+            return jsonify({"error": "会話履歴がありません"}), 400
+        
+        # シナリオ情報を取得
+        scenario = scenarios[scenario_id]
+        feedback_points = scenario.get("feedback_points", {})
+        
+        # 会話履歴を構築
+        conversation_full = ""
+        for h in scenario_history:
+            if h["role"] == "user":
+                conversation_full += f"ユーザー: {h['content']}\n"
+            else:
+                conversation_full += f"相手: {h['content']}\n"
+        
+        # ユーザーの応答のみを抽出
+        user_responses = []
+        for h in scenario_history:
+            if h["role"] == "user":
+                user_responses.append(h['content'])
+        
+        # フィードバックプロンプトを作成
+        feedback_prompt = f"""
+あなたは優しいコミュニケーションコーチです。
+以下のロールプレイシナリオでのユーザーのパフォーマンスを評価してください。
+
+シナリオ: {scenario['title']}
+学習ポイント: {', '.join(scenario['learning_points'])}
+
+会話履歴:
+{conversation_full}
+
+このシナリオでユーザーが練習しているスキルは：
+{', '.join(scenario['learning_points'])}
+
+フィードバックの観点：
+
+【良かった点】
+{chr(10).join('- ' + point for point in feedback_points.get('good_points', []))}
+
+【素晴らしかった点】
+{chr(10).join('- ' + point for point in feedback_points.get('excellent', []))}
+
+【次のステップ】
+{chr(10).join('- ' + point for point in feedback_points.get('next_steps', []))}
+
+上記の観点を参考に、ユーザーの応答について具体的で励ましのあるフィードバックを提供してください。
+特に以下の点に注目してください：
+- ユーザーが挨拶や応答をしっかりできたか
+- 相手との適切なコミュニケーションが取れたか
+- シナリオの学習ポイントを実践できたか
+
+批判的にならず、小さな成功も認めて、成長を促す内容にしてください。
+フィードバックは「あなた」という二人称で、優しく励ます口調で書いてください。
+"""
+
+        # Geminiで応答を生成
+        feedback = create_model_and_get_response(model_id, feedback_prompt)
+        
+        return jsonify({"feedback": feedback})
+        
+    except Exception as e:
+        print(f"フィードバックエラー: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 # シナリオ一覧を表示するページ
 @app.route("/scenarios")
 def list_scenarios():
-    """シナリオ一覧ページ"""
+    """シナリオ一覧ページ（改善版）"""
     # 共通関数を使用してモデル情報を取得
     model_info = get_all_available_models()
     available_models = model_info["models"]
     
+    # 初期表示用の最小限のデータのみ渡す（実際のシナリオはAPIから取得）
+    # タグリストの生成
+    all_tags = set()
+    for scenario_data in scenarios.values():
+        tags = scenario_data.get('tags', [])
+        all_tags.update(tags)
+    
     return render_template(
         "scenarios_list.html",
-        scenarios=scenarios,
-        models=available_models
+        scenarios={},  # 初期表示では空にして、APIから動的に読み込む
+        models=available_models,
+        available_tags=sorted(list(all_tags)),
+        use_pagination=True  # ページネーション有効フラグ
     )
 
 # シナリオを選択してロールプレイ画面へ
@@ -1678,6 +2118,211 @@ def get_chat_feedback():
         return jsonify({
             "error": f"フィードバックの生成中にエラーが発生しました: {str(e)}",
             "status": "error"
+        }), 500
+
+# 自己分析ワークシート提出のエンドポイント
+@app.route("/api/self-reflection/submit", methods=["POST"])
+@CSRFToken.require_csrf
+def submit_self_reflection():
+    """
+    自己分析ワークシートの提出を処理し、詳細な分析を生成
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "リクエストデータが必要です"}), 400
+        
+        # 必須フィールドの検証
+        required_fields = ["scenarioId", "conversationId", "responses", "emotions"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"{field}が必要です"}), 400
+        
+        scenario_id = data["scenarioId"]
+        conversation_id = data["conversationId"]
+        responses = data["responses"]
+        emotions = data["emotions"]
+        
+        # シナリオの検証
+        if scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
+        
+        # 会話履歴の取得
+        scenario_history = session.get("scenario_history", {})
+        if scenario_id not in scenario_history:
+            return jsonify({"error": "会話履歴が見つかりません"}), 404
+        
+        conversation_history = scenario_history[scenario_id]
+        scenario_data = scenarios[scenario_id]
+        
+        # ユーザーの感情データを構造化
+        user_emotions = [{
+            "emotion": emotion,
+            "timestamp": data.get("timestamp", datetime.now().isoformat())
+        } for emotion in emotions]
+        
+        # 詳細な分析を実行
+        analysis = post_conversation_analyzer.analyze_conversation(
+            conversation_history=conversation_history,
+            scenario_data=scenario_data,
+            user_emotions=user_emotions
+        )
+        
+        # 自己分析データをセッションに保存
+        if "self_reflections" not in session:
+            session["self_reflections"] = {}
+        
+        session["self_reflections"][conversation_id] = {
+            "scenario_id": scenario_id,
+            "responses": responses,
+            "emotions": emotions,
+            "analysis": {
+                "communication_patterns": analysis.communication_patterns,
+                "emotional_transitions": analysis.emotional_transitions,
+                "key_moments": analysis.key_moments,
+                "alternative_responses": analysis.alternative_responses,
+                "consultant_insights": analysis.consultant_insights,
+                "growth_points": analysis.growth_points,
+                "strengths_demonstrated": analysis.strengths_demonstrated,
+                "areas_for_improvement": analysis.areas_for_improvement
+            },
+            "submitted_at": datetime.now().isoformat()
+        }
+        
+        session.modified = True
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": conversation_id,
+            "analysis_available": True,
+            "message": "自己分析ワークシートを受け付けました"
+        })
+        
+    except Exception as e:
+        print(f"自己分析ワークシート提出エラー: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": f"処理中にエラーが発生しました: {str(e)}"
+        }), 500
+
+# 分析結果を取得するエンドポイント
+@app.route("/api/analysis/<conversation_id>", methods=["GET"])
+def get_analysis_results(conversation_id):
+    """
+    保存された分析結果を取得
+    """
+    try:
+        # セッションから分析結果を取得
+        self_reflections = session.get("self_reflections", {})
+        
+        if conversation_id not in self_reflections:
+            return jsonify({"error": "分析結果が見つかりません"}), 404
+        
+        reflection_data = self_reflections[conversation_id]
+        scenario_id = reflection_data["scenario_id"]
+        scenario_data = scenarios.get(scenario_id, {})
+        
+        return jsonify({
+            "success": True,
+            "conversation_id": conversation_id,
+            "scenario": {
+                "id": scenario_id,
+                "title": scenario_data.get("title", "不明なシナリオ"),
+                "description": scenario_data.get("description", "")
+            },
+            "self_reflection": {
+                "responses": reflection_data["responses"],
+                "emotions": reflection_data["emotions"],
+                "submitted_at": reflection_data["submitted_at"]
+            },
+            "analysis": reflection_data["analysis"]
+        })
+        
+    except Exception as e:
+        print(f"分析結果取得エラー: {str(e)}")
+        return jsonify({
+            "error": f"分析結果の取得中にエラーが発生しました: {str(e)}"
+        }), 500
+
+# 分析結果表示ページ
+@app.route("/analysis/<conversation_id>")
+def show_analysis(conversation_id):
+    """
+    分析結果を表示するページ
+    """
+    try:
+        # セッションから分析結果を取得
+        self_reflections = session.get("self_reflections", {})
+        
+        if conversation_id not in self_reflections:
+            return "分析結果が見つかりません", 404
+        
+        reflection_data = self_reflections[conversation_id]
+        scenario_id = reflection_data["scenario_id"]
+        scenario_data = scenarios.get(scenario_id, {})
+        
+        return render_template(
+            "analysis_results.html",
+            conversation_id=conversation_id,
+            scenario=scenario_data,
+            reflection_data=reflection_data
+        )
+        
+    except Exception as e:
+        print(f"分析結果表示エラー: {str(e)}")
+        return "分析結果の表示中にエラーが発生しました", 500
+
+# 最小限のヒントAPIエンドポイント
+@app.route("/api/hint/minimal", methods=["POST"])
+@CSRFToken.require_csrf
+def get_minimal_hint():
+    """
+    最小限のヒントを生成
+    ユーザーが本当に困った時だけ使う補助機能
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "リクエストデータが必要です"}), 400
+        
+        scenario_id = data.get("scenarioId")
+        conversation_history = data.get("conversationHistory", [])
+        hint_number = data.get("hintNumber", 1)
+        
+        # シナリオの検証
+        if not scenario_id or scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
+        
+        # ヒント番号の検証（最大3回まで）
+        if hint_number < 1 or hint_number > 3:
+            return jsonify({"error": "ヒントは3回までです"}), 400
+        
+        scenario_data = scenarios[scenario_id]
+        
+        # ヒントを生成
+        hint = minimal_hint_service.generate_hint(
+            scenario_id=scenario_id,
+            scenario_data=scenario_data,
+            conversation_history=conversation_history,
+            hint_number=hint_number
+        )
+        
+        # ヒント使用をログに記録
+        logger.info(f"ヒント使用: シナリオ={scenario_id}, 回数={hint_number}")
+        
+        return jsonify({
+            "success": True,
+            "hint": hint,
+            "hintNumber": hint_number,
+            "remainingHints": 3 - hint_number
+        })
+        
+    except Exception as e:
+        logger.error(f"ヒント生成エラー: {str(e)}")
+        return jsonify({
+            "error": "ヒントの生成に失敗しました",
+            "detail": str(e)
         }), 500
 
 def generate_initial_message(llm, partner_type, situation, topic):
@@ -2806,5 +3451,6 @@ if __name__ == "__main__":
         debug=config.DEBUG,
         host=config.HOST,
         port=config.PORT,
-        use_reloader=config.HOT_RELOAD
+        use_reloader=config.HOT_RELOAD,
+        allow_unsafe_werkzeug=True
     )

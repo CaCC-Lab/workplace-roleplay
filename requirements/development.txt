@@ -1,0 +1,33 @@
+# 開発環境の依存関係
+-r base.txt
+
+# コード品質
+black==23.12.1
+flake8==7.0.0
+isort==5.13.2
+mypy==1.8.0
+
+# テスト
+pytest==7.4.4
+pytest-cov==4.1.0
+pytest-flask==1.3.0
+pytest-mock==3.12.0
+
+# デバッグ
+ipython==8.19.0
+ipdb==0.13.13
+
+# セキュリティチェック
+safety==3.0.1
+bandit==1.7.6
+
+# ドキュメント
+sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+
+# パフォーマンス分析
+memory-profiler==0.61.0
+line-profiler==4.1.2
+
+# Pre-commit
+pre-commit==3.6.0

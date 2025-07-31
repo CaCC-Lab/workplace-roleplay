@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析結果 - {{ scenario.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis-results.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>会話分析結果</h1>
+            <nav>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">ホームに戻る</a>
+                <a href="{{ url_for('list_scenarios') }}" class="btn btn-secondary">シナリオ一覧</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- シナリオ情報 -->
+            <section class="scenario-info">
+                <h2>練習したシナリオ</h2>
+                <h3>{{ scenario.title }}</h3>
+                <p>{{ scenario.description }}</p>
+            </section>
+
+            <!-- 自己分析内容 -->
+            <section class="self-reflection">
+                <h2>あなたの振り返り</h2>
+                
+                <div class="reflection-item">
+                    <h3>感じた感情</h3>
+                    <div class="emotions-display">
+                        {% for emotion in reflection_data.emotions %}
+                        <span class="emotion-tag">{{ emotion }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="reflection-item">
+                    <h3>なぜその対応を選んだか</h3>
+                    <p class="user-response">{{ reflection_data.responses.reason }}</p>
+                </div>
+
+                <div class="reflection-item">
+                    <h3>相手の反応をどう感じたか</h3>
+                    <p class="user-response">{{ reflection_data.responses.perception }}</p>
+                </div>
+
+                <div class="reflection-item">
+                    <h3>次回はどうしたいか</h3>
+                    <p class="user-response">{{ reflection_data.responses.future }}</p>
+                </div>
+
+                <div class="reflection-item">
+                    <h3>今回の練習で学んだこと</h3>
+                    <p class="user-response">{{ reflection_data.responses.learning }}</p>
+                </div>
+            </section>
+
+            <!-- AI分析結果 -->
+            <section class="ai-analysis">
+                <h2>AIによる詳細分析</h2>
+
+                <!-- コミュニケーションパターン -->
+                <div class="analysis-section">
+                    <h3>コミュニケーションパターン</h3>
+                    <div class="pattern-analysis">
+                        <div class="pattern-item">
+                            <h4>応答スタイル</h4>
+                            <p>{{ reflection_data.analysis.communication_patterns.response_style }}</p>
+                        </div>
+                        <div class="pattern-item">
+                            <h4>アサーティブネス</h4>
+                            <div class="score-bar">
+                                <div class="score-fill" style="width: {{ reflection_data.analysis.communication_patterns.assertiveness_level * 100 }}%"></div>
+                            </div>
+                            <p class="score-text">{{ (reflection_data.analysis.communication_patterns.assertiveness_level * 100)|int }}%</p>
+                        </div>
+                        <div class="pattern-item">
+                            <h4>明確さ</h4>
+                            <div class="score-bar">
+                                <div class="score-fill" style="width: {{ reflection_data.analysis.communication_patterns.clarity_score * 100 }}%"></div>
+                            </div>
+                            <p class="score-text">{{ (reflection_data.analysis.communication_patterns.clarity_score * 100)|int }}%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- キャリアコンサルタント視点 -->
+                <div class="analysis-section consultant-insights">
+                    <h3>キャリアコンサルタントからの洞察</h3>
+                    <div class="insight-card">
+                        <h4>総合評価</h4>
+                        <p>{{ reflection_data.analysis.consultant_insights.overall_assessment }}</p>
+                    </div>
+                    <div class="insight-card">
+                        <h4>コミュニケーションスタイル</h4>
+                        <p>{{ reflection_data.analysis.consultant_insights.communication_style }}</p>
+                    </div>
+                    <div class="insight-card">
+                        <h4>隠れた強み</h4>
+                        <p>{{ reflection_data.analysis.consultant_insights.hidden_strengths }}</p>
+                    </div>
+                    <div class="insight-card">
+                        <h4>成長の機会</h4>
+                        <p>{{ reflection_data.analysis.consultant_insights.growth_opportunities }}</p>
+                    </div>
+                    <div class="insight-card">
+                        <h4>行動推奨</h4>
+                        <p>{{ reflection_data.analysis.consultant_insights.action_recommendations }}</p>
+                    </div>
+                </div>
+
+                <!-- 強みと改善点 -->
+                <div class="analysis-section">
+                    <h3>成長ポイント</h3>
+                    <div class="growth-points">
+                        <div class="strengths">
+                            <h4>発揮された強み</h4>
+                            <ul>
+                                {% for strength in reflection_data.analysis.strengths_demonstrated %}
+                                <li>{{ strength }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="improvements">
+                            <h4>改善の余地がある点</h4>
+                            <ul>
+                                {% for improvement in reflection_data.analysis.areas_for_improvement %}
+                                <li>{{ improvement }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 代替対応案 -->
+                <div class="analysis-section">
+                    <h3>代替対応案</h3>
+                    <div class="alternatives">
+                        {% for alternative in reflection_data.analysis.alternative_responses %}
+                        <div class="alternative-item">
+                            <h4>ターン {{ alternative.turn + 1 }}</h4>
+                            <div class="original-response">
+                                <h5>あなたの対応:</h5>
+                                <p>{{ alternative.original_response[:100] }}{% if alternative.original_response|length > 100 %}...{% endif %}</p>
+                            </div>
+                            <div class="alternative-suggestions">
+                                <h5>別の対応例:</h5>
+                                {% for suggestion in alternative.alternatives %}
+                                <div class="suggestion">
+                                    <p class="suggestion-text">{{ suggestion.suggestion }}</p>
+                                    <p class="suggestion-benefit">メリット: {{ suggestion.benefit }}</p>
+                                    <p class="suggestion-practice">練習ポイント: {{ suggestion.practice_point }}</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- アクションボタン -->
+            <div class="action-buttons">
+                <button onclick="window.print()" class="btn btn-secondary">
+                    印刷する
+                </button>
+                <a href="{{ url_for('show_scenario', scenario_id=reflection_data.scenario_id) }}" class="btn btn-primary">
+                    もう一度練習する
+                </a>
+                <a href="{{ url_for('list_scenarios') }}" class="btn btn-primary">
+                    他のシナリオを練習
+                </a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -2,7 +2,7 @@
 CSP（Content Security Policy）ミドルウェア
 段階的なCSP実装をサポート
 """
-from flask import Flask, Response, request, g, jsonify
+from flask import Flask, Response, request, g
 from typing import Optional, Callable, Any, Dict, List
 from functools import wraps
 import logging

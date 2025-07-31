@@ -3,7 +3,7 @@
 
 学習成果の分析・可視化機能へのAPIアクセスを提供
 """
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from datetime import datetime
 import logging

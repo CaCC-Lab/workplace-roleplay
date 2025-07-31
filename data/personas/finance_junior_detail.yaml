@@ -90,12 +90,12 @@ scenario_behaviors:
     stress_level: very_high
     cooperation: anxious
     communication: hesitant
-  
+
   learning_opportunity:
     stress_level: low
     cooperation: eager
     communication: inquisitive
-  
+
   mistake_discussion:
     stress_level: high
     cooperation: apologetic
