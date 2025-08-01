@@ -6,6 +6,10 @@ app.pyからapp_refactored.pyへの移行スクリプト
 import os
 import shutil
 from datetime import datetime
+import logging
+
+# ロギングの設定
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def backup_original_app():
@@ -14,10 +18,10 @@ def backup_original_app():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         backup_name = f'app_backup_{timestamp}.py'
         shutil.copy2('app.py', backup_name)
-        print(f"✅ app.pyを{backup_name}としてバックアップしました")
+        logging.info(f"✅ app.pyを{backup_name}としてバックアップしました")
         return True
     else:
-        print("❌ app.pyが見つかりません")
+        logging.error("❌ app.pyが見つかりません")
         return False
 
 

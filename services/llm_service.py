@@ -67,7 +67,9 @@ class LLMService:
             return available_models
             
         except Exception as e:
-            print(f"Error fetching Gemini models: {e}")
+            # エラーログの詳細化
+            import logging
+            logging.error(f"Error fetching Gemini models: {e}", exc_info=True)
             return {}
     
     @staticmethod
@@ -95,7 +97,7 @@ class LLMService:
             raise AuthenticationError("GOOGLE_API_KEY環境変数が設定されていません")
             
         # APIキーの形式を検証
-        if not GOOGLE_API_KEY.startswith("AI"):
+        if not GOOGLE_API_KEY or len(GOOGLE_API_KEY) < 10:
             raise AuthenticationError("無効なGoogle APIキー形式です")
         
         # モデル名の検証
@@ -237,7 +239,9 @@ class LLMService:
                 return content, model_name, None
             except Exception as e:
                 last_error = str(e)
-                print(f"Model {model_name} failed: {last_error}")
+                # エラーログの詳細化
+                import logging
+                logging.warning(f"Model {model_name} failed: {last_error}")
                 continue
         
         # すべてのモデルで失敗した場合

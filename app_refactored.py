@@ -7,6 +7,10 @@ from flask_session import Session
 import os
 from datetime import datetime
 from typing import Dict, Any
+import logging
+
+# ロギングの設定
+logging.basicConfig(level=logging.INFO)
 
 # 環境変数の読み込み
 from dotenv import load_dotenv
@@ -92,12 +96,12 @@ def initialize_session_store():
             )
             
             redis_manager.init_app(app, session_config)
-            print("✅ Redis session store initialized successfully")
+            logging.info("✅ Redis session store initialized successfully")
             return
             
     except (RedisConnectionError, Exception) as e:
-        print(f"⚠️ Redis initialization failed: {e}")
-        print("📦 Falling back to filesystem session store")
+        logging.warning(f"⚠️ Redis initialization failed: {e}")
+        logging.info("📦 Falling back to filesystem session store")
     
     # ファイルシステムセッションへのフォールバック
     app.config["SESSION_TYPE"] = "filesystem"

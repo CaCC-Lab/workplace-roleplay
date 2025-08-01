@@ -2,9 +2,10 @@
 チャット機能サービス
 雑談チャットの処理ロジックを担当
 """
-from typing import Dict, Any, Generator
+from typing import Dict, Any, Generator, List
 import json
 from datetime import datetime
+import logging
 
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder

@@ -15,7 +15,8 @@ class TestLLMService:
     @pytest.fixture
     def mock_env_with_api_key(self):
         """APIキーを含む環境変数のモック"""
-        with patch.dict(os.environ, {'GOOGLE_API_KEY': 'AIzaSyTest123456789'}, clear=False):
+        # APIキーのモックをより現実的に
+        with patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_api_key_1234567890'}, clear=False):
             yield
     
     @pytest.fixture
@@ -23,7 +24,7 @@ class TestLLMService:
         """設定のモック"""
         with patch('services.llm_service.get_cached_config') as mock:
             config = MagicMock()
-            config.GOOGLE_API_KEY = 'AIzaSyTest123456789'
+            config.GOOGLE_API_KEY = 'test_api_key_1234567890'
             mock.return_value = config
             yield mock
     

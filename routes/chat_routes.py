@@ -41,7 +41,9 @@ def chat():
     except ExternalAPIError as e:
         return jsonify({'error': str(e)}), 503
     except Exception as e:
-        print(f"Chat endpoint error: {str(e)}")
+        # エラーログの改善
+        import logging
+        logging.error(f"Chat endpoint error: {str(e)}", exc_info=True)
         return jsonify({'error': 'チャット処理中にエラーが発生しました'}), 500
 
 
@@ -58,10 +60,11 @@ def chat_feedback():
         return jsonify(feedback_data)
         
     except Exception as e:
-        print(f"Chat feedback error: {str(e)}")
+        # エラーログの改善
+        import logging
+        logging.error(f"Chat feedback error: {str(e)}", exc_info=True)
         return jsonify({
-            'error': 'フィードバック生成中にエラーが発生しました',
-            'details': str(e)
+            'error': 'フィードバック生成中にエラーが発生しました'
         }), 500
 
 
@@ -78,8 +81,9 @@ def clear_chat():
         return jsonify(result)
         
     except Exception as e:
-        print(f"Clear chat error: {str(e)}")
+        # エラーログの改善
+        import logging
+        logging.error(f"Clear chat error: {str(e)}", exc_info=True)
         return jsonify({
-            'error': 'チャット履歴のクリアに失敗しました',
-            'details': str(e)
+            'error': 'チャット履歴のクリアに失敗しました'
         }), 500

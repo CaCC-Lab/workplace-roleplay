@@ -5,6 +5,7 @@
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from flask import session
+import threading
 
 
 class SessionService:
@@ -48,6 +49,10 @@ class SessionService:
             history = session[session_key][sub_key]
         else:
             history = session[session_key]
+        
+        # エントリの検証
+        if not isinstance(entry, dict):
+            raise ValueError("Entry must be a dictionary")
         
         # エントリを追加
         history.append(entry)
