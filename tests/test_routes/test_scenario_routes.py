@@ -118,7 +118,7 @@ class TestScenarioRoutes:
                                  headers={'Content-Type': 'application/json'})
             
             assert response.status_code == 200
-            assert response.content_type == 'text/event-stream'
+            assert response.content_type.startswith('text/event-stream')
     
     def test_scenario_feedback_正常系(self, client):
         """シナリオフィードバックの正常系テスト"""

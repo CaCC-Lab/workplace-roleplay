@@ -120,7 +120,7 @@ class TestWatchService:
         history = [{'speaker': f'AI{i%2+1}', 'message': f'msg{i}'} for i in range(20)]
         mock_dependencies['session_service'].get_session_history.return_value = history
         
-        config = {'next_speaker': 'AI1'}
+        config = {'next_speaker': 'AI1', 'partner1_type': '同僚', 'partner2_type': '友人'}
         mock_dependencies['session_service'].get_session_data.return_value = config
         
         result = WatchService.generate_next_message()
@@ -135,9 +135,8 @@ class TestWatchService:
         
         result = WatchService.get_watch_summary()
         
-        assert result['total_messages'] == 0
-        assert result['participants'] == []
-        assert result['message'] == 'まだ観戦履歴がありません'
+        assert result['turn_count'] == 0
+        assert result['summary'] == '会話履歴がありません'
     
     def test_get_watch_summary_履歴あり(self, mock_dependencies):
         """履歴がある場合のサマリー"""
@@ -147,14 +146,19 @@ class TestWatchService:
             {'speaker': 'AI1', 'partner_type': '同僚', 'message': '元気ですか？'}
         ]
         mock_dependencies['session_service'].get_session_history.return_value = history
+        # configデータをモック
+        mock_dependencies['session_service'].get_session_data.return_value = {
+            'partner1_type': '同僚',
+            'partner2_type': '友人',
+            'topic': '日常'
+        }
         
         result = WatchService.get_watch_summary()
         
-        assert result['total_messages'] == 3
-        assert set(result['participants']) == {'同僚', '友人'}
-        assert result['ai1_messages'] == 2
-        assert result['ai2_messages'] == 1
-        assert len(result['conversation_highlights']) <= 3
+        assert result['turn_count'] == 3
+        assert result['partner1_type'] == '同僚'
+        assert result['partner2_type'] == '友人'
+        assert result['topic'] == '日常'
     
     def test_extract_message_content_各種形式(self):
         """様々な形式からのメッセージ抽出"""

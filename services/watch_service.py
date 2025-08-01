@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import json
 from datetime import datetime
 import random
+import logging
 
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -260,11 +261,14 @@ class WatchService:
             }
         
         # 基本情報
+        if config is None:
+            config = {}
+        
         summary_info = {
             'turn_count': len(history),
-            'partner1_type': config.get('partner1_type', '不明'),
-            'partner2_type': config.get('partner2_type', '不明'),
-            'topic': config.get('topic', '不明'),
+            'partner1_type': config.get('partner1_type', '不明') if isinstance(config, dict) else '不明',
+            'partner2_type': config.get('partner2_type', '不明') if isinstance(config, dict) else '不明',
+            'topic': config.get('topic', '不明') if isinstance(config, dict) else '不明',
             'start_time': SessionService.get_session_start_time('watch')
         }
         
@@ -281,3 +285,16 @@ class WatchService:
                 summary_info['summary'] = '会話の要約生成に失敗しました'
         
         return summary_info
+    
+    @staticmethod
+    def _extract_message_content(resp: Any) -> str:
+        """
+        レスポンスからメッセージ内容を抽出（プライベートメソッド）
+        
+        Args:
+            resp: LLMのレスポンス
+            
+        Returns:
+            抽出されたメッセージ内容
+        """
+        return LLMService.extract_content(resp)

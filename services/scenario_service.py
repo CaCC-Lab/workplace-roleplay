@@ -8,6 +8,7 @@ from datetime import datetime
 
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnableWithMessageHistory
 
 from services.llm_service import LLMService
 from services.session_service import SessionService

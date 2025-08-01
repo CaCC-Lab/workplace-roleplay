@@ -47,6 +47,7 @@ class ValidationError(AppError):
     """バリデーションエラー"""
     
     def __init__(self, message: str, field: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+        self.field = field
         if field:
             details = details or {}
             details["field"] = field
