@@ -46,4 +46,26 @@ def load_scenarios() -> Dict[str, Any]:
     print(f"Loaded {len(sorted_scenarios)} scenarios in natural sort order")
     print(f"First 5 scenarios: {scenario_order[:5] if len(scenario_order) >= 5 else scenario_order}")
     
-    return sorted_scenarios 
+    return sorted_scenarios
+
+
+# グローバル変数として一度だけロード
+_scenarios = None
+
+
+def get_all_scenarios() -> Dict[str, Any]:
+    """
+    全てのシナリオを取得
+    """
+    global _scenarios
+    if _scenarios is None:
+        _scenarios = load_scenarios()
+    return _scenarios
+
+
+def get_scenario_by_id(scenario_id: str) -> Dict[str, Any]:
+    """
+    IDでシナリオを取得
+    """
+    scenarios = get_all_scenarios()
+    return scenarios.get(scenario_id) 
