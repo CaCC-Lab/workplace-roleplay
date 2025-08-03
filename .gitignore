@@ -30,6 +30,9 @@ instance/
 .DS_Store
 Thumbs.db
 
+# 音声ファイル
+*.wav
+
 # 一時ファイル
 *.swp
 *.swo
