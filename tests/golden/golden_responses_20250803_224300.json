@@ -1,0 +1,912 @@
+{
+  "metadata": {
+    "recorded_at": "2025-08-03T13:43:00.236010",
+    "base_url": "http://localhost:5001",
+    "total_tests": 10
+  },
+  "test_cases": [
+    {
+      "endpoint": "GET /",
+      "request": null,
+      "response_status": 200,
+      "response_data": "<!DOCTYPE html>\n<html lang=\"ja\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>職場コミュニケーション練習アプリ</title>\n    <link rel=\"stylesheet\" href=\"/static/css/style.css\">\n    <link rel=\"stylesheet\" href=\"/static/css/modern.css\">\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n    <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap\" rel=\"stylesheet\">\n    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">\n</head>\n<body>\n    <div id=\"chat-container\">\n        <h1><i class=\"fas fa-comments\"></i> 職場コミュニケーション練習アプリ</h1>\n        \n        <div class=\"content-section\">\n            <div class=\"welcome-section\">\n                <h2><i class=\"fas fa-bullseye\"></i> アプリの目的</h2>\n                <p>このアプリは、職場でのコミュニケーションスキルを安全に練習できる環境を提供します。\n                   実",
+      "response_headers": {
+        "Server": "Werkzeug/3.0.4 Python/3.11.0",
+        "Date": "Sun, 03 Aug 2025 13:42:51 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": "10751",
+        "Vary": "Cookie",
+        "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:51 GMT; HttpOnly; Path=/",
+        "Connection": "close"
+      },
+      "timestamp": "2025-08-03T13:42:51.894208"
+    },
+    {
+      "endpoint": "GET /api/models",
+      "request": null,
+      "response_status": 200,
+      "response_data": {
+        "categories": {
+          "gemini": [
+            {
+              "id": "gemini/gemini-1.5-pro-latest",
+              "name": "gemini-1.5-pro-latest",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-1.5-pro-002",
+              "name": "gemini-1.5-pro-002",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-1.5-pro",
+              "name": "gemini-1.5-pro",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-1.5-flash-latest",
+              "name": "gemini-1.5-flash-latest",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-1.5-flash",
+              "name": "gemini-1.5-flash",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-1.5-flash-002",
+              "name": "gemini-1.5-flash-002",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-1.5-flash-8b",
+              "name": "gemini-1.5-flash-8b",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-1.5-flash-8b-001",
+              "name": "gemini-1.5-flash-8b-001",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-1.5-flash-8b-latest",
+              "name": "gemini-1.5-flash-8b-latest",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-pro-preview-03-25",
+              "name": "gemini-2.5-pro-preview-03-25",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-flash-preview-05-20",
+              "name": "gemini-2.5-flash-preview-05-20",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-flash",
+              "name": "gemini-2.5-flash",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-flash-lite-preview-06-17",
+              "name": "gemini-2.5-flash-lite-preview-06-17",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-pro-preview-05-06",
+              "name": "gemini-2.5-pro-preview-05-06",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-pro-preview-06-05",
+              "name": "gemini-2.5-pro-preview-06-05",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-pro",
+              "name": "gemini-2.5-pro",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-exp",
+              "name": "gemini-2.0-flash-exp",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash",
+              "name": "gemini-2.0-flash",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-001",
+              "name": "gemini-2.0-flash-001",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-exp-image-generation",
+              "name": "gemini-2.0-flash-exp-image-generation",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-lite-001",
+              "name": "gemini-2.0-flash-lite-001",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-lite",
+              "name": "gemini-2.0-flash-lite",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-preview-image-generation",
+              "name": "gemini-2.0-flash-preview-image-generation",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-lite-preview-02-05",
+              "name": "gemini-2.0-flash-lite-preview-02-05",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-lite-preview",
+              "name": "gemini-2.0-flash-lite-preview",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-pro-exp",
+              "name": "gemini-2.0-pro-exp",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-pro-exp-02-05",
+              "name": "gemini-2.0-pro-exp-02-05",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-exp-1206",
+              "name": "gemini-exp-1206",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-thinking-exp-01-21",
+              "name": "gemini-2.0-flash-thinking-exp-01-21",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-thinking-exp",
+              "name": "gemini-2.0-flash-thinking-exp",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-thinking-exp-1219",
+              "name": "gemini-2.0-flash-thinking-exp-1219",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-flash-preview-tts",
+              "name": "gemini-2.5-flash-preview-tts",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-pro-preview-tts",
+              "name": "gemini-2.5-pro-preview-tts",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-flash-lite",
+              "name": "gemini-2.5-flash-lite",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-embedding-exp-03-07",
+              "name": "gemini-embedding-exp-03-07",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-embedding-exp",
+              "name": "gemini-embedding-exp",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-embedding-001",
+              "name": "gemini-embedding-001",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-flash-preview-native-audio-dialog",
+              "name": "gemini-2.5-flash-preview-native-audio-dialog",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-flash-exp-native-audio-thinking-dialog",
+              "name": "gemini-2.5-flash-exp-native-audio-thinking-dialog",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.0-flash-live-001",
+              "name": "gemini-2.0-flash-live-001",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-live-2.5-flash-preview",
+              "name": "gemini-live-2.5-flash-preview",
+              "provider": "gemini"
+            },
+            {
+              "id": "gemini/gemini-2.5-flash-live-preview",
+              "name": "gemini-2.5-flash-live-preview",
+              "provider": "gemini"
+            }
+          ]
+        },
+        "models": [
+          {
+            "id": "gemini/gemini-1.5-pro-latest",
+            "name": "gemini-1.5-pro-latest",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-1.5-pro-002",
+            "name": "gemini-1.5-pro-002",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-1.5-pro",
+            "name": "gemini-1.5-pro",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-1.5-flash-latest",
+            "name": "gemini-1.5-flash-latest",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-1.5-flash",
+            "name": "gemini-1.5-flash",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-1.5-flash-002",
+            "name": "gemini-1.5-flash-002",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-1.5-flash-8b",
+            "name": "gemini-1.5-flash-8b",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-1.5-flash-8b-001",
+            "name": "gemini-1.5-flash-8b-001",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-1.5-flash-8b-latest",
+            "name": "gemini-1.5-flash-8b-latest",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-pro-preview-03-25",
+            "name": "gemini-2.5-pro-preview-03-25",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-flash-preview-05-20",
+            "name": "gemini-2.5-flash-preview-05-20",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-flash",
+            "name": "gemini-2.5-flash",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-flash-lite-preview-06-17",
+            "name": "gemini-2.5-flash-lite-preview-06-17",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-pro-preview-05-06",
+            "name": "gemini-2.5-pro-preview-05-06",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-pro-preview-06-05",
+            "name": "gemini-2.5-pro-preview-06-05",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-pro",
+            "name": "gemini-2.5-pro",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-exp",
+            "name": "gemini-2.0-flash-exp",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash",
+            "name": "gemini-2.0-flash",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-001",
+            "name": "gemini-2.0-flash-001",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-exp-image-generation",
+            "name": "gemini-2.0-flash-exp-image-generation",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-lite-001",
+            "name": "gemini-2.0-flash-lite-001",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-lite",
+            "name": "gemini-2.0-flash-lite",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-preview-image-generation",
+            "name": "gemini-2.0-flash-preview-image-generation",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-lite-preview-02-05",
+            "name": "gemini-2.0-flash-lite-preview-02-05",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-lite-preview",
+            "name": "gemini-2.0-flash-lite-preview",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-pro-exp",
+            "name": "gemini-2.0-pro-exp",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-pro-exp-02-05",
+            "name": "gemini-2.0-pro-exp-02-05",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-exp-1206",
+            "name": "gemini-exp-1206",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-thinking-exp-01-21",
+            "name": "gemini-2.0-flash-thinking-exp-01-21",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-thinking-exp",
+            "name": "gemini-2.0-flash-thinking-exp",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-thinking-exp-1219",
+            "name": "gemini-2.0-flash-thinking-exp-1219",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-flash-preview-tts",
+            "name": "gemini-2.5-flash-preview-tts",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-pro-preview-tts",
+            "name": "gemini-2.5-pro-preview-tts",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-flash-lite",
+            "name": "gemini-2.5-flash-lite",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-embedding-exp-03-07",
+            "name": "gemini-embedding-exp-03-07",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-embedding-exp",
+            "name": "gemini-embedding-exp",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-embedding-001",
+            "name": "gemini-embedding-001",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-flash-preview-native-audio-dialog",
+            "name": "gemini-2.5-flash-preview-native-audio-dialog",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-flash-exp-native-audio-thinking-dialog",
+            "name": "gemini-2.5-flash-exp-native-audio-thinking-dialog",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.0-flash-live-001",
+            "name": "gemini-2.0-flash-live-001",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-live-2.5-flash-preview",
+            "name": "gemini-live-2.5-flash-preview",
+            "provider": "gemini"
+          },
+          {
+            "id": "gemini/gemini-2.5-flash-live-preview",
+            "name": "gemini-2.5-flash-live-preview",
+            "provider": "gemini"
+          }
+        ]
+      },
+      "response_headers": {
+        "Server": "Werkzeug/3.0.4 Python/3.11.0",
+        "Date": "Sun, 03 Aug 2025 13:42:52 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "11589",
+        "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:52 GMT; HttpOnly; Path=/",
+        "Vary": "Cookie",
+        "Connection": "close"
+      },
+      "timestamp": "2025-08-03T13:42:52.779217"
+    },
+    {
+      "endpoint": "GET /api/tts/voices",
+      "request": null,
+      "response_status": 200,
+      "response_data": {
+        "voices": [
+          {
+            "gender": "female",
+            "id": "kore",
+            "name": "Kore - 会社的",
+            "provider": "gemini",
+            "style": "professional"
+          },
+          {
+            "gender": "female",
+            "id": "aoede",
+            "name": "Aoede - 軽快",
+            "provider": "gemini",
+            "style": "breezy"
+          },
+          {
+            "gender": "female",
+            "id": "callirrhoe",
+            "name": "Callirrhoe - おおらか",
+            "provider": "gemini",
+            "style": "easygoing"
+          },
+          {
+            "gender": "female",
+            "id": "leda",
+            "name": "Leda - 若々しい",
+            "provider": "gemini",
+            "style": "youthful"
+          },
+          {
+            "gender": "female",
+            "id": "algieba",
+            "name": "Algieba - スムーズ",
+            "provider": "gemini",
+            "style": "smooth"
+          },
+          {
+            "gender": "female",
+            "id": "autonoe",
+            "name": "Autonoe - 明るい",
+            "provider": "gemini",
+            "style": "bright"
+          },
+          {
+            "gender": "female",
+            "id": "despina",
+            "name": "Despina - スムーズ",
+            "provider": "gemini",
+            "style": "smooth"
+          },
+          {
+            "gender": "female",
+            "id": "erinome",
+            "name": "Erinome - クリア",
+            "provider": "gemini",
+            "style": "clear"
+          },
+          {
+            "gender": "female",
+            "id": "laomedeia",
+            "name": "Laomedeia - アップビート",
+            "provider": "gemini",
+            "style": "upbeat"
+          },
+          {
+            "gender": "female",
+            "id": "pulcherrima",
+            "name": "Pulcherrima - 前向き",
+            "provider": "gemini",
+            "style": "forward"
+          },
+          {
+            "gender": "female",
+            "id": "vindemiatrix",
+            "name": "Vindemiatrix - 優しい",
+            "provider": "gemini",
+            "style": "gentle"
+          },
+          {
+            "gender": "male",
+            "id": "enceladus",
+            "name": "Enceladus - 息づかい",
+            "provider": "gemini",
+            "style": "breathy"
+          },
+          {
+            "gender": "male",
+            "id": "charon",
+            "name": "Charon - 情報提供的",
+            "provider": "gemini",
+            "style": "informative"
+          },
+          {
+            "gender": "male",
+            "id": "fenrir",
+            "name": "Fenrir - 興奮しやすい",
+            "provider": "gemini",
+            "style": "excitable"
+          },
+          {
+            "gender": "male",
+            "id": "orus",
+            "name": "Orus - 会社的",
+            "provider": "gemini",
+            "style": "corporate"
+          },
+          {
+            "gender": "male",
+            "id": "iapetus",
+            "name": "Iapetus - クリア",
+            "provider": "gemini",
+            "style": "clear"
+          },
+          {
+            "gender": "male",
+            "id": "algenib",
+            "name": "Algenib - 砂利声",
+            "provider": "gemini",
+            "style": "gravelly"
+          },
+          {
+            "gender": "male",
+            "id": "rasalgethi",
+            "name": "Rasalgethi - 情報豊富",
+            "provider": "gemini",
+            "style": "informative"
+          },
+          {
+            "gender": "male",
+            "id": "achernar",
+            "name": "Achernar - ソフト",
+            "provider": "gemini",
+            "style": "soft"
+          },
+          {
+            "gender": "male",
+            "id": "alnilam",
+            "name": "Alnilam - 確実",
+            "provider": "gemini",
+            "style": "assured"
+          },
+          {
+            "gender": "male",
+            "id": "gacrux",
+            "name": "Gacrux - 成熟",
+            "provider": "gemini",
+            "style": "mature"
+          },
+          {
+            "gender": "male",
+            "id": "achird",
+            "name": "Achird - フレンドリー",
+            "provider": "gemini",
+            "style": "friendly"
+          },
+          {
+            "gender": "male",
+            "id": "zubenelgenubi",
+            "name": "Zubenelgenubi - カジュアル",
+            "provider": "gemini",
+            "style": "casual"
+          },
+          {
+            "gender": "male",
+            "id": "sadachbia",
+            "name": "Sadachbia - 活発",
+            "provider": "gemini",
+            "style": "lively"
+          },
+          {
+            "gender": "male",
+            "id": "sadaltager",
+            "name": "Sadaltager - 知識豊富",
+            "provider": "gemini",
+            "style": "knowledgeable"
+          },
+          {
+            "gender": "male",
+            "id": "sulafat",
+            "name": "Sulafat - 温かい",
+            "provider": "gemini",
+            "style": "warm"
+          },
+          {
+            "gender": "neutral",
+            "id": "puck",
+            "name": "Puck - アップビート",
+            "provider": "gemini",
+            "style": "upbeat"
+          },
+          {
+            "gender": "neutral",
+            "id": "zephyr",
+            "name": "Zephyr - 明るい",
+            "provider": "gemini",
+            "style": "bright"
+          },
+          {
+            "gender": "neutral",
+            "id": "umbriel",
+            "name": "Umbriel - 気楽",
+            "provider": "gemini",
+            "style": "easygoing"
+          },
+          {
+            "gender": "neutral",
+            "id": "schedar",
+            "name": "Schedar - 均等",
+            "provider": "gemini",
+            "style": "even"
+          },
+          {
+            "gender": "various",
+            "id": "web-speech",
+            "name": "ブラウザ音声合成（フォールバック）",
+            "provider": "browser"
+          }
+        ]
+      },
+      "response_headers": {
+        "Server": "Werkzeug/3.0.4 Python/3.11.0",
+        "Date": "Sun, 03 Aug 2025 13:42:52 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "5171",
+        "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:52 GMT; HttpOnly; Path=/",
+        "Vary": "Cookie",
+        "Connection": "close"
+      },
+      "timestamp": "2025-08-03T13:42:52.784830"
+    },
+    {
+      "endpoint": "/api/chat",
+      "pattern": {
+        "name": "simple_greeting",
+        "messages": [
+          "こんにちは"
+        ],
+        "description": "シンプルな挨拶"
+      },
+      "conversation_flow": [
+        {
+          "request": {
+            "message": "こんにちは"
+          },
+          "response_status": 403,
+          "response_preview": "{\n  \"code\": \"CSRF_TOKEN_MISSING\",\n  \"error\": \"CSRF\\u30c8\\u30fc\\u30af\\u30f3\\u304c\\u5fc5\\u8981\\u3067\\u3059\"\n}\n",
+          "headers": {
+            "Server": "Werkzeug/3.0.4 Python/3.11.0",
+            "Date": "Sun, 03 Aug 2025 13:42:52 GMT",
+            "Content-Type": "application/json",
+            "Content-Length": "108",
+            "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:52 GMT; HttpOnly; Path=/",
+            "Vary": "Cookie",
+            "Connection": "close"
+          }
+        }
+      ],
+      "timestamp": "2025-08-03T13:42:53.304204"
+    },
+    {
+      "endpoint": "/api/chat",
+      "pattern": {
+        "name": "multi_turn_conversation",
+        "messages": [
+          "こんにちは",
+          "今日の天気はどうですか？",
+          "ありがとうございます"
+        ],
+        "description": "複数ターンの会話"
+      },
+      "conversation_flow": [
+        {
+          "request": {
+            "message": "こんにちは"
+          },
+          "response_status": 403,
+          "response_preview": "{\n  \"code\": \"CSRF_TOKEN_MISSING\",\n  \"error\": \"CSRF\\u30c8\\u30fc\\u30af\\u30f3\\u304c\\u5fc5\\u8981\\u3067\\u3059\"\n}\n",
+          "headers": {
+            "Server": "Werkzeug/3.0.4 Python/3.11.0",
+            "Date": "Sun, 03 Aug 2025 13:42:53 GMT",
+            "Content-Type": "application/json",
+            "Content-Length": "108",
+            "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:53 GMT; HttpOnly; Path=/",
+            "Vary": "Cookie",
+            "Connection": "close"
+          }
+        },
+        {
+          "request": {
+            "message": "今日の天気はどうですか？"
+          },
+          "response_status": 403,
+          "response_preview": "{\n  \"code\": \"CSRF_TOKEN_MISSING\",\n  \"error\": \"CSRF\\u30c8\\u30fc\\u30af\\u30f3\\u304c\\u5fc5\\u8981\\u3067\\u3059\"\n}\n",
+          "headers": {
+            "Server": "Werkzeug/3.0.4 Python/3.11.0",
+            "Date": "Sun, 03 Aug 2025 13:42:53 GMT",
+            "Content-Type": "application/json",
+            "Content-Length": "108",
+            "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:53 GMT; HttpOnly; Path=/",
+            "Vary": "Cookie",
+            "Connection": "close"
+          }
+        },
+        {
+          "request": {
+            "message": "ありがとうございます"
+          },
+          "response_status": 403,
+          "response_preview": "{\n  \"code\": \"CSRF_TOKEN_MISSING\",\n  \"error\": \"CSRF\\u30c8\\u30fc\\u30af\\u30f3\\u304c\\u5fc5\\u8981\\u3067\\u3059\"\n}\n",
+          "headers": {
+            "Server": "Werkzeug/3.0.4 Python/3.11.0",
+            "Date": "Sun, 03 Aug 2025 13:42:54 GMT",
+            "Content-Type": "application/json",
+            "Content-Length": "108",
+            "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:54 GMT; HttpOnly; Path=/",
+            "Vary": "Cookie",
+            "Connection": "close"
+          }
+        }
+      ],
+      "timestamp": "2025-08-03T13:42:54.854166"
+    },
+    {
+      "endpoint": "/api/chat",
+      "pattern": {
+        "name": "long_message",
+        "messages": [
+          "これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。"
+        ],
+        "description": "長いメッセージ"
+      },
+      "conversation_flow": [
+        {
+          "request": {
+            "message": "これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。これは長いメッセージのテストです。"
+          },
+          "response_status": 403,
+          "response_preview": "{\n  \"code\": \"CSRF_TOKEN_MISSING\",\n  \"error\": \"CSRF\\u30c8\\u30fc\\u30af\\u30f3\\u304c\\u5fc5\\u8981\\u3067\\u3059\"\n}\n",
+          "headers": {
+            "Server": "Werkzeug/3.0.4 Python/3.11.0",
+            "Date": "Sun, 03 Aug 2025 13:42:54 GMT",
+            "Content-Type": "application/json",
+            "Content-Length": "108",
+            "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:54 GMT; HttpOnly; Path=/",
+            "Vary": "Cookie",
+            "Connection": "close"
+          }
+        }
+      ],
+      "timestamp": "2025-08-03T13:42:55.370787"
+    },
+    {
+      "endpoint": "GET /api/scenarios",
+      "request": null,
+      "response_status": 404,
+      "response_data": {
+        "error": {
+          "code": "RESOURCE_NOT_FOUND",
+          "message": "APIエンドポイントが見つかりません (ID: /api/scenarios)"
+        }
+      },
+      "response_headers": {
+        "Server": "Werkzeug/3.0.4 Python/3.11.0",
+        "Date": "Sun, 03 Aug 2025 13:42:55 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "187",
+        "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:55 GMT; HttpOnly; Path=/",
+        "Vary": "Cookie",
+        "Connection": "close"
+      },
+      "timestamp": "2025-08-03T13:42:55.377819"
+    },
+    {
+      "endpoint": "POST /api/watch/start",
+      "request": {
+        "theme": "新人研修での質問",
+        "personas": {
+          "A": "gemini-1.5-flash",
+          "B": "gemini-1.5-pro"
+        }
+      },
+      "response_status": 403,
+      "response_data": {
+        "code": "CSRF_TOKEN_MISSING",
+        "error": "CSRFトークンが必要です"
+      },
+      "response_headers": {
+        "Server": "Werkzeug/3.0.4 Python/3.11.0",
+        "Date": "Sun, 03 Aug 2025 13:42:55 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "108",
+        "Set-Cookie": "session=mdO0IFRmE6PvvNAVRjLecnMwryGfViX5V1EBSDsbVjA; Expires=Wed, 03 Sep 2025 13:42:55 GMT; HttpOnly; Path=/",
+        "Vary": "Cookie",
+        "Connection": "close"
+      },
+      "timestamp": "2025-08-03T13:42:55.383269"
+    },
+    {
+      "endpoint": "/api/tts",
+      "test_case": {
+        "text": "こんにちは",
+        "voice": "kore",
+        "description": "基本的なTTS"
+      },
+      "request": {
+        "text": "こんにちは",
+        "voice": "kore"
+      },
+      "response_status": 200,
+      "response_data": {
+        "audio": "<77560 characters>",
+        "format": "wav",
+        "provider": "gemini",
+        "voice": "kore"
+      },
+      "timestamp": "2025-08-03T13:42:57.595042"
+    },
+    {
+      "endpoint": "/api/tts",
+      "test_case": {
+        "text": "これはテストです",
+        "voice": "charon",
+        "emotion": "happy",
+        "description": "感情付きTTS"
+      },
+      "request": {
+        "text": "これはテストです",
+        "voice": "charon",
+        "emotion": "happy"
+      },
+      "response_status": 200,
+      "response_data": {
+        "audio": "<118520 characters>",
+        "format": "wav",
+        "provider": "gemini",
+        "voice": "charon"
+      },
+      "timestamp": "2025-08-03T13:43:00.235964"
+    }
+  ]
+}
