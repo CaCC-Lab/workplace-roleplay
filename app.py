@@ -485,6 +485,44 @@ def set_session_start_time(session_key, sub_key=None):
 
 # チャットエンドポイントを更新して共通関数を使用
 
+def process_chat_message_legacy(message: str, model_name: str = None) -> str:
+    """
+    既存のチャット処理ロジック（A/Bテスト用）
+    """
+    if not model_name:
+        model_name = DEFAULT_MODEL
+    
+    # chat_settingsの取得
+    chat_settings = session.get("chat_settings", {})
+    system_prompt = chat_settings.get("system_prompt", "")
+    
+    if not system_prompt:
+        raise ValidationError("チャットセッションが初期化されていません")
+    
+    # 会話履歴の取得と更新
+    initialize_session_history("chat_history")
+    
+    # メッセージリストの作成
+    messages = []
+    messages.append(SystemMessage(content=system_prompt))
+    
+    # 履歴からメッセージを構築
+    add_messages_from_history(messages, session["chat_history"])
+    
+    # 新しいメッセージを追加
+    messages.append(HumanMessage(content=message))
+    
+    # 応答を生成
+    ai_message = create_model_and_get_response(model_name, messages)
+    
+    # 会話履歴の更新
+    add_to_session_history("chat_history", {
+        "human": message,
+        "ai": ai_message
+    })
+    
+    return ai_message
+
 @app.route("/api/chat", methods=["POST"])
 @CSRFToken.require_csrf
 def handle_chat() -> Any:
@@ -526,17 +564,13 @@ def handle_chat() -> Any:
     # 新しいメッセージを追加
     messages.append(HumanMessage(content=message))
 
-    # 共通関数を使用して応答を生成
-    ai_message = create_model_and_get_response(model_name, messages)
-
-    # 会話履歴の更新（共通関数使用）
-    add_to_session_history("chat_history", {
-        "human": message,
-        "ai": ai_message
-    })
-
-    # レスポンスをエスケープして返す
-    return jsonify({"response": SecurityUtils.escape_html(ai_message)})
+    # 既存のロジックを使用
+    try:
+        ai_message = process_chat_message_legacy(message, model_name)
+        # レスポンスをエスケープして返す
+        return jsonify({"response": SecurityUtils.escape_html(ai_message)})
+    except Exception as e:
+        raise e
 
 @app.route("/api/clear_history", methods=["POST"])
 @CSRFToken.require_csrf
@@ -2437,6 +2471,14 @@ def clear_session_data():
 
 
 # ========== メイン起動 ==========
+# ============= A/Bテスト用Blueprint登録 =============
+try:
+    from routes.ab_test_routes import ab_test_bp
+    app.register_blueprint(ab_test_bp)
+    print("✅ A/Bテストエンドポイントを登録しました (/api/v2/*)")
+except ImportError as e:
+    print(f"⚠️ A/Bテストエンドポイントは利用できません: {e}")
+
 if __name__ == "__main__":
     # 設定に基づいてサーバーを起動
     app.run(
