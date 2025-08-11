@@ -1,0 +1,69 @@
+# FastAPI Migration Requirements
+# 5AI協調設計に基づく新技術スタック
+
+# === Core FastAPI Stack ===
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# === Authentication & Security ===
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
+
+# === Database & Cache ===
+redis[hiredis]>=5.0.0
+asyncpg>=0.29.0  # PostgreSQL async driver
+sqlalchemy>=2.0.0
+alembic>=1.12.0  # Database migrations
+
+# === AI & ML Integration ===
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-google-genai>=0.0.6
+google-generativeai>=0.3.0
+openai>=1.0.0  # Fallback AI provider
+
+# === Template & Frontend ===
+jinja2>=3.1.2
+aiofiles>=23.1.0  # Async file operations
+
+# === Monitoring & Observability ===
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+opentelemetry-instrumentation-fastapi>=0.42b0
+prometheus-client>=0.19.0
+structlog>=23.2.0  # Structured logging
+
+# === HTTP Client & Networking ===
+httpx>=0.25.0  # Async HTTP client
+websockets>=12.0  # WebSocket support
+
+# === Development & Testing ===
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.12.0
+httpx>=0.25.0  # Test client
+factory-boy>=3.3.0  # Test data generation
+
+# === Data Processing ===
+pandas>=2.0.0
+numpy>=1.24.0
+
+# === Background Tasks ===
+celery>=5.3.0
+kombu>=5.3.0
+
+# === Configuration & Environment ===
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# === Additional Utilities ===
+email-validator>=2.1.0
+python-slugify>=8.0.0
+cryptography>=41.0.0
+
+# === Optional: Vector Database (RAG準備) ===
+# chromadb>=0.4.0  # Uncomment when implementing RAG
+# pinecone-client>=2.2.0  # Alternative vector DB
