@@ -65,9 +65,13 @@ messageInput.addEventListener('keypress', function(e) {
 // 初期メッセージの取得
 window.addEventListener('load', async () => {
     try {
-        const selectedModel = localStorage.getItem('selectedModel');
+        // モデル選択（localStorageから取得、なければデフォルト値を使用）
+        let selectedModel = localStorage.getItem('selectedModel');
         if (!selectedModel) {
-            throw new Error("モデルが選択されていません。トップページでモデルを選択してください。");
+            // デフォルトモデルを設定（gemini-1.5-flashをデフォルトとする）
+            selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
+            localStorage.setItem('selectedModel', selectedModel);
+            console.log('デフォルトモデルを設定:', selectedModel);
         }
         
         const response = await fetch("/api/scenario_chat", {

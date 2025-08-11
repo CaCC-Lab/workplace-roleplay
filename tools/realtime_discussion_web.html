@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リアルタイム5AI議論ビューアー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .discussion-header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .timer {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        
+        /* AI参加者パネル */
+        .participants {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            height: fit-content;
+        }
+        
+        .participant {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .participant.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .participant.speaking {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .participant-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            background: #f0f0f0;
+        }
+        
+        .participant.active .participant-avatar {
+            background: white;
+            color: #667eea;
+        }
+        
+        .participant-info {
+            flex: 1;
+        }
+        
+        .participant-name {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .participant-role {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+        
+        .participant-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: blink 2s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* メッセージエリア */
+        .messages-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            height: 600px;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .message-sender {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .message-type {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            margin-right: 10px;
+        }
+        
+        .message-type.statement {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .message-type.question {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .message-type.answer {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .message-type.agreement {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .message-type.objection {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .message-timestamp {
+            color: #999;
+            font-size: 0.8em;
+            margin-left: auto;
+        }
+        
+        .message-content {
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        
+        .message-content.claude { border-left-color: #8b5cf6; }
+        .message-content.gemini { border-left-color: #3b82f6; }
+        .message-content.qwen { border-left-color: #10b981; }
+        .message-content.gpt5 { border-left-color: #f59e0b; }
+        .message-content.cursor { border-left-color: #ef4444; }
+        
+        .message-reply {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed #ddd;
+        }
+        
+        /* 統計パネル */
+        .stats-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* リアルタイムインジケーター */
+        .live-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff4444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            animation: pulse 2s infinite;
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: blink 1s infinite;
+        }
+        
+        /* 合意形成トラッカー */
+        .consensus-tracker {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .consensus-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .consensus-participants {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .consensus-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="live-indicator">
+        <div class="live-dot"></div>
+        LIVE
+    </div>
+    
+    <div class="container">
+        <h1>🤖 リアルタイム5AI議論システム</h1>
+        
+        <div class="discussion-header">
+            <h2 style="text-align: center; margin-bottom: 10px;">workplace-roleplayアーキテクチャ設計議論</h2>
+            <div class="timer" id="timer">00:00</div>
+        </div>
+        
+        <div class="main-content">
+            <!-- AI参加者リスト -->
+            <div class="participants">
+                <h3 style="margin-bottom: 15px;">参加AI</h3>
+                
+                <div class="participant active" data-ai="claude">
+                    <div class="participant-avatar" style="background: #8b5cf6; color: white;">C4</div>
+                    <div class="participant-info">
+                        <div class="participant-name">Claude 4</div>
+                        <div class="participant-role">システムアーキテクト</div>
+                    </div>
+                    <div class="participant-status"></div>
+                </div>
+                
+                <div class="participant" data-ai="gemini">
+                    <div class="participant-avatar" style="background: #3b82f6; color: white;">G2</div>
+                    <div class="participant-info">
+                        <div class="participant-name">Gemini 2.5</div>
+                        <div class="participant-role">セキュリティ専門</div>
+                    </div>
+                    <div class="participant-status"></div>
+                </div>
+                
+                <div class="participant" data-ai="qwen">
+                    <div class="participant-avatar" style="background: #10b981; color: white;">Q3</div>
+                    <div class="participant-info">
+                        <div class="participant-name">Qwen3-Coder</div>
+                        <div class="participant-role">実装リード</div>
+                    </div>
+                    <div class="participant-status"></div>
+                </div>
+                
+                <div class="participant" data-ai="gpt5">
+                    <div class="participant-avatar" style="background: #f59e0b; color: white;">G5</div>
+                    <div class="participant-info">
+                        <div class="participant-name">GPT-5</div>
+                        <div class="participant-role">ソリューション設計</div>
+                    </div>
+                    <div class="participant-status"></div>
+                </div>
+                
+                <div class="participant" data-ai="cursor">
+                    <div class="participant-avatar" style="background: #ef4444; color: white;">CR</div>
+                    <div class="participant-info">
+                        <div class="participant-name">Cursor</div>
+                        <div class="participant-role">DevOps</div>
+                    </div>
+                    <div class="participant-status"></div>
+                </div>
+            </div>
+            
+            <!-- メッセージエリア -->
+            <div class="messages-container" id="messages">
+                <!-- メッセージが動的に追加される -->
+            </div>
+        </div>
+        
+        <!-- 統計パネル -->
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-value" id="messageCount">0</div>
+                <div class="stat-label">総メッセージ数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgResponseTime">0.0s</div>
+                <div class="stat-label">平均応答時間</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="consensusCount">0</div>
+                <div class="stat-label">合意形成数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activeAIs">5</div>
+                <div class="stat-label">アクティブAI</div>
+            </div>
+        </div>
+        
+        <!-- 合意形成トラッカー -->
+        <div class="consensus-tracker">
+            <h3 style="margin-bottom: 15px;">🤝 合意形成項目</h3>
+            <div id="consensusItems">
+                <!-- 合意項目が動的に追加される -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // WebSocketまたはServer-Sent Eventsで接続
+        class DiscussionViewer {
+            constructor() {
+                this.messageCount = 0;
+                this.startTime = Date.now();
+                this.messages = [];
+                this.consensusItems = [];
+                
+                this.initTimer();
+                this.simulateDiscussion(); // デモ用のシミュレーション
+            }
+            
+            initTimer() {
+                setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                    const minutes = Math.floor(elapsed / 60);
+                    const seconds = elapsed % 60;
+                    document.getElementById('timer').textContent = 
+                        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }, 1000);
+            }
+            
+            addMessage(sender, content, type = 'statement', replyTo = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                
+                const senderClass = sender.toLowerCase().replace(/[^a-z]/g, '');
+                const timestamp = new Date().toLocaleTimeString('ja-JP');
+                
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-sender">${sender}</span>
+                        <span class="message-type ${type}">${type}</span>
+                        <span class="message-timestamp">${timestamp}</span>
+                    </div>
+                    <div class="message-content ${senderClass}">
+                        ${content}
+                        ${replyTo ? `<div class="message-reply">↳ ${replyTo}への返信</div>` : ''}
+                    </div>
+                `;
+                
+                const container = document.getElementById('messages');
+                container.appendChild(messageDiv);
+                container.scrollTop = container.scrollHeight;
+                
+                // 統計更新
+                this.messageCount++;
+                document.getElementById('messageCount').textContent = this.messageCount;
+                
+                // 話者のハイライト
+                this.highlightSpeaker(sender);
+                
+                // 合意形成チェック
+                if (type === 'agreement') {
+                    this.addConsensusItem(content, sender);
+                }
+            }
+            
+            highlightSpeaker(sender) {
+                // 全参加者のハイライトをクリア
+                document.querySelectorAll('.participant').forEach(p => {
+                    p.classList.remove('speaking');
+                });
+                
+                // 現在の話者をハイライト
+                const senderKey = sender.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const participant = document.querySelector(`[data-ai*="${senderKey}"]`);
+                if (participant) {
+                    participant.classList.add('speaking');
+                    setTimeout(() => {
+                        participant.classList.remove('speaking');
+                    }, 1000);
+                }
+            }
+            
+            addConsensusItem(content, supporter) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'consensus-item';
+                itemDiv.innerHTML = `
+                    <div>${content.substring(0, 100)}...</div>
+                    <div class="consensus-participants">
+                        <div class="consensus-avatar">${supporter.charAt(0)}</div>
+                    </div>
+                `;
+                
+                document.getElementById('consensusItems').appendChild(itemDiv);
+                document.getElementById('consensusCount').textContent = 
+                    ++this.consensusItems.length;
+            }
+            
+            simulateDiscussion() {
+                // デモ用のメッセージシミュレーション
+                const scenarios = [
+                    { 
+                        sender: 'Claude 4', 
+                        content: 'FastAPIへの段階的移行を提案します。Strangler Figパターンを使用して、既存のFlaskと並行稼働させながら徐々に機能を移行できます。', 
+                        type: 'statement' 
+                    },
+                    { 
+                        sender: 'Gemini 2.5', 
+                        content: 'セキュリティの観点から賛成です。FastAPIは自動的にOpenAPI仕様を生成し、入力検証も組み込まれています。', 
+                        type: 'agreement',
+                        replyTo: 'Claude 4の提案'
+                    },
+                    { 
+                        sender: 'Qwen3-Coder', 
+                        content: 'パフォーマンステストの結果、FastAPIは現在のFlaskより5-10倍高速です。非同期処理により同時接続数も大幅に改善します。', 
+                        type: 'answer' 
+                    },
+                    { 
+                        sender: 'GPT-5', 
+                        content: '移行リスクはどう管理しますか？既存のセッションデータとの互換性が懸念です。', 
+                        type: 'question' 
+                    },
+                    { 
+                        sender: 'Cursor', 
+                        content: 'Blue-Greenデプロイメントで解決できます。新旧環境を並行稼働させ、問題があれば即座にロールバック可能です。', 
+                        type: 'answer',
+                        replyTo: 'GPT-5の質問'
+                    },
+                    { 
+                        sender: 'Claude 4', 
+                        content: 'Cursorの案に賛成です。さらにカナリアリリースを組み合わせて、1%→10%→50%→100%と段階的にトラフィックを移行しましょう。', 
+                        type: 'agreement' 
+                    },
+                    { 
+                        sender: 'Gemini 2.5', 
+                        content: '最新のOWASP Top 10を確認しました。FastAPIのPydanticによる型検証により、インジェクション攻撃のリスクを大幅に軽減できます。', 
+                        type: 'statement' 
+                    },
+                    { 
+                        sender: 'Qwen3-Coder', 
+                        content: '具体的な実装コードを準備しました。まずはヘルスチェックエンドポイントから移行を開始します。', 
+                        type: 'statement' 
+                    }
+                ];
+                
+                let index = 0;
+                const interval = setInterval(() => {
+                    if (index < scenarios.length) {
+                        const scenario = scenarios[index];
+                        this.addMessage(
+                            scenario.sender, 
+                            scenario.content, 
+                            scenario.type,
+                            scenario.replyTo
+                        );
+                        
+                        // 平均応答時間の更新（ダミー）
+                        const avgTime = (Math.random() * 2 + 0.5).toFixed(1);
+                        document.getElementById('avgResponseTime').textContent = `${avgTime}s`;
+                        
+                        index++;
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 3000); // 3秒ごとにメッセージ追加
+            }
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            new DiscussionViewer();
+        });
+    </script>
+</body>
+</html>

@@ -14,3 +14,9 @@ pydub>=0.25.1
 Pillow>=9.0.0
 pydantic>=1.10.0
 pydantic-settings>=2.0.0
+# セキュリティ関連
+bleach>=6.0.0
+flask-wtf>=1.2.0
+# パフォーマンス関連
+gunicorn>=21.0.0
+gevent>=23.0.0

@@ -50,9 +50,11 @@ class FeatureFlags:
             return False
         
         if self.service_mode == ServiceMode.CANARY and user_id:
-            # ユーザーIDのハッシュ値で一貫した振り分け
-            import hashlib
-            hash_value = int(hashlib.md5(user_id.encode()).hexdigest(), 16)
+            # ユーザーIDのハッシュ値で一貫した振り分け（SHA-256使用）
+            from utils.security import SecurityUtils
+            hash_hex = SecurityUtils.hash_user_id(user_id)
+            # 最初の8文字を使用して数値化
+            hash_value = int(hash_hex[:8], 16)
             return (hash_value % 100) < (self.ab_test_ratio * 100)
         
         # 個別フラグをチェック

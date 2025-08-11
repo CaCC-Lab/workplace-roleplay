@@ -3,6 +3,7 @@ A/Bテスト用の並行エンドポイント
 既存システムに影響を与えずに新サービスをテスト
 """
 from flask import Blueprint, request, jsonify, Response, session
+from utils.security import CSRFProtection, SecurityUtils, rate_limiter
 from typing import Dict, Any
 import json
 import time
@@ -42,6 +43,8 @@ def get_services():
 # ============= チャット関連 =============
 
 @ab_test_bp.route('/chat', methods=['POST'])
+@CSRFProtection.require_csrf
+@rate_limiter.rate_limit(max_requests=30, window_seconds=60)
 def chat_v2():
     """
     新サービスを使用したチャットエンドポイント
@@ -58,34 +61,73 @@ def chat_v2():
         if not message:
             return jsonify({'error': 'メッセージが空です'}), 400
         
-        # SSEレスポンスの生成
+        # SSEレスポンスの生成（改善版）
         def generate():
             try:
-                # 非同期処理を同期的に実行
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                # セキュリティ機能をインポート
+                from utils.security import SecurityUtils
                 
-                async def stream_response():
-                    accumulated = ""
-                    async for chunk in chat_service.process_chat_message(message, model_name):
-                        accumulated += chunk
-                        yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+                # asyncioの実行を改善（ThreadPoolExecutorを使用）
+                from concurrent.futures import ThreadPoolExecutor
+                import threading
+                
+                # スレッドセーフな方法で非同期処理を実行
+                def run_async_generator():
+                    # 新しいイベントループをスレッドローカルに作成
+                    import asyncio
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
                     
-                    # 最終データ
-                    yield f"data: {json.dumps({'done': True, 'full_content': accumulated}, ensure_ascii=False)}\n\n"
-                
-                # 非同期ジェネレータを実行
-                async_gen = stream_response()
-                while True:
                     try:
-                        chunk = loop.run_until_complete(async_gen.__anext__())
+                        accumulated = ""
+                        async def process():
+                            nonlocal accumulated
+                            async for chunk in chat_service.process_chat_message(message, model_name):
+                                # XSS対策: HTMLエスケープ
+                                safe_chunk = SecurityUtils.escape_html(chunk)
+                                accumulated += safe_chunk
+                                
+                                # セキュアなJSON生成
+                                data = SecurityUtils.escape_json({
+                                    'content': safe_chunk
+                                })
+                                yield f"data: {data}\n\n"
+                            
+                            # 最終データ（セキュア）
+                            final_data = SecurityUtils.escape_json({
+                                'done': True,
+                                'full_content': accumulated
+                            })
+                            yield f"data: {final_data}\n\n"
+                        
+                        # ジェネレータを実行
+                        async_gen = process()
+                        while True:
+                            try:
+                                result = loop.run_until_complete(async_gen.__anext__())
+                                yield result
+                            except StopAsyncIteration:
+                                break
+                    finally:
+                        # クリーンアップ
+                        loop.close()
+                
+                # ThreadPoolExecutorで実行
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(lambda: list(run_async_generator()))
+                    for chunk in future.result(timeout=30):  # 30秒タイムアウト
                         yield chunk
-                    except StopAsyncIteration:
-                        break
                     
             except Exception as e:
-                error_msg = f"ストリーミングエラー: {str(e)}"
-                yield f"data: {json.dumps({'error': error_msg}, ensure_ascii=False)}\n\n"
+                # エラーログ（詳細は内部のみ）
+                import logging
+                logging.error(f"Streaming error: {str(e)}", exc_info=True)
+                
+                # ユーザーには汎用メッセージ
+                error_data = SecurityUtils.escape_json({
+                    'error': 'ストリーミングエラーが発生しました'
+                })
+                yield f"data: {error_data}\n\n"
         
         return Response(
             generate(),
@@ -101,13 +143,18 @@ def chat_v2():
         return jsonify({'error': str(e)}), 500
 
 @ab_test_bp.route('/chat/compare', methods=['POST'])
+@CSRFProtection.require_csrf
 def chat_compare():
     """
     新旧サービスの出力を比較（開発用）
     /api/v2/chat/compare
     """
     try:
-        from app import process_chat_message_legacy  # 既存実装をインポート
+        # 遅延インポートで循環参照を回避
+        def get_legacy_processor():
+            from app import process_chat_message_legacy
+            return process_chat_message_legacy
+        
         chat_service, _, _ = get_services()
         
         data = request.get_json()
@@ -123,7 +170,8 @@ def chat_compare():
         legacy_start = time.time()
         legacy_response = ""
         try:
-            # 既存実装を呼び出し（同期的に収集）
+            # 遅延インポートした関数を使用
+            process_chat_message_legacy = get_legacy_processor()
             for chunk in process_chat_message_legacy(message):
                 if isinstance(chunk, dict) and 'content' in chunk:
                     legacy_response += chunk['content']

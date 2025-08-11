@@ -12,10 +12,12 @@ let conversationStarted = false;
 async function startConversation() {
     if (conversationStarted) return;
 
-    const selectedModel = localStorage.getItem('selectedModel');
+    let selectedModel = localStorage.getItem('selectedModel');
     if (!selectedModel) {
-        displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
-        return;
+        // デフォルトモデルを設定
+        selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
+        localStorage.setItem('selectedModel', selectedModel);
+        console.log('デフォルトモデルを設定:', selectedModel);
     }
 
     const partnerType = document.getElementById('partner-type').value;
@@ -69,10 +71,12 @@ async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg) return;
 
-    const selectedModel = localStorage.getItem('selectedModel');
+    let selectedModel = localStorage.getItem('selectedModel');
     if (!selectedModel) {
-        displayMessage("エラー: モデルが選択されていません。", "error-message");
-        return;
+        // デフォルトモデルを設定
+        selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
+        localStorage.setItem('selectedModel', selectedModel);
+        console.log('デフォルトモデルを設定:', selectedModel);
     }
 
     displayMessage("あなた: " + msg, "user-message");
@@ -143,13 +147,15 @@ async function getFeedback() {
             
             try {
                 const parsedHtml = marked.parse(data.feedback);
-                feedbackContent.innerHTML = parsedHtml;
+                // DOMPurifyでサニタイズしてからinnerHTMLに設定
+                feedbackContent.innerHTML = DOMPurify.sanitize(parsedHtml);
                 
                 // 強み分析を表示（存在する場合）
                 if (data.strength_analysis) {
                     const strengthDiv = document.createElement('div');
                     strengthDiv.id = 'strengthHighlight';
-                    strengthDiv.innerHTML = `
+                    // こちらも念のためサニタイズ
+                    strengthDiv.innerHTML = DOMPurify.sanitize(`
                         <h3>🌟 あなたの強み</h3>
                         <div class="strength-badges">
                             ${data.strength_analysis.top_strengths.map(strength => `
@@ -159,7 +165,7 @@ async function getFeedback() {
                                 </div>
                             `).join('')}
                         </div>
-                    `;
+                    `);
                     feedbackContent.appendChild(strengthDiv);
                     
                     // アニメーション効果
@@ -189,7 +195,11 @@ async function getFeedback() {
 // 履歴クリア処理
 async function clearHistory() {
     try {
-        const selectedModel = localStorage.getItem('selectedModel');
+        let selectedModel = localStorage.getItem('selectedModel');
+        if (!selectedModel) {
+            selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
+            localStorage.setItem('selectedModel', selectedModel);
+        }
         const response = await fetch("/api/clear_history", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
