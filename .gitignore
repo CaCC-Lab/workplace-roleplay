@@ -39,4 +39,7 @@ Thumbs.db
 *~
 .pytest_cache/
 .coverage
-htmlcov/ 
+htmlcov/
+
+# セキュリティ関連
+cookies.txt 
