@@ -1,0 +1,78 @@
+[Unit]
+Description=Workplace Roleplay Flask Application
+Documentation=https://github.com/CaCC-Lab/workplace-roleplay
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=exec
+User=ryu
+Group=ryu
+WorkingDirectory=/opt/workplace-app/current
+Environment=PATH=/opt/workplace-app/current/venv/bin
+EnvironmentFile=/opt/workplace-app/current/.env
+ExecStart=/opt/workplace-app/current/venv/bin/gunicorn \
+    --bind 0.0.0.0:5000 \
+    --workers 2 \
+    --worker-class gevent \
+    --worker-connections 1000 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --timeout 30 \
+    --keep-alive 2 \
+    --log-level info \
+    --access-logfile /opt/workplace-app/shared/logs/access.log \
+    --error-logfile /opt/workplace-app/shared/logs/error.log \
+    --capture-output \
+    --enable-stdio-inheritance \
+    app:app
+
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/workplace-app/shared/logs /opt/workplace-app/shared/uploads
+NoNewPrivileges=true
+
+# Security hardening
+CapabilityBoundingSet=
+AmbientCapabilities=
+DeviceAllow=
+LockPersonality=true
+MemoryDenyWriteExecute=true
+PrivateDevices=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProcSubset=pid
+RemoveIPC=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+UMask=0077
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryHigh=512M
+MemoryMax=1G
+CPUQuota=200%
+
+# Monitoring and health
+WatchdogSec=30
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+[Install]
+WantedBy=multi-user.target
