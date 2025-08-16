@@ -14,6 +14,12 @@ function debounce(func, wait) {
     };
 }
 
+// シナリオIDから数値部分を抽出する関数
+function extractScenarioNumber(scenarioId) {
+    const match = scenarioId.match(/(\d+)$/);
+    return match ? parseInt(match[1]) : 0;
+}
+
 // グローバル関数として定義
 function sortScenarios(sortType) {
     // 無限ループ防止
@@ -44,10 +50,19 @@ function sortScenarios(sortType) {
     
     scenarioCards.sort((a, b) => {
         if (sortType === 'scenario-num') {
-            // シナリオID順（見出し文字列から抽出）
-            const titleA = a.querySelector('h3').textContent.trim();
-            const titleB = b.querySelector('h3').textContent.trim();
-            return titleA.localeCompare(titleB, 'ja');
+            // シナリオID順（data属性から直接取得して数値比較）
+            const idA = a.getAttribute('data-scenario-id') || '';
+            const idB = b.getAttribute('data-scenario-id') || '';
+            const numA = extractScenarioNumber(idA);
+            const numB = extractScenarioNumber(idB);
+            
+            // 数値が同じ場合は文字列全体で比較（フォールバック）
+            if (numA === numB) {
+                return idA.localeCompare(idB);
+            }
+            
+            console.log(`[sortScenarios] 比較: ${idA}(${numA}) vs ${idB}(${numB})`);
+            return numA - numB;
         } else {
             // 難易度でソート
             const diffA = a.querySelector('.difficulty-badge').textContent.replace('難易度: ', '').trim();
