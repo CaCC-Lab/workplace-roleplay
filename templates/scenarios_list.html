@@ -47,7 +47,7 @@
             <h2 class="section-title"><i class="fas fa-play-circle"></i> シナリオを選んでロールプレイを始めましょう</h2>
             <div class="scenarios-list">
                 {% for scenario_id, scenario_info in scenarios.items() %}
-                    <div class="scenario-card">
+                    <div class="scenario-card" data-scenario-id="{{ scenario_id }}">
                         <div class="scenario-card-header">
                             <h3>
                                 {% if scenario_info.category == 'communication' %}
