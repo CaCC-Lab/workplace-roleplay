@@ -1,0 +1,34 @@
+[Unit]
+Description=Workplace Roleplay Flask Application
+After=network.target
+
+[Service]
+Type=simple
+User=ryu
+Group=ryu
+WorkingDirectory=/home/ryu/workplace-roleplay
+Environment="PATH=/home/ryu/workplace-roleplay/venv/bin"
+ExecStart=/home/ryu/workplace-roleplay/venv/bin/python /home/ryu/workplace-roleplay/app.py
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/ryu/workplace-roleplay
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=workplace-roleplay
+
+[Install]
+WantedBy=multi-user.target

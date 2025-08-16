@@ -381,6 +381,24 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
 scenarios = load_scenarios()
 
 # ========== Flaskルート ==========
+@app.route("/health")
+def health_check():
+    """ヘルスチェックエンドポイント"""
+    try:
+        # 基本的なヘルスチェック
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0",
+            "checks": {
+                "database": "N/A",  # DBを使用していない
+                "llm": "ready" if llm else "not configured"
+            }
+        }
+        return jsonify(health_status), 200
+    except Exception as e:
+        return jsonify({"status": "unhealthy", "error": str(e)}), 503
+
 @app.route("/")
 def index():
     """トップページ"""
