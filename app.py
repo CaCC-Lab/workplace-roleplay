@@ -694,15 +694,30 @@ def scenario_chat():
 
         scenario_data = scenarios[scenario_id]
         
+        # リバースロール（上司役）の場合の処理
+        is_reverse_role = scenario_data.get('role_type') == 'reverse'
+        
         # セステムプロンプトを構築
-        system_prompt = f"""\
+        if is_reverse_role:
+            # リバースロール用のシステムプロンプト
+            system_prompt = scenario_data.get("system_prompt", "")
+        else:
+            # 従来のシステムプロンプト
+            # 安全な .get() を使用してネストされた辞書にアクセス
+            character_setting = scenario_data.get("character_setting", {})
+            personality = character_setting.get("personality", "未設定")
+            speaking_style = character_setting.get("speaking_style", "未設定")
+            situation = character_setting.get("situation", "未設定")
+            initial_approach = character_setting.get("initial_approach", "未設定")
+
+            system_prompt = f"""
 # ロールプレイの基本設定
-あなたは{scenario_data["role_info"].split("、")[0].replace("AIは", "")}として振る舞います。
+あなたは{scenario_data.get("role_info", "AI,不明").split("、")[0].replace("AIは", "")}として振る舞います。
 
 ## キャラクター詳細
-- 性格: {scenario_data["character_setting"]["personality"]}
-- 話し方: {scenario_data["character_setting"]["speaking_style"]}
-- 現在の状況: {scenario_data["character_setting"]["situation"]}
+- 性格: {personality}
+- 話し方: {speaking_style}
+- 現在の状況: {situation}
 
 ## 演技の指針
 1. 一貫性：設定された役柄を終始一貫して演じ続けること
@@ -724,7 +739,7 @@ def scenario_chat():
 3. 職場らしさ：敬語と略語を適切に使い分ける
 
 ## 現在の文脈
-{scenario_data["description"]}
+{scenario_data.get("description", "説明なし")} 
 
 ## 特記事項
 - ユーザーの成長を促す反応を心がける
@@ -732,35 +747,42 @@ def scenario_chat():
 - 必要に応じて適度な困難さを提示
 """
         
-        # セッション初期化（共通関数使用）
-        initialize_session_history("scenario_history", scenario_id)
-        
-        # 初回メッセージの場合はセッション開始時間を記録
-        if len(session["scenario_history"].get(scenario_id, [])) == 0:
-            set_session_start_time("scenario", scenario_id)
-
-        try:
-            # 会話履歴の構築
-            messages: List[BaseMessage] = []
-            messages.append(SystemMessage(content=system_prompt))
+            # セッション初期化（共通関数使用）
+            initialize_session_history("scenario_history", scenario_id)
             
-            # 共通関数を使用して履歴からメッセージを構築
-            add_messages_from_history(messages, session["scenario_history"][scenario_id])
+            # 初回メッセージの場合はセッション開始時間を記録
+            if len(session["scenario_history"].get(scenario_id, [])) == 0:
+                set_session_start_time("scenario", scenario_id)
 
-            # 新しいメッセージの処理
-            if len(session["scenario_history"][scenario_id]) == 0:
-                # 初回メッセージの場合
-                prompt = f"""\
-最初の声掛けとして、{scenario_data["character_setting"]["initial_approach"]}という設定で
+            try:
+                # 会話履歴の構築
+                messages: List[BaseMessage] = []
+                messages.append(SystemMessage(content=system_prompt))
+                
+                # 共通関数を使用して履歴からメッセージを構築
+                add_messages_from_history(messages, session["scenario_history"][scenario_id])
+
+                # 新しいメッセージの処理
+                if len(session["scenario_history"][scenario_id]) == 0:
+                    # 初回メッセージの場合
+                    if is_reverse_role:
+                        # リバースロール：状況説明のみ
+                        initial_context = scenario_data.get("initial_context", "")
+                        prompt = f"状況: {initial_context}\n\nあなたは部下として自然に振る舞ってください。上司からの最初の発言を待っています。"
+                        messages.append(HumanMessage(content=prompt))
+                    else:
+                        # 従来のロール：AIから話しかける
+                        initial_approach = scenario_data.get("character_setting", {}).get("initial_approach", "自然に")
+                        prompt = f"""
+最初の声掛けとして、{initial_approach}という設定で
 話しかけてください。感情や表情も自然に含めて表現してください。
 """
-                messages.append(HumanMessage(content=prompt))
-            else:
-                # 通常の会話の場合
-                messages.append(HumanMessage(content=user_message))
+                        messages.append(HumanMessage(content=prompt))
+                else:
+                    # 通常の会話の場合
+                    messages.append(HumanMessage(content=user_message))
 
-            # 共通関数を使用して応答を生成
-            try:
+                # 共通関数を使用して応答を生成
                 response = create_model_and_get_response(selected_model, messages)
             except Exception as e:
                 # エラーハンドリング共通関数を使用
@@ -784,11 +806,11 @@ def scenario_chat():
             # レスポンスをエスケープして返す
             return jsonify({"response": SecurityUtils.escape_html(response)})
 
-        except Exception as e:
-            print(f"Conversation error: {str(e)}")
-            # エラーメッセージを安全に返す
-            error_msg = SecurityUtils.get_safe_error_message(e)
-            return jsonify({"error": f"会話処理中にエラーが発生しました: {error_msg}"}), 500
+    except Exception as e:
+        print(f"Conversation error: {str(e)}")
+        # エラーメッセージを安全に返す
+        error_msg = SecurityUtils.get_safe_error_message(e)
+        return jsonify({"error": f"会話処理中にエラーが発生しました: {error_msg}"}), 500
 
     except Exception as e:
         print(f"General error: {str(e)}")
@@ -1008,9 +1030,9 @@ def get_assist() -> Any:
 
         # AIアシストのプロンプトを作成
         assist_prompt = f"""
-現在のシナリオ: {scenario['title']}
-状況: {scenario['description']}
-学習ポイント: {', '.join(scenario['learning_points'])}
+現在のシナリオ: {scenario.get('title', '無題のシナリオ')}
+状況: {scenario.get('description', '説明なし')}
+学習ポイント: {', '.join(scenario.get('learning_points', []))}
 
 現在の会話:
 {current_context}
@@ -1260,8 +1282,8 @@ def show_scenario(scenario_id):
     return render_template(
         "scenario.html",
         scenario_id=scenario_id,
-        scenario_title=scenarios[scenario_id]["title"],
-        scenario_desc=scenarios[scenario_id]["description"],
+        scenario_title=scenarios[scenario_id].get("title", "無題のシナリオ"),
+        scenario_desc=scenarios[scenario_id].get("description", "説明がありません。"),
         scenario=scenarios[scenario_id],
         default_model=DEFAULT_MODEL  # デフォルトモデルを渡す
     )
@@ -1344,27 +1366,34 @@ def get_scenario_feedback():
         return jsonify({"error": "会話履歴が見つかりません"}), 404
 
     history = session["scenario_history"][scenario_id]
-    scenario_data = scenarios[scenario_id]
+    scenario_data = scenarios.get(scenario_id, {})
+
+    # 安全にユーザーの役割を取得するヘルパー関数
+    def get_user_role(role_info_str):
+        if not isinstance(role_info_str, str):
+            return "不明"
+        parts = role_info_str.split("、")
+        return parts[1] if len(parts) > 1 else "不明"
 
     # フィードバック生成用のプロンプト
-    feedback_prompt = f"""\
+    feedback_prompt = f"""
 # フィードバック生成の指示
 あなたは職場コミュニケーションの専門家として、以下のロールプレイでのユーザーの対応を評価し、具体的で実践的なフィードバックを提供してください。
 
 ## シナリオ概要
-{scenario_data["description"]}
+{scenario_data.get("description", "説明がありません。")}
 
 ## ユーザーの立場
-{scenario_data["role_info"].split("、")[1]}
+{get_user_role(scenario_data.get("role_info", ""))}
 
 ## 会話履歴の分析
 {format_conversation_history(history)}
 
 ## 評価の観点
-{', '.join(scenario_data["feedback_points"])}
+{', '.join(scenario_data.get("feedback_points", ["一般的なコミュニケーションスキル"]))}
 
 ## 学習目標
-{', '.join(scenario_data["learning_points"])}
+{', '.join(scenario_data.get("learning_points", ["状況に応じた適切な対応"]))}
 
 # フィードバック形式
 
@@ -1399,7 +1428,7 @@ def get_scenario_feedback():
             # フィードバックレスポンスを作成
             response_data = {
                 "feedback": feedback_content,
-                "scenario": scenario_data["title"],
+                "scenario": scenario_data.get("title", "無題のシナリオ"),
                 "model_used": used_model,
             }
             
@@ -1423,6 +1452,7 @@ def get_scenario_feedback():
         return jsonify({
             "error": f"フィードバックの生成中にエラーが発生しました: {str(e)}"
         }), 500
+
 
 # 雑談フィードバック関数も更新
 @app.route("/api/chat_feedback", methods=["POST"])
@@ -1565,10 +1595,11 @@ def view_journal():
     if "scenario_history" in session:
         for scenario_id, history in session["scenario_history"].items():
             if scenario_id in scenarios and history:
+                scenario_info = scenarios.get(scenario_id, {})
                 scenario_history[scenario_id] = {
-                    "title": scenarios[scenario_id]["title"],
-                    "last_session": history[-1]["timestamp"] if history else None,
-                    "sessions_count": len(history) // 2,  # 往復の会話数をカウント
+                    "title": scenario_info.get("title", "不明なシナリオ"),
+                    "last_session": history[-1].get("timestamp") if history else None,
+                    "sessions_count": len(history), # 1往復を1とカウント
                     "feedback": session.get("scenario_feedback", {}).get(scenario_id)
                 }
     
