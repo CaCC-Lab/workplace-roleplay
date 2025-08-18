@@ -697,7 +697,14 @@ def scenario_chat():
         # リバースロール（上司役）の場合の処理
         is_reverse_role = scenario_data.get('role_type') == 'reverse'
         
-        # セステムプロンプトを構築
+        # セッション初期化（共通関数使用）
+        initialize_session_history("scenario_history", scenario_id)
+        
+        # 初回メッセージの場合はセッション開始時間を記録
+        if len(session["scenario_history"].get(scenario_id, [])) == 0:
+            set_session_start_time("scenario", scenario_id)
+
+        # システムプロンプトを構築
         if is_reverse_role:
             # リバースロール用のシステムプロンプト
             system_prompt = scenario_data.get("system_prompt", "")
@@ -746,77 +753,77 @@ def scenario_chat():
 - 極端な否定は避け、建設的な対話を維持
 - 必要に応じて適度な困難さを提示
 """
+
+        # デフォルトのレスポンス
+        response = ""
         
-            # セッション初期化（共通関数使用）
-            initialize_session_history("scenario_history", scenario_id)
+        try:
+            # 会話履歴の構築
+            messages: List[BaseMessage] = []
+            messages.append(SystemMessage(content=system_prompt))
             
-            # 初回メッセージの場合はセッション開始時間を記録
-            if len(session["scenario_history"].get(scenario_id, [])) == 0:
-                set_session_start_time("scenario", scenario_id)
+            # 共通関数を使用して履歴からメッセージを構築
+            add_messages_from_history(messages, session["scenario_history"][scenario_id])
 
-            try:
-                # 会話履歴の構築
-                messages: List[BaseMessage] = []
-                messages.append(SystemMessage(content=system_prompt))
-                
-                # 共通関数を使用して履歴からメッセージを構築
-                add_messages_from_history(messages, session["scenario_history"][scenario_id])
-
-                # 新しいメッセージの処理
-                if len(session["scenario_history"][scenario_id]) == 0:
-                    # 初回メッセージの場合
-                    if is_reverse_role:
-                        # リバースロール：状況説明のみ
+            # 新しいメッセージの処理
+            if len(session["scenario_history"][scenario_id]) == 0:
+                # 初回メッセージの場合
+                if is_reverse_role:
+                    # リバースロール：初回は状況説明のみを返す
+                    if not user_message:
                         initial_context = scenario_data.get("initial_context", "")
-                        prompt = f"状況: {initial_context}\n\nあなたは部下として自然に振る舞ってください。上司からの最初の発言を待っています。"
-                        messages.append(HumanMessage(content=prompt))
+                        initial_message = f"【状況】\n{initial_context}\n\n（部下があなたの指示を待っています。上司として最初の声かけをしてください）"
+                        # セッションに履歴を保存
+                        add_to_session_history("scenario_history", {
+                            "human": "[シナリオ開始]",
+                            "ai": initial_message
+                        }, scenario_id)
+                        return jsonify({"response": SecurityUtils.escape_html(initial_message)})
                     else:
-                        # 従来のロール：AIから話しかける
-                        initial_approach = scenario_data.get("character_setting", {}).get("initial_approach", "自然に")
-                        prompt = f"""
+                        # ユーザーの最初の発言に対する応答
+                        messages.append(HumanMessage(content=user_message))
+                else:
+                    # 従来のロール：AIから話しかける
+                    initial_approach = scenario_data.get("character_setting", {}).get("initial_approach", "自然に")
+                    prompt = f"""
 最初の声掛けとして、{initial_approach}という設定で
 話しかけてください。感情や表情も自然に含めて表現してください。
 """
-                        messages.append(HumanMessage(content=prompt))
-                else:
-                    # 通常の会話の場合
-                    messages.append(HumanMessage(content=user_message))
+                    messages.append(HumanMessage(content=prompt))
+            else:
+                # 通常の会話の場合
+                messages.append(HumanMessage(content=user_message))
 
-                # 共通関数を使用して応答を生成
-                response = create_model_and_get_response(selected_model, messages)
-            except Exception as e:
-                # エラーハンドリング共通関数を使用
-                error_msg, status_code, fallback_result, fallback_model = handle_llm_error(
-                    e,
-                    fallback_with_local_model,
-                    {"messages_or_prompt": messages}
-                )
-                
-                if fallback_result:
-                    response = fallback_result
-                else:
-                    response = f"申し訳ありません。{error_msg}"
+            # 共通関数を使用して応答を生成
+            response = create_model_and_get_response(selected_model, messages)
+            
+        except Exception as e:
+            # エラーハンドリング共通関数を使用
+            error_msg, status_code, fallback_result, fallback_model = handle_llm_error(
+                e,
+                fallback_with_local_model,
+                {"messages_or_prompt": messages}
+            )
+            
+            if fallback_result:
+                response = fallback_result
+            else:
+                response = f"申し訳ありません。{error_msg}"
 
-            # セッションに履歴を保存（共通関数使用）
-            add_to_session_history("scenario_history", {
-                "human": user_message if user_message else "[シナリオ開始]",
-                "ai": response
-            }, scenario_id)
+        # セッションに履歴を保存（共通関数使用）
+        add_to_session_history("scenario_history", {
+            "human": user_message if user_message else "[シナリオ開始]",
+            "ai": response
+        }, scenario_id)
 
-            # レスポンスをエスケープして返す
-            return jsonify({"response": SecurityUtils.escape_html(response)})
+        # レスポンスをエスケープして返す
+        return jsonify({"response": SecurityUtils.escape_html(response)})
 
     except Exception as e:
         print(f"Conversation error: {str(e)}")
         # エラーメッセージを安全に返す
         error_msg = SecurityUtils.get_safe_error_message(e)
         return jsonify({"error": f"会話処理中にエラーが発生しました: {error_msg}"}), 500
-
-    except Exception as e:
-        print(f"General error: {str(e)}")
-        # エラーメッセージを安全に返す
-        error_msg = SecurityUtils.get_safe_error_message(e)
-        return jsonify({"error": f"予期せぬエラーが発生しました: {error_msg}"}), 500
 
 @app.route("/api/scenario_clear", methods=["POST"])
 def clear_scenario_history():
@@ -1353,30 +1360,78 @@ def add_messages_from_history(messages: List[BaseMessage], history, max_entries=
 # @CSRFToken.require_csrf  # TODO: CSRF保護を後で有効化
 def get_scenario_feedback():
     """シナリオの会話履歴に基づくフィードバックを生成"""
-    data = request.get_json()
-    if data is None:
-        return jsonify({"error": "Invalid JSON"}), 400
+    try:
+        data = request.get_json()
+        if data is None:
+            return jsonify({"error": "Invalid JSON"}), 400
 
-    scenario_id = data.get("scenario_id")
-    if not scenario_id or scenario_id not in scenarios:
-        return jsonify({"error": "無効なシナリオIDです"}), 400
+        scenario_id = data.get("scenario_id")
+        if not scenario_id or scenario_id not in scenarios:
+            return jsonify({"error": "無効なシナリオIDです"}), 400
 
-    # 会話履歴を取得
-    if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
-        return jsonify({"error": "会話履歴が見つかりません"}), 404
+        # 会話履歴を取得
+        if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
+            return jsonify({"error": "会話履歴が見つかりません"}), 404
 
-    history = session["scenario_history"][scenario_id]
-    scenario_data = scenarios.get(scenario_id, {})
+        history = session["scenario_history"][scenario_id]
+        scenario_data = scenarios.get(scenario_id, {})
+        
+        # リバースロール（上司役）かどうかチェック
+        is_reverse_role = scenario_data.get('role_type') == 'reverse'
 
-    # 安全にユーザーの役割を取得するヘルパー関数
-    def get_user_role(role_info_str):
-        if not isinstance(role_info_str, str):
-            return "不明"
-        parts = role_info_str.split("、")
-        return parts[1] if len(parts) > 1 else "不明"
+        # 安全にユーザーの役割を取得するヘルパー関数
+        def get_user_role(scenario_data):
+            if is_reverse_role:
+                return scenario_data.get("user_role", "上司")
+            else:
+                role_info_str = scenario_data.get("role_info", "")
+                if not isinstance(role_info_str, str):
+                    return "不明"
+                parts = role_info_str.split("、")
+                return parts[1] if len(parts) > 1 else "不明"
 
-    # フィードバック生成用のプロンプト
-    feedback_prompt = f"""
+        # フィードバック生成用のプロンプト
+        if is_reverse_role:
+            # リバースロール用のフィードバック
+            feedback_prompt = f"""
+# パワーハラスメント防止研修フィードバック
+
+## シナリオ概要
+{scenario_data.get("description", "説明がありません。")}
+
+## あなたの役割
+{scenario_data.get("user_role", "上司")}として、{scenario_data.get("ai_role", "部下")}への対応
+
+## 会話履歴の分析
+{format_conversation_history(history)}
+
+## 評価基準
+### 良い行動:
+{chr(10).join('- ' + b for b in scenario_data.get("evaluation_criteria", {}).get("positive_behaviors", []))}
+
+### 避けるべき行動:
+{chr(10).join('- ' + b for b in scenario_data.get("evaluation_criteria", {}).get("negative_behaviors", []))}
+
+# フィードバック形式
+
+## 1. 全体評価（100点満点）
+- パワーハラスメント防止の観点から点数評価
+
+## 2. 良かった点
+- 部下への配慮が見られた対応
+- 建設的なコミュニケーション
+
+## 3. 改善が必要な点
+- パワーハラスメントのリスクがある言動
+- より適切な表現方法の提案
+
+## 4. 実践的アドバイス
+- 明日から使える具体的な改善策
+- 適切な上司としての振る舞い方
+"""
+        else:
+            # 従来のフィードバック
+            feedback_prompt = f"""
 # フィードバック生成の指示
 あなたは職場コミュニケーションの専門家として、以下のロールプレイでのユーザーの対応を評価し、具体的で実践的なフィードバックを提供してください。
 
@@ -1384,7 +1439,7 @@ def get_scenario_feedback():
 {scenario_data.get("description", "説明がありません。")}
 
 ## ユーザーの立場
-{get_user_role(scenario_data.get("role_info", ""))}
+{get_user_role(scenario_data)}
 
 ## 会話履歴の分析
 {format_conversation_history(history)}
@@ -1420,37 +1475,45 @@ def get_scenario_feedback():
 - 次のステップへの期待
 """
 
-    try:
-        # 新しいヘルパー関数を使用してモデルを試行
-        feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
-        
-        if feedback_content:
-            # フィードバックレスポンスを作成
-            response_data = {
-                "feedback": feedback_content,
-                "scenario": scenario_data.get("title", "無題のシナリオ"),
-                "model_used": used_model,
-            }
+        try:
+            # 新しいヘルパー関数を使用してモデルを試行
+            feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
             
-            # 強み分析を追加
-            response_data = update_feedback_with_strength_analysis(
-                response_data, "scenario", scenario_id
-            )
-            
-            return jsonify(response_data)
-        else:
-            # すべてのモデルが失敗した場合
-            return jsonify({
-                "error": f"フィードバックの生成に失敗しました: {error_msg}",
-                "attempted_models": "Gemini, OpenAI, Local"
-            }), 500
+            if feedback_content:
+                # フィードバックレスポンスを作成
+                response_data = {
+                    "feedback": feedback_content,
+                    "scenario": scenario_data.get("title", "無題のシナリオ"),
+                    "model_used": used_model,
+                }
+                
+                # 強み分析を追加
+                response_data = update_feedback_with_strength_analysis(
+                    response_data, "scenario", scenario_id
+                )
+                
+                return jsonify(response_data)
+            else:
+                # すべてのモデルが失敗した場合
+                return jsonify({
+                    "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                    "attempted_models": "Gemini, OpenAI, Local"
+                }), 500
 
+        except Exception as e:
+            print(f"Feedback generation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                "error": f"フィードバックの生成中にエラーが発生しました: {str(e)}"
+            }), 500
+    
     except Exception as e:
-        print(f"Feedback generation error: {str(e)}")
+        print(f"Scenario feedback error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
-            "error": f"フィードバックの生成中にエラーが発生しました: {str(e)}"
+            "error": f"フィードバック処理中にエラーが発生しました: {str(e)}"
         }), 500
 
 
