@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シナリオ探索 - 職場コミュニケーション練習</title>
+    
+    <!-- 5AI協調による高度シナリオ組織化システム -->
+    <meta name="description" content="43+のシナリオから最適な職場コミュニケーション練習を見つけよう">
+    <meta name="keywords" content="職場,コミュニケーション,ハラスメント,リーダーシップ,ロールプレイ">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/scenario_explorer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- アイコンフォント -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        /* アイコンフォント対応 */
+        .icon-grid::before { content: "\f3e8"; font-family: "bootstrap-icons"; }
+        .icon-list::before { content: "\f4e4"; font-family: "bootstrap-icons"; }
+        .icon-search::before { content: "\f52a"; font-family: "bootstrap-icons"; }
+        .icon-x::before { content: "\f62a"; font-family: "bootstrap-icons"; }
+        .icon-clock::before { content: "\f17d"; font-family: "bootstrap-icons"; }
+        .icon-play::before { content: "\f4f4"; font-family: "bootstrap-icons"; }
+        .icon-info::before { content: "\f26a"; font-family: "bootstrap-icons"; }
+        .icon-bookmark::before { content: "\f1f5"; font-family: "bootstrap-icons"; }
+        
+        /* 追加スタイル */
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        .page-header p {
+            margin: 0.5rem 0 0 0;
+            font-size: 1.125rem;
+            text-align: center;
+            opacity: 0.9;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 4rem;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 50px;
+            text-decoration: none;
+            color: #374151;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .quick-action-btn:hover {
+            background: #f9fafb;
+            border-color: #2563eb;
+            color: #2563eb;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <!-- メインナビゲーション -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-logo">
+                <span class="logo-icon">💼</span>
+                <span class="logo-text">職場コミュニケーション</span>
+            </a>
+            
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-link">ホーム</a>
+                <a href="{{ url_for('chat_casual') }}" class="nav-link">雑談練習</a>
+                <a href="/scenario_explorer" class="nav-link active">シナリオ探索</a>
+                <a href="{{ url_for('watch_conversation') }}" class="nav-link">会話観戦</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ページヘッダー -->
+    <div class="page-header">
+        <div class="container">
+            <h1>シナリオを探索</h1>
+            <p>43+の多様なシナリオから、あなたに最適な練習を見つけましょう</p>
+        </div>
+    </div>
+
+    <!-- クイックアクション -->
+    <div class="container">
+        <div class="quick-actions">
+            <a href="#" class="quick-action-btn" onclick="quickFilter('basic_comm')">
+                <span>🏢</span> 基本から始める
+            </a>
+            <a href="#" class="quick-action-btn" onclick="quickFilter('harassment')">
+                <span>⚖️</span> ハラスメント対策
+            </a>
+            <a href="#" class="quick-action-btn" onclick="quickFilter('leadership')">
+                <span>💼</span> リーダーシップ
+            </a>
+            <a href="#" class="quick-action-btn" onclick="getPersonalizedRecommendations()">
+                <span>✨</span> おすすめを表示
+            </a>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="container">
+        <!-- ローディング表示 -->
+        <div class="loading-spinner" id="loading-spinner">
+            <div class="spinner"></div>
+            <p>シナリオを読み込んでいます...</p>
+        </div>
+
+        <!-- シナリオ探索システム -->
+        <div id="scenario-explorer">
+            <!-- JavaScriptで動的に生成される -->
+        </div>
+    </div>
+
+    <!-- 個人化推奨モーダル -->
+    <div class="modal-overlay" id="recommendations-modal" style="display: none;">
+        <div class="scenario-modal">
+            <div class="modal-header">
+                <h2>あなたへのおすすめシナリオ</h2>
+                <button class="modal-close" onclick="closeRecommendationsModal()">&times;</button>
+            </div>
+            <div class="modal-content">
+                <div id="recommendations-content">
+                    <!-- 推奨シナリオが表示される -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeRecommendationsModal()">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- プロファイル設定モーダル -->
+    <div class="modal-overlay" id="profile-modal" style="display: none;">
+        <div class="scenario-modal">
+            <div class="modal-header">
+                <h2>学習プロファイル設定</h2>
+                <button class="modal-close" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <div class="modal-content">
+                <form id="profile-form">
+                    <div class="form-group">
+                        <label for="user-level">現在のレベル</label>
+                        <select id="user-level" name="level">
+                            <option value="初級">初級 - 職場コミュニケーションを基礎から学びたい</option>
+                            <option value="中級">中級 - 基本はできるが、より高度なスキルを身につけたい</option>
+                            <option value="上級">上級 - 複雑な状況や管理職としてのスキルを磨きたい</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>関心のある分野（複数選択可）</label>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" name="categories" value="basic_comm">
+                                基本コミュニケーション
+                            </label>
+                            <label>
+                                <input type="checkbox" name="categories" value="leadership">
+                                リーダーシップ・マネジメント
+                            </label>
+                            <label>
+                                <input type="checkbox" name="categories" value="harassment">
+                                ハラスメント・グレーゾーン対応
+                            </label>
+                            <label>
+                                <input type="checkbox" name="categories" value="special">
+                                特殊・複雑なシチュエーション
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="practice-time">1回の練習時間</label>
+                        <select id="practice-time" name="practiceTime">
+                            <option value="15">15分以内</option>
+                            <option value="30">30分以内</option>
+                            <option value="60">1時間以内</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveProfile()">
+                    <i class="bi bi-check-lg"></i> 保存して推奨を取得
+                </button>
+                <button class="btn btn-secondary" onclick="closeProfileModal()">
+                    キャンセル
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/scenario_explorer.js') }}"></script>
+    <script>
+        // 追加の機能実装
+        
+        function quickFilter(category) {
+            if (window.scenarioExplorer) {
+                scenarioExplorer.setFilter('category', category);
+                
+                // カテゴリカードの選択状態を更新
+                document.querySelectorAll('.category-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                const selectedCard = document.querySelector(`[data-category="${category}"]`);
+                if (selectedCard) {
+                    selectedCard.classList.add('selected');
+                    selectedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        }
+        
+        function getPersonalizedRecommendations() {
+            // プロファイル設定がない場合は設定モーダルを表示
+            const savedProfile = localStorage.getItem('userProfile');
+            if (!savedProfile) {
+                showProfileModal();
+                return;
+            }
+            
+            // 保存されたプロファイルで推奨を取得
+            const profile = JSON.parse(savedProfile);
+            fetchRecommendations(profile);
+        }
+        
+        function showProfileModal() {
+            document.getElementById('profile-modal').style.display = 'flex';
+            
+            // 既存のプロファイル情報を読み込み
+            const savedProfile = localStorage.getItem('userProfile');
+            if (savedProfile) {
+                const profile = JSON.parse(savedProfile);
+                document.getElementById('user-level').value = profile.user_level || '初級';
+                document.getElementById('practice-time').value = profile.max_duration || 30;
+                
+                // カテゴリの選択状態を復元
+                if (profile.preferred_categories) {
+                    profile.preferred_categories.forEach(category => {
+                        const checkbox = document.querySelector(`input[value="${category}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+            }
+        }
+        
+        function closeProfileModal() {
+            document.getElementById('profile-modal').style.display = 'none';
+        }
+        
+        function saveProfile() {
+            const form = document.getElementById('profile-form');
+            const formData = new FormData(form);
+            
+            const profile = {
+                user_level: formData.get('level'),
+                preferred_categories: formData.getAll('categories'),
+                max_duration: parseInt(formData.get('practiceTime'))
+            };
+            
+            // プロファイルを保存
+            localStorage.setItem('userProfile', JSON.stringify(profile));
+            
+            // 推奨を取得
+            fetchRecommendations(profile);
+            
+            closeProfileModal();
+        }
+        
+        async function fetchRecommendations(profile) {
+            try {
+                showLoadingSpinner();
+                
+                const response = await fetch('/api/scenarios/recommendations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profile)
+                });
+                
+                if (!response.ok) throw new Error('推奨取得に失敗しました');
+                
+                const data = await response.json();
+                displayRecommendations(data.recommendations, data.user_profile);
+                
+            } catch (error) {
+                console.error('Recommendations error:', error);
+                alert('推奨シナリオの取得に失敗しました。もう一度お試しください。');
+            } finally {
+                hideLoadingSpinner();
+            }
+        }
+        
+        function displayRecommendations(recommendations, userProfile) {
+            const content = document.getElementById('recommendations-content');
+            
+            if (recommendations.length === 0) {
+                content.innerHTML = `
+                    <div class="no-results">
+                        <div class="no-results-icon">💡</div>
+                        <h3>現在お勧めできるシナリオがありません</h3>
+                        <p>プロファイル設定を変更するか、他のシナリオを試してみてください</p>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="user-profile-summary">
+                        <h3>あなたのプロファイル</h3>
+                        <p><strong>レベル:</strong> ${userProfile.level}</p>
+                        <p><strong>完了シナリオ:</strong> ${userProfile.completed_count}件</p>
+                    </div>
+                    
+                    <div class="recommendations-list">
+                        ${recommendations.map(scenario => `
+                            <div class="recommendation-item">
+                                <div class="recommendation-header">
+                                    <h4>${scenario.title}</h4>
+                                    <div class="recommendation-meta">
+                                        <span class="difficulty-badge ${scenario.difficulty}">${scenario.difficulty}</span>
+                                        <span class="duration-badge">${scenario.estimated_duration}分</span>
+                                        <span class="score-badge">スコア: ${Math.round(scenario.score * 10) / 10}</span>
+                                    </div>
+                                </div>
+                                <p class="recommendation-description">${scenario.description}</p>
+                                <div class="recommendation-actions">
+                                    <button class="btn btn-primary" onclick="startScenario('${scenario.id}'); closeRecommendationsModal();">
+                                        <i class="bi bi-play-fill"></i> 開始
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="showScenarioDetails('${scenario.id}')">
+                                        詳細
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('recommendations-modal').style.display = 'flex';
+        }
+        
+        function closeRecommendationsModal() {
+            document.getElementById('recommendations-modal').style.display = 'none';
+        }
+        
+        function startScenario(scenarioId) {
+            window.location.href = `/scenario/${scenarioId}`;
+        }
+        
+        function showScenarioDetails(scenarioId) {
+            if (window.scenarioExplorer) {
+                scenarioExplorer.showScenarioDetails(scenarioId);
+            }
+        }
+        
+        function showLoadingSpinner() {
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('scenario-explorer').style.display = 'none';
+        }
+        
+        function hideLoadingSpinner() {
+            document.getElementById('loading-spinner').style.display = 'none';
+            document.getElementById('scenario-explorer').style.display = 'block';
+        }
+        
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            showLoadingSpinner();
+            
+            // URLパラメータから初期フィルターを設定
+            const urlParams = new URLSearchParams(window.location.search);
+            const category = urlParams.get('category');
+            const difficulty = urlParams.get('difficulty');
+            
+            // scenarioExplorer初期化後にフィルターを適用
+            setTimeout(() => {
+                if (category && window.scenarioExplorer) {
+                    quickFilter(category);
+                }
+                if (difficulty && window.scenarioExplorer) {
+                    scenarioExplorer.setFilter('difficulty', difficulty);
+                }
+                hideLoadingSpinner();
+            }, 500);
+        });
+        
+        // モーダル外クリックで閉じる
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.style.display = 'none';
+            }
+        });
+        
+        // エスケープキーでモーダルを閉じる
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+        });
+    </script>
+    
+    <style>
+        /* 追加フォームスタイル */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--gray-900);
+        }
+        
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: normal;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+        
+        .user-profile-summary {
+            background: var(--gray-50);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+        }
+        
+        .user-profile-summary h3 {
+            margin: 0 0 0.75rem 0;
+            font-size: 1.125rem;
+            color: var(--gray-900);
+        }
+        
+        .user-profile-summary p {
+            margin: 0.25rem 0;
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+        
+        .recommendations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .recommendation-item {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+        }
+        
+        .recommendation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+        
+        .recommendation-header h4 {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .recommendation-meta {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .score-badge {
+            padding: 2px 6px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .recommendation-description {
+            margin: 0 0 1rem 0;
+            font-size: 14px;
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+        
+        .recommendation-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: var(--gray-900);
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-link {
+            text-decoration: none;
+            color: var(--gray-600);
+            font-weight: 500;
+            padding: 0.5rem 0;
+            border-bottom: 2px solid transparent;
+            transition: var(--transition);
+        }
+        
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary-blue);
+            border-bottom-color: var(--primary-blue);
+        }
+        
+        .main-nav {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+    </style>
+</body>
+</html>
