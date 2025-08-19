@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session, stream_with_context, send_from_directory
+from flask import Flask, render_template, request, jsonify, session, stream_with_context, send_from_directory, url_for
 from flask_session import Session
 import requests
 import os
@@ -1360,17 +1360,24 @@ def show_scenario(scenario_id):
     """シナリオページの表示"""
     if scenario_id not in scenarios:
         return "シナリオが見つかりません", 404
-    
+
     # シナリオ履歴の初期化（共通関数使用）
     initialize_session_history("scenario_history", scenario_id)
-    
+
+    # シナリオIDに基づいてカテゴリを判定し、戻り先URLを決定
+    if is_harassment_scenario(scenario_id):
+        back_url = url_for('list_harassment_scenarios')
+    else:
+        back_url = url_for('list_regular_scenarios')
+
     return render_template(
         "scenario.html",
         scenario_id=scenario_id,
         scenario_title=scenarios[scenario_id].get("title", "無題のシナリオ"),
         scenario_desc=scenarios[scenario_id].get("description", "説明がありません。"),
         scenario=scenarios[scenario_id],
-        default_model=DEFAULT_MODEL  # デフォルトモデルを渡す
+        default_model=DEFAULT_MODEL,
+        back_url=back_url  # テンプレートに戻り先URLを渡す
     )
 
 # 新規: カテゴリ分けされたシナリオ一覧を取得するAPIエンドポイント

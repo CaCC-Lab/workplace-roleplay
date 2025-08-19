@@ -2,6 +2,76 @@
 let isCurrentlySorting = false;
 let sortTimeoutId = null;
 
+// ===== 状態保持機能 =====
+const STATE_STORAGE_KEY = 'scenarios-list-state';
+
+// フィルター状態を保存
+function saveFilterState() {
+    const difficultyFilter = document.getElementById('difficulty-filter');
+    const tagFilter = document.getElementById('tag-filter');
+    
+    const state = {
+        difficulty: difficultyFilter ? difficultyFilter.value : '',
+        tag: tagFilter ? tagFilter.value : '',
+        timestamp: Date.now()
+    };
+    
+    try {
+        localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+        console.log('[saveFilterState] フィルター状態を保存:', state);
+    } catch (error) {
+        console.warn('[saveFilterState] 状態保存に失敗:', error);
+    }
+}
+
+// フィルター状態を復元
+function restoreFilterState() {
+    try {
+        const savedState = localStorage.getItem(STATE_STORAGE_KEY);
+        if (!savedState) return false;
+        
+        const state = JSON.parse(savedState);
+        
+        // 1時間以内の状態のみ復元
+        const oneHour = 60 * 60 * 1000;
+        if (Date.now() - state.timestamp > oneHour) {
+            localStorage.removeItem(STATE_STORAGE_KEY);
+            return false;
+        }
+        
+        const difficultyFilter = document.getElementById('difficulty-filter');
+        const tagFilter = document.getElementById('tag-filter');
+        
+        if (difficultyFilter && state.difficulty) {
+            difficultyFilter.value = state.difficulty;
+        }
+        if (tagFilter && state.tag) {
+            tagFilter.value = state.tag;
+        }
+        
+        console.log('[restoreFilterState] フィルター状態を復元:', state);
+        
+        // フィルターを適用
+        if (state.difficulty || state.tag) {
+            // 少し遅延させてDOMの準備を待つ
+            setTimeout(() => {
+                filterScenarios();
+            }, 100);
+        }
+        
+        return true;
+    } catch (error) {
+        console.warn('[restoreFilterState] 状態復元に失敗:', error);
+        localStorage.removeItem(STATE_STORAGE_KEY);
+        return false;
+    }
+}
+
+// 状態をクリア
+function clearFilterState() {
+    localStorage.removeItem(STATE_STORAGE_KEY);
+}
+
 // デバウンス関数
 function debounce(func, wait) {
     return function executedFunction(...args) {
@@ -243,4 +313,52 @@ function initializeFilters() {
             characterData: false
         });
     }
-} 
+}
+
+// ===== 状態保持機能の初期化 =====
+document.addEventListener('DOMContentLoaded', function() {
+    // フィルター状態を復元
+    const stateRestored = restoreFilterState();
+    
+    // フィルター変更時に状態を保存
+    const difficultyFilter = document.getElementById('difficulty-filter');
+    const tagFilter = document.getElementById('tag-filter');
+    
+    if (difficultyFilter) {
+        difficultyFilter.addEventListener('change', function() {
+            saveFilterState();
+            filterScenarios(); // フィルターを適用
+        });
+    }
+    
+    if (tagFilter) {
+        tagFilter.addEventListener('change', function() {
+            saveFilterState();
+            filterScenarios(); // フィルターを適用
+        });
+    }
+    
+    // ナビゲーションリンクでの状態保持確認
+    const navLinks = document.querySelectorAll('.navigation a, .nav-button');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const difficultyValue = difficultyFilter ? difficultyFilter.value : '';
+            const tagValue = tagFilter ? tagFilter.value : '';
+            
+            // フィルターが設定されている場合に確認ダイアログ表示
+            if ((difficultyValue || tagValue) && !link.href.includes('/scenario/')) {
+                const confirmed = confirm('フィルター設定が失われます。続行しますか？');
+                if (confirmed) {
+                    // 明示的に離脱する場合は状態をクリア
+                    if (link.href.includes('/')) {
+                        clearFilterState();
+                    }
+                } else {
+                    e.preventDefault();
+                }
+            }
+        });
+    });
+    
+    console.log('[scenarios_list] 状態保持機能を初期化完了');
+}); 
