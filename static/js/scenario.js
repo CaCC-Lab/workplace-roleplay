@@ -92,6 +92,17 @@ messageInput.addEventListener('keypress', function(e) {
     }
 });
 
+// ページ離脱時の警告
+let hasUnsavedChanges = false;
+window.addEventListener('beforeunload', function(e) {
+    if (hasUnsavedChanges && chatMessages && chatMessages.children.length > 0) {
+        const message = 'シナリオ実行中です。このページを離れると、進捗が失われます。';
+        e.preventDefault();
+        e.returnValue = message;
+        return message;
+    }
+});
+
 // 初期メッセージの取得
 window.addEventListener('load', async () => {
     try {
@@ -785,4 +796,202 @@ function cleanupAudioCache() {
 }
 
 // 定期的にキャッシュをクリーンアップ
-setInterval(cleanupAudioCache, 60000); // 1分ごと 
+setInterval(cleanupAudioCache, 60000); // 1分ごと
+
+// ===== 画面遷移問題対応 =====
+
+// 1. ページ離脱時の警告機能
+let hasUserInteraction = false;
+let isNavigatingAway = false;
+
+// ユーザーがメッセージを送信したかどうかを追跡 (関数デコレータパターン)
+const originalSendMessage = sendMessage;
+sendMessage = function(...args) {
+    hasUserInteraction = true;
+    return originalSendMessage.apply(this, args);
+};
+
+// ページ離脱前の警告
+window.addEventListener('beforeunload', function(e) {
+    // チャット履歴がある場合にのみ警告
+    const messages = document.querySelectorAll('.message.user-message, .message.bot-message');
+    if (hasUserInteraction && messages.length > 0 && !isNavigatingAway) {
+        const confirmationMessage = '進行中の会話が失われます。本当にページを離れますか？';
+        e.preventDefault();
+        e.returnValue = confirmationMessage;
+        return confirmationMessage;
+    }
+});
+
+// ナビゲーションリンクでの安全な離脱
+document.addEventListener('DOMContentLoaded', function() {
+    // ナビゲーションリンクに確認ダイアログを追加
+    const navLinks = document.querySelectorAll('.navigation a, .nav-button');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const messages = document.querySelectorAll('.message.user-message, .message.bot-message');
+            if (hasUserInteraction && messages.length > 0) {
+                const confirmed = confirm('進行中の会話が失われます。本当にページを離れますか？');
+                if (confirmed) {
+                    isNavigatingAway = true;
+                } else {
+                    e.preventDefault();
+                }
+            }
+        });
+    });
+});
+
+// 2. モデル未選択時の対応強化
+function validateModelSelection() {
+    const selectedModel = localStorage.getItem('selectedModel');
+    
+    if (!selectedModel) {
+        // モデルが選択されていない場合
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-banner';
+        errorDiv.innerHTML = `
+            <div class="error-content">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>AIモデルが選択されていません。トップページでモデルを選択してください。</span>
+                <button onclick="redirectToModelSelection()" class="error-button">
+                    <i class="fas fa-arrow-right"></i> モデル選択へ
+                </button>
+            </div>
+        `;
+        
+        // ページの最上部に警告バナーを表示
+        document.body.insertBefore(errorDiv, document.body.firstChild);
+        
+        // チャット機能を無効化
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const aiAssistButton = document.getElementById('ai-assist-button');
+        
+        if (messageInput) {
+            messageInput.disabled = true;
+            messageInput.placeholder = 'モデルを選択してからご利用ください';
+        }
+        if (sendButton) sendButton.disabled = true;
+        if (aiAssistButton) aiAssistButton.disabled = true;
+        
+        // 5秒後に自動リダイレクト
+        setTimeout(() => {
+            redirectToModelSelection();
+        }, 5000);
+        
+        return false;
+    }
+    return true;
+}
+
+function redirectToModelSelection() {
+    isNavigatingAway = true;
+    window.location.href = '/';
+}
+
+// 3. セッション状態の監視
+function checkSessionHealth() {
+    return fetch('/api/session/health', {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (response.status === 401 || response.status === 403) {
+            handleSessionExpired();
+            return false;
+        }
+        return response.ok;
+    })
+    .catch(error => {
+        console.warn('セッション状態の確認に失敗:', error);
+        return true; // ネットワークエラーの場合は継続
+    });
+}
+
+function handleSessionExpired() {
+    const sessionExpiredDiv = document.createElement('div');
+    sessionExpiredDiv.className = 'session-expired-banner';
+    sessionExpiredDiv.innerHTML = `
+        <div class="session-expired-content">
+            <i class="fas fa-clock"></i>
+            <span>セッションの有効期限が切れました。再度ログインしてください。</span>
+            <button onclick="refreshSession()" class="session-refresh-button">
+                <i class="fas fa-refresh"></i> ページを更新
+            </button>
+        </div>
+    `;
+    
+    document.body.insertBefore(sessionExpiredDiv, document.body.firstChild);
+    
+    // チャット機能を無効化
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    if (messageInput) messageInput.disabled = true;
+    if (sendButton) sendButton.disabled = true;
+}
+
+function refreshSession() {
+    isNavigatingAway = true;
+    window.location.reload();
+}
+
+// 4. エラー状態の回復機能
+function retryLastAction() {
+    const lastErrorMessage = document.querySelector('.message.error-message:last-child');
+    if (lastErrorMessage) {
+        // 最後のエラーメッセージを削除
+        lastErrorMessage.remove();
+        
+        // モデル選択状態を再確認
+        if (validateModelSelection()) {
+            displayMessage("接続を再試行中です...", "system-message");
+        }
+    }
+}
+
+// 5. 初期化時の検証強化
+document.addEventListener('DOMContentLoaded', function() {
+    // モデル選択の検証
+    if (!validateModelSelection()) {
+        return; // モデル未選択の場合は以降の処理を停止
+    }
+    
+    // 定期的なセッション状態チェック（5分間隔）
+    setInterval(checkSessionHealth, 5 * 60 * 1000);
+});
+
+// 6. エラーメッセージの改善 (関数デコレータパターンでdisplayMessageを拡張)
+const originalDisplayMessageFunc = displayMessage;
+displayMessage = function(text, className, enableTTS = false) {
+    // 未保存変更フラグを立てる
+    hasUnsavedChanges = true;
+
+    // エラーメッセージの場合に再試行ボタンを追加
+    if (className && className.includes('error')) {
+        const div = document.createElement("div");
+        div.className = "message " + className;
+        
+        const messageContainer = document.createElement("div");
+        messageContainer.className = "message-container";
+        
+        const textSpan = document.createElement("span");
+        textSpan.className = "message-text";
+        textSpan.textContent = text;
+        messageContainer.appendChild(textSpan);
+        
+        // 再試行ボタンを追加
+        const retryButton = document.createElement("button");
+        retryButton.className = "retry-button";
+        retryButton.innerHTML = '<i class="fas fa-redo"></i> 再試行';
+        retryButton.onclick = retryLastAction;
+        messageContainer.appendChild(retryButton);
+        
+        div.appendChild(messageContainer);
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    } else {
+        // 通常のメッセージは元の関数を呼び出し
+        return originalDisplayMessageFunc.call(this, text, className, enableTTS);
+    }
+}; 
