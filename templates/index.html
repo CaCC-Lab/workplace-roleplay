@@ -103,12 +103,40 @@
             </div>
 
             <div class="features-section">
+                <h2 class="features-title"><i class="fas fa-graduation-cap"></i> 練習カテゴリー</h2>
+                <p class="features-description">目的に合わせて、適切な練習カテゴリーを選択してください。</p>
+                
                 <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-theater-masks"></i></div>
-                        <h3>シナリオロールプレイ</h3>
-                        <p>実際の職場で起こりうる場面を再現し、AIと対話形式で練習できます。</p>
-                        <a href="{{ url_for('list_scenarios') }}" class="primary-button"><i class="fas fa-play"></i> シナリオを選ぶ</a>
+                    <!-- 職場のコミュニケーションシナリオ -->
+                    <div class="feature-card main-category regular-category">
+                        <div class="feature-icon regular-icon"><i class="fas fa-comments"></i></div>
+                        <h3>職場のコミュニケーションシナリオ</h3>
+                        <p>日常的な職場でのコミュニケーションスキルを向上させるためのロールプレイシナリオです。気軽に練習を始めましょう。</p>
+                        <div class="category-stats">
+                            <span class="stat-item"><i class="fas fa-layer-group"></i> 33シナリオ</span>
+                            <span class="stat-item"><i class="fas fa-clock"></i> すぐに開始</span>
+                        </div>
+                        <a href="{{ url_for('list_regular_scenarios') }}" class="primary-button regular-button">
+                            <i class="fas fa-play"></i> コミュニケーション練習を始める
+                        </a>
+                    </div>
+                    
+                    <!-- 職場のハラスメント対策シナリオ -->
+                    <div class="feature-card main-category harassment-category">
+                        <div class="feature-icon harassment-icon"><i class="fas fa-shield-alt"></i></div>
+                        <h3>職場のハラスメント対策シナリオ</h3>
+                        <p>職場でのハラスメントを防止し、健全なコミュニケーション環境を構築するための研修シナリオです。</p>
+                        <div class="category-stats harassment-stats">
+                            <span class="stat-item"><i class="fas fa-layer-group"></i> 11シナリオ</span>
+                            <span class="stat-item"><i class="fas fa-graduation-cap"></i> 研修コンテンツ</span>
+                        </div>
+                        <div class="warning-notice">
+                            <i class="fas fa-info-circle"></i>
+                            <span>デリケートな内容を含むため、同意画面を経て利用いただけます</span>
+                        </div>
+                        <a href="{{ url_for('list_harassment_scenarios') }}" class="primary-button harassment-button">
+                            <i class="fas fa-graduation-cap"></i> ハラスメント防止研修を始める
+                        </a>
                     </div>
 
                     <div class="feature-card card-shadow">

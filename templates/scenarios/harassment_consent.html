@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ハラスメント防止研修 - 同意確認</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/harassment_consent.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="consent-container">
+        <div class="consent-card">
+            <div class="consent-header">
+                <i class="fas fa-shield-alt"></i>
+                <h1>職場のハラスメント防止研修</h1>
+                <p class="subtitle">研修開始前の確認事項</p>
+            </div>
+
+            <div class="consent-content">
+                <div class="warning-box">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h2>重要なお知らせ</h2>
+                    <p>この研修プログラムには、職場でのハラスメントに関する具体的な事例や状況が含まれています。</p>
+                </div>
+
+                <div class="content-description">
+                    <h3><i class="fas fa-info-circle"></i> 研修内容について</h3>
+                    <ul>
+                        <li>パワーハラスメント、セクシャルハラスメント等の事例を扱います</li>
+                        <li>グレーゾーンと呼ばれる判断が難しい状況も含まれます</li>
+                        <li>実際の職場で起こりうる状況を再現したロールプレイを行います</li>
+                        <li>一部の内容は精神的に負担を感じる可能性があります</li>
+                    </ul>
+                </div>
+
+                <div class="purpose-box">
+                    <h3><i class="fas fa-graduation-cap"></i> 研修の目的</h3>
+                    <p>この研修は、以下の目的で提供されています：</p>
+                    <ul>
+                        <li>ハラスメントの予防と早期発見</li>
+                        <li>適切な対応方法の習得</li>
+                        <li>健全な職場環境の構築</li>
+                        <li>コミュニケーションスキルの向上</li>
+                    </ul>
+                </div>
+
+                <div class="support-info">
+                    <h3><i class="fas fa-life-ring"></i> サポート情報</h3>
+                    <p>実際にハラスメントでお困りの場合は、以下の相談窓口をご利用ください：</p>
+                    <ul>
+                        <li>社内相談窓口（人事部・コンプライアンス部門）</li>
+                        <li>労働局の総合労働相談コーナー</li>
+                        <li>みんなの人権110番（0570-003-110）</li>
+                    </ul>
+                </div>
+
+                <div class="consent-form">
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="consent-checkbox" />
+                        <label for="consent-checkbox">
+                            上記の内容を理解し、研修プログラムへの参加に同意します
+                        </label>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="consent-button" class="btn-primary" disabled>
+                            <i class="fas fa-check"></i> 同意して研修を開始
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn-secondary">
+                            <i class="fas fa-arrow-left"></i> ホームに戻る
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('consent-checkbox').addEventListener('change', function() {
+            document.getElementById('consent-button').disabled = !this.checked;
+        });
+
+        document.getElementById('consent-button').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/harassment/consent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ consent: true })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = data.redirect || '/scenarios/harassment';
+                } else {
+                    alert('エラーが発生しました。もう一度お試しください。');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('通信エラーが発生しました。');
+            }
+        });
+    </script>
+</body>
+</html>

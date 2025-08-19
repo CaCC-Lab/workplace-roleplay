@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>職場のハラスメント防止シナリオ一覧</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/scenario_categories.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container harassment-container">
+        <header class="page-header harassment-header">
+            <div class="header-content">
+                <a href="{{ url_for('index') }}" class="back-link">
+                    <i class="fas fa-arrow-left"></i> ホームに戻る
+                </a>
+                <h1><i class="fas fa-shield-alt"></i> 職場のハラスメント防止研修シナリオ</h1>
+                <p class="header-description">ハラスメントを防止し、健全な職場環境を構築するための研修シナリオです</p>
+            </div>
+            <div class="consent-reminder">
+                <i class="fas fa-check-circle"></i>
+                <span>あなたは研修内容に同意済みです</span>
+            </div>
+        </header>
+
+        <div class="important-notice">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <strong>研修上の注意事項</strong>
+                <p>これらのシナリオは教育目的で作成されています。実際にハラスメントでお困りの場合は、社内相談窓口や労働局の相談コーナーをご利用ください。</p>
+            </div>
+        </div>
+
+        <div class="scenarios-container">
+            <div class="filter-section">
+                <div class="filter-header">
+                    <h3><i class="fas fa-filter"></i> シナリオカテゴリ</h3>
+                    <span class="scenario-count">{{ scenarios|length }}個の研修シナリオ</span>
+                </div>
+                <div class="filter-options">
+                    <button class="filter-btn active" data-filter="all">すべて</button>
+                    <button class="filter-btn" data-filter="グレーゾーン">グレーゾーン</button>
+                    <button class="filter-btn" data-filter="パワハラ">パワハラ対策</button>
+                    <button class="filter-btn" data-filter="その他">その他</button>
+                </div>
+            </div>
+
+            <div class="scenarios-grid">
+                {% for scenario_id, scenario_data in scenarios.items() %}
+                <div class="scenario-card harassment-card" 
+                     data-category="{% if 'グレーゾーン' in scenario_data.get('tags', []) %}グレーゾーン{% elif 'パワハラ' in scenario_data.get('tags', []) %}パワハラ{% else %}その他{% endif %}">
+                    <div class="scenario-header harassment-header">
+                        <span class="scenario-id">研修{{ loop.index }}</span>
+                        <span class="difficulty-badge harassment">
+                            {{ scenario_data.get('difficulty', '中級') }}
+                        </span>
+                    </div>
+                    <h3 class="scenario-title">{{ scenario_data.get('title', 'タイトル未設定') }}</h3>
+                    <p class="scenario-description">{{ scenario_data.get('description', '説明がありません') }}</p>
+                    
+                    {% if scenario_data.get('tags') %}
+                    <div class="tags harassment-tags">
+                        {% for tag in scenario_data.tags[:3] %}
+                        <span class="tag harassment-tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="scenario-warning">
+                        <i class="fas fa-info-circle"></i>
+                        <span>教育目的のシナリオです</span>
+                    </div>
+                    
+                    <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="start-btn harassment-btn">
+                        <i class="fas fa-graduation-cap"></i> 研修を開始する
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if not scenarios %}
+            <div class="no-scenarios">
+                <i class="fas fa-inbox"></i>
+                <p>シナリオが見つかりませんでした</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="support-section">
+            <h3><i class="fas fa-life-ring"></i> 相談窓口のご案内</h3>
+            <div class="support-grid">
+                <div class="support-item">
+                    <h4>社内相談窓口</h4>
+                    <p>人事部・コンプライアンス部門にご相談ください</p>
+                </div>
+                <div class="support-item">
+                    <h4>労働局相談コーナー</h4>
+                    <p>各都道府県労働局の総合労働相談コーナー</p>
+                </div>
+                <div class="support-item">
+                    <h4>みんなの人権110番</h4>
+                    <p>電話: 0570-003-110（全国共通）</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // フィルター機能
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // アクティブクラスの切り替え
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.dataset.filter;
+                const cards = document.querySelectorAll('.scenario-card');
+                
+                cards.forEach(card => {
+                    if (filter === 'all' || card.dataset.category === filter) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                // 表示されているカードの数を更新
+                const visibleCards = document.querySelectorAll('.scenario-card:not([style*="none"])').length;
+                document.querySelector('.scenario-count').textContent = `${visibleCards}個の研修シナリオ`;
+            });
+        });
+    </script>
+</body>
+</html>

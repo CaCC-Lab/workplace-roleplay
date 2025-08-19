@@ -312,6 +312,150 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 1.5rem;
 }
 
+/* ホームページ新カテゴリスタイル */
+.features-title {
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+}
+
+.features-description {
+  text-align: center;
+  color: var(--text-light);
+  font-size: 1.1rem;
+  margin-bottom: 3rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* メインカテゴリカード */
+.main-category {
+  border: 2px solid transparent;
+  position: relative;
+  padding: 2.5rem;
+  min-height: 350px;
+}
+
+.regular-category {
+  background: linear-gradient(145deg, #ffffff, #f8fffe);
+  border-color: #4caf50;
+}
+
+.regular-category:hover {
+  border-color: #45a049;
+  box-shadow: 0 20px 30px rgba(76, 175, 80, 0.15);
+}
+
+.harassment-category {
+  background: linear-gradient(145deg, #ffffff, #fffaf8);
+  border-color: #ff7043;
+}
+
+.harassment-category:hover {
+  border-color: #e64a19;
+  box-shadow: 0 20px 30px rgba(255, 112, 67, 0.15);
+}
+
+.regular-icon {
+  color: #4caf50 !important;
+}
+
+.harassment-icon {
+  color: #ff7043 !important;
+}
+
+.main-category h3 {
+  font-size: 1.7rem !important;
+  font-weight: 700 !important;
+  margin: 1rem 0 1.5rem 0 !important;
+  color: var(--text-color) !important;
+}
+
+.main-category p {
+  font-size: 1.05rem !important;
+  line-height: 1.7 !important;
+  margin-bottom: 2rem !important;
+}
+
+/* カテゴリ統計 */
+.category-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(116, 185, 255, 0.1);
+  border-radius: 8px;
+}
+
+.harassment-stats {
+  background: rgba(255, 112, 67, 0.1);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+/* 警告通知 */
+.warning-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  color: #856404;
+  font-size: 0.9rem;
+}
+
+.warning-notice i {
+  color: #ffc107;
+  flex-shrink: 0;
+}
+
+/* ボタンスタイル */
+.regular-button {
+  background: linear-gradient(135deg, #4caf50, #45a049) !important;
+  color: white !important;
+}
+
+.regular-button:hover {
+  background: linear-gradient(135deg, #45a049, #3d8b40) !important;
+}
+
+.harassment-button {
+  background: linear-gradient(135deg, #ff7043, #e64a19) !important;
+  color: white !important;
+}
+
+.harassment-button:hover {
+  background: linear-gradient(135deg, #e64a19, #d84315) !important;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .category-stats {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .main-category {
+    padding: 2rem;
+    min-height: auto;
+  }
+}
+
 /* フィルターオプション */
 .filter-container {
   margin-bottom: 2rem;

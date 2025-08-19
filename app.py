@@ -31,6 +31,11 @@ from config import get_cached_config
 
 # 既存のimport文の下に追加
 from scenarios import load_scenarios
+from scenarios.category_manager import (
+    get_categorized_scenarios,
+    get_scenario_category_summary,
+    is_harassment_scenario
+)
 from strength_analyzer import (
     analyze_user_strengths,
     get_top_strengths,
@@ -68,7 +73,26 @@ except ImportError as e:
     class SecurityUtils:
         @staticmethod
         def escape_html(content):
-            return content
+            # 基本的なHTMLエスケープのフォールバック
+            import html
+            return html.escape(str(content))
+
+        @staticmethod
+        def sanitize_input(text):
+            # サニタイズのフォールバックとして、何もしない
+            return text
+
+        @staticmethod
+        def validate_scenario_id(scenario_id):
+            # バリデーションのフォールバックとして、常にTrueを返す
+            print(f"Warning: Using fallback for validate_scenario_id. Validation skipped for '{scenario_id}'.")
+            return True
+
+        @staticmethod
+        def validate_model_name(model_name):
+            # バリデーションのフォールバックとして、常にTrueを返す
+            print(f"Warning: Using fallback for validate_model_name. Validation skipped for '{model_name}'.")
+            return True
     CSRFProtection = None
     RateLimiter = None
     rate_limiter = None
@@ -378,7 +402,56 @@ def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
 
 # ========== シナリオ（職場のあなた再現シートを想定したデータ） ==========
 # 実際にはデータベースや外部ファイルなどで管理するのがおすすめ
-scenarios = load_scenarios()
+try:
+    scenarios = load_scenarios()
+    print(f"✅ シナリオロード成功: {len(scenarios)}個")
+except Exception as e:
+    print(f"❌ シナリオロードエラー: {e}")
+    scenarios = {}  # 空辞書でフォールバック
+
+def get_categorized_scenarios():
+    """シナリオをカテゴリ別に分類する"""
+    regular_scenarios = {}
+    harassment_scenarios = {}
+    
+    for scenario_id, scenario_data in scenarios.items():
+        # ハラスメント関連シナリオの判定
+        if (scenario_id.startswith('scenario') and 
+            scenario_id[-2:].isdigit() and 
+            int(scenario_id[-2:]) >= 34):
+            # scenario34以降はハラスメント関連
+            harassment_scenarios[scenario_id] = scenario_data
+        elif 'harassment' in scenario_id.lower():
+            # IDにharassmentを含むものもハラスメント関連
+            harassment_scenarios[scenario_id] = scenario_data
+        elif scenario_data and isinstance(scenario_data, dict):
+            # タグでの判定
+            tags = scenario_data.get('tags', [])
+            if any('ハラスメント' in str(tag) or 'グレーゾーン' in str(tag) for tag in tags):
+                harassment_scenarios[scenario_id] = scenario_data
+            else:
+                regular_scenarios[scenario_id] = scenario_data
+        else:
+            # その他は通常シナリオ
+            regular_scenarios[scenario_id] = scenario_data
+    
+    return regular_scenarios, harassment_scenarios
+
+def get_scenario_category_summary():
+    """シナリオのカテゴリ別サマリーを返す"""
+    regular, harassment = get_categorized_scenarios()
+    
+    return {
+        "total": len(scenarios),
+        "regular": {
+            "count": len(regular),
+            "scenarios": list(regular.keys())
+        },
+        "harassment": {
+            "count": len(harassment),
+            "scenarios": list(harassment.keys())
+        }
+    }
 
 # ========== Flaskルート ==========
 @app.route("/health")
@@ -689,7 +762,12 @@ def scenario_chat():
         
         print(f"Received request: message={user_message}, scenario_id={scenario_id}, model={selected_model}")
         
+        # シナリオロードエラー時の対応
+        if not scenarios:
+            return jsonify({"error": "シナリオデータが利用できません。管理者にお問い合わせください。"}), 503
+        
         if not scenario_id or scenario_id not in scenarios:
+            print(f"❌ シナリオID検証失敗: '{scenario_id}', 利用可能: {list(scenarios.keys())[:5]}")
             return jsonify({"error": "無効なシナリオIDです"}), 400
 
         scenario_data = scenarios[scenario_id]
@@ -1294,6 +1372,112 @@ def show_scenario(scenario_id):
         scenario=scenarios[scenario_id],
         default_model=DEFAULT_MODEL  # デフォルトモデルを渡す
     )
+
+# 新規: カテゴリ分けされたシナリオ一覧を取得するAPIエンドポイント
+@app.route("/api/categorized_scenarios")
+def get_categorized_scenarios_api():
+    """カテゴリ分けされたシナリオ一覧をJSON形式で返す"""
+    try:
+        scenario_summary = get_scenario_category_summary()
+        return jsonify(scenario_summary)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 新規: 通常のコミュニケーションシナリオ一覧ページ
+@app.route("/scenarios/regular")
+def list_regular_scenarios():
+    """通常のコミュニケーションシナリオ一覧ページ"""
+    try:
+        regular_scenarios, _ = get_categorized_scenarios()
+        
+        # 共通関数を使用してモデル情報を取得
+        model_info = get_all_available_models()
+        available_models = model_info["models"]
+        
+        return render_template(
+            "scenarios/regular_list.html",
+            scenarios=regular_scenarios,
+            models=available_models,
+            category="regular_communication"
+        )
+    except Exception as e:
+        return f"エラーが発生しました: {str(e)}", 500
+
+# 新規: ハラスメント防止シナリオ一覧ページ
+@app.route("/scenarios/harassment")
+def list_harassment_scenarios():
+    """ハラスメント防止シナリオ一覧ページ（同意チェック付き）"""
+    try:
+        # セッションで同意状態を確認
+        harassment_consent = session.get('harassment_consent', False)
+        
+        if not harassment_consent:
+            # 同意画面にリダイレクト
+            return render_template(
+                "scenarios/harassment_consent.html",
+                next_url="/scenarios/harassment"
+            )
+        
+        _, harassment_scenarios = get_categorized_scenarios()
+        
+        # 共通関数を使用してモデル情報を取得
+        model_info = get_all_available_models()
+        available_models = model_info["models"]
+        
+        return render_template(
+            "scenarios/harassment_list.html",
+            scenarios=harassment_scenarios,
+            models=available_models,
+            category="harassment_prevention"
+        )
+    except Exception as e:
+        return f"エラーが発生しました: {str(e)}", 500
+
+# 新規: ハラスメント防止研修同意処理
+@app.route("/harassment/consent", methods=["GET", "POST"])
+def harassment_consent():
+    """ハラスメント防止研修の同意画面・処理"""
+    if request.method == "GET":
+        return render_template("scenarios/harassment_consent.html")
+    
+    elif request.method == "POST":
+        data = request.get_json()
+        consent = data.get('consent', False)
+        
+        if consent:
+            # セッションに同意状態を保存
+            session['harassment_consent'] = True
+            session['harassment_consent_timestamp'] = datetime.now().isoformat()
+            session.modified = True
+            
+            return jsonify({
+                "success": True,
+                "redirect_url": "/scenarios/harassment"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "ハラスメント防止研修にアクセスするには同意が必要です。"
+            })
+
+# 新規: シナリオのカテゴリ判定API
+@app.route("/api/scenario/<scenario_id>/category")
+def get_scenario_category(scenario_id):
+    """指定シナリオのカテゴリを返す"""
+    try:
+        if scenario_id not in scenarios:
+            return jsonify({"error": "シナリオが見つかりません"}), 404
+        
+        is_harassment = is_harassment_scenario(scenario_id)
+        category = "harassment_prevention" if is_harassment else "regular_communication"
+        
+        return jsonify({
+            "scenario_id": scenario_id,
+            "category": category,
+            "requires_consent": is_harassment
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # モデル試行パターンを統一するためのヘルパー関数
 def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]]:

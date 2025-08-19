@@ -1,0 +1,386 @@
+/* シナリオカテゴリ別スタイル */
+
+/* ページヘッダー */
+.page-header {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    padding: 30px 0;
+    margin-bottom: 30px;
+}
+
+.page-header.harassment-header {
+    background: linear-gradient(135deg, #ff7043 0%, #ff5722 100%);
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.back-link {
+    color: white;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    opacity: 0.9;
+    transition: opacity 0.3s;
+}
+
+.back-link:hover {
+    opacity: 1;
+}
+
+.page-header h1 {
+    margin: 0 0 10px 0;
+    font-size: 2rem;
+}
+
+.header-description {
+    opacity: 0.95;
+    font-size: 1.1rem;
+}
+
+.consent-reminder {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+/* 重要な通知 */
+.important-notice {
+    background: #fff3e0;
+    border-left: 4px solid #ff9800;
+    padding: 20px;
+    margin: 0 auto 30px;
+    max-width: 1200px;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.important-notice i {
+    color: #ff9800;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.important-notice strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #e65100;
+}
+
+/* シナリオコンテナ */
+.scenarios-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* フィルターセクション */
+.filter-section {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.filter-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.scenario-count {
+    background: #f5f5f5;
+    padding: 5px 15px;
+    border-radius: 20px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.filter-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 8px 20px;
+    border: 2px solid #e0e0e0;
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+}
+
+.filter-btn:hover {
+    border-color: #4caf50;
+    background: #f1f8f4;
+}
+
+.filter-btn.active {
+    background: #4caf50;
+    color: white;
+    border-color: #4caf50;
+}
+
+.harassment-container .filter-btn:hover {
+    border-color: #ff7043;
+    background: #ffeee8;
+}
+
+.harassment-container .filter-btn.active {
+    background: #ff7043;
+    border-color: #ff7043;
+}
+
+/* シナリオグリッド */
+.scenarios-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+/* シナリオカード */
+.scenario-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.scenario-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.regular-card:hover {
+    border-color: #4caf50;
+}
+
+.harassment-card {
+    background: #fff8f5;
+}
+
+.harassment-card:hover {
+    border-color: #ff7043;
+}
+
+.scenario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.scenario-id {
+    background: #4caf50;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.harassment-card .scenario-id {
+    background: #ff7043;
+}
+
+.difficulty-badge {
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.difficulty-badge.初 {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.difficulty-badge.中 {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.difficulty-badge.上 {
+    background: #fce4ec;
+    color: #c2185b;
+}
+
+.difficulty-badge.harassment {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.scenario-title {
+    color: #333;
+    margin: 0 0 10px 0;
+    font-size: 1.2rem;
+}
+
+.scenario-description {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    font-size: 0.95rem;
+}
+
+/* タグ */
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.tag {
+    background: #f5f5f5;
+    color: #666;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+}
+
+.harassment-tag {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+/* 警告メッセージ */
+.scenario-warning {
+    background: #fff3e0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    color: #e65100;
+}
+
+.scenario-warning i {
+    color: #ff9800;
+}
+
+/* 開始ボタン */
+.start-btn {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+    font-weight: 600;
+}
+
+.start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.harassment-btn {
+    background: linear-gradient(135deg, #ff7043 0%, #ff5722 100%);
+}
+
+.harassment-btn:hover {
+    box-shadow: 0 5px 15px rgba(255, 87, 34, 0.3);
+}
+
+/* シナリオなし */
+.no-scenarios {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.no-scenarios i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* サポートセクション */
+.support-section {
+    background: #f8f9fa;
+    padding: 40px 20px;
+    border-radius: 12px;
+    margin-top: 40px;
+}
+
+.support-section h3 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.support-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.support-item {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.support-item h4 {
+    color: #ff7043;
+    margin: 0 0 10px 0;
+}
+
+.support-item p {
+    color: #666;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .scenarios-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .support-grid {
+        grid-template-columns: 1fr;
+    }
+}

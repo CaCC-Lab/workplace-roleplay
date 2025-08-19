@@ -12,6 +12,22 @@ const audioCache = new Map();
 window.audioCache = audioCache; // 共通関数からアクセスできるように
 let messageIdCounter = 0;
 
+// CSRFトークン管理
+let csrfToken = '';
+
+async function getCSRFToken() {
+    if (!csrfToken) {
+        try {
+            const response = await fetch('/api/csrf-token');
+            const data = await response.json();
+            csrfToken = data.csrf_token || data.token;  // csrf_tokenまたはtokenフィールドを取得
+        } catch (error) {
+            console.error('Failed to get CSRF token:', error);
+        }
+    }
+    return csrfToken;
+}
+
 async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg) return;
@@ -26,9 +42,15 @@ async function sendMessage() {
     messageInput.value = "";  // 入力欄をクリア
 
     try {
+        // CSRFトークンを取得
+        const token = await getCSRFToken();
+        
         const response = await fetch("/api/scenario_chat", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": token
+            },
             body: JSON.stringify({
                 message: msg,
                 scenario_id: scenarioId,
@@ -37,7 +59,15 @@ async function sendMessage() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error(`初期化API Error [${response.status}]:`, errorText);
+            
+            try {
+                const errorData = JSON.parse(errorText);
+                throw new Error(errorData.error || `初期化エラー (${response.status})`);
+            } catch {
+                throw new Error(`初期化サーバーエラー (${response.status}): ${errorText.substring(0, 100)}`);
+            }
         }
 
         const data = await response.json();
@@ -74,9 +104,15 @@ window.addEventListener('load', async () => {
             console.log('デフォルトモデルを設定:', selectedModel);
         }
         
+        // CSRFトークンを取得
+        const token = await getCSRFToken();
+        
         const response = await fetch("/api/scenario_chat", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": token
+            },
             body: JSON.stringify({
                 message: "",
                 scenario_id: scenarioId,
@@ -85,7 +121,15 @@ window.addEventListener('load', async () => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error(`API Error [${response.status}]:`, errorText);
+            
+            try {
+                const errorData = JSON.parse(errorText);
+                throw new Error(errorData.error || `HTTP ${response.status} エラー`);
+            } catch {
+                throw new Error(`サーバーエラー (${response.status}): ${errorText.substring(0, 100)}`);
+            }
         }
         
         const data = await response.json();

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>職場のコミュニケーションシナリオ一覧</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/scenario_categories.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div class="header-content">
+                <a href="{{ url_for('index') }}" class="back-link">
+                    <i class="fas fa-arrow-left"></i> ホームに戻る
+                </a>
+                <h1><i class="fas fa-comments"></i> 職場のコミュニケーションシナリオ</h1>
+                <p class="header-description">日常的な職場でのコミュニケーションスキルを向上させる練習シナリオです</p>
+            </div>
+        </header>
+
+        <div class="scenarios-container">
+            <div class="filter-section">
+                <div class="filter-header">
+                    <h3><i class="fas fa-filter"></i> シナリオを絞り込む</h3>
+                    <span class="scenario-count">{{ scenarios|length }}個のシナリオ</span>
+                </div>
+                <div class="filter-options">
+                    <button class="filter-btn active" data-filter="all">すべて</button>
+                    <button class="filter-btn" data-filter="初級">初級</button>
+                    <button class="filter-btn" data-filter="中級">中級</button>
+                    <button class="filter-btn" data-filter="上級">上級</button>
+                </div>
+            </div>
+
+            <div class="scenarios-grid">
+                {% for scenario_id, scenario_data in scenarios.items() %}
+                <div class="scenario-card regular-card" data-difficulty="{{ scenario_data.get('difficulty', '未設定') }}">
+                    <div class="scenario-header">
+                        <span class="scenario-id">{{ loop.index }}</span>
+                        <span class="difficulty-badge {{ scenario_data.get('difficulty', '').replace('級', '') }}">
+                            {{ scenario_data.get('difficulty', '難易度未設定') }}
+                        </span>
+                    </div>
+                    <h3 class="scenario-title">{{ scenario_data.get('title', 'タイトル未設定') }}</h3>
+                    <p class="scenario-description">{{ scenario_data.get('description', '説明がありません') }}</p>
+                    
+                    {% if scenario_data.get('tags') %}
+                    <div class="tags">
+                        {% for tag in scenario_data.tags[:3] %}
+                        <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="start-btn">
+                        <i class="fas fa-play"></i> このシナリオを始める
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if not scenarios %}
+            <div class="no-scenarios">
+                <i class="fas fa-inbox"></i>
+                <p>シナリオが見つかりませんでした</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // フィルター機能
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // アクティブクラスの切り替え
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.dataset.filter;
+                const cards = document.querySelectorAll('.scenario-card');
+                
+                cards.forEach(card => {
+                    if (filter === 'all' || card.dataset.difficulty === filter) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                // 表示されているカードの数を更新
+                const visibleCards = document.querySelectorAll('.scenario-card:not([style*="none"])').length;
+                document.querySelector('.scenario-count').textContent = `${visibleCards}個のシナリオ`;
+            });
+        });
+    </script>
+</body>
+</html>
