@@ -296,28 +296,7 @@ document.getElementById('get-feedback-button').addEventListener('click', async (
             
             content.innerHTML = feedbackHtml;
             
-            // 強み分析を表示（存在する場合）
-            if (data.strength_analysis) {
-                const strengthDiv = document.createElement('div');
-                strengthDiv.id = 'strengthHighlight';
-                strengthDiv.innerHTML = `
-                    <h3>🌟 あなたの強み</h3>
-                    <div class="strength-badges">
-                        ${data.strength_analysis.top_strengths.map(strength => `
-                            <div class="strength-badge">
-                                <span class="strength-name">${strength.name}</span>
-                                <span class="strength-score">${Math.round(strength.score)}点</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                content.appendChild(strengthDiv);
-                
-                // アニメーション効果
-                setTimeout(() => {
-                    strengthDiv.classList.add('show');
-                }, 100);
-            }
+            // 強み分析表示を削除（シナリオ画面では不要）
             
             content.classList.add('active');
             document.getElementById('feedback-section').scrollIntoView({ behavior: 'smooth' });

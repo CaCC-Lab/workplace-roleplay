@@ -195,54 +195,6 @@ body:has(.session-expired-banner) #chat-container {
     transition: margin-top 0.5s ease;
 }
 
-/* ========== 強み分析表示 ========== */
-#strengthHighlight {
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    margin-top: 1.5rem;
-    padding: 1.5rem;
-    background: #f0f9ff;
-    border-radius: 8px;
-    border: 1px solid #e0f2fe;
-}
-
-#strengthHighlight.show {
-    opacity: 1;
-}
-
-#strengthHighlight h3 {
-    color: #1e40af;
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
-}
-
-.strength-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.strength-badge {
-    display: inline-block;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 0.5rem 1.5rem;
-    border-radius: 25px;
-    font-size: 0.9rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease;
-}
-
-.strength-badge:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.strength-name {
-    font-weight: 600;
-    margin-right: 0.5rem;
-}
-
-.strength-score {
-    font-weight: 700;
-}
+/* ========== 強み分析表示を削除（シナリオ画面では不要） ========== */
+/* 強み分析は専用の /strength_analysis ページで表示されるため、
+   シナリオ実行画面では削除しました */

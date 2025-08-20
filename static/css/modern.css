@@ -273,11 +273,14 @@ input:focus, select:focus, textarea:focus {
 /* フィーチャーカード */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
+  align-items: start;
 }
 
 .feature-card {
+  position: relative;
+  z-index: 1;
   background-color: white;
   border-radius: var(--border-radius);
   padding: 1.5rem;
@@ -286,7 +289,7 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   height: 100%;
-  margin-bottom: 0;
+  margin-bottom: 1.5rem;
 }
 
 .welcome-section,
