@@ -1,6 +1,15 @@
 """
-APIキー管理システム
-複数のGoogle APIキーをローテーションして使用
+⚠️  DEPRECATED - 規約違反リスクのため非推奨 ⚠️
+このファイルは Google Gemini API利用規約に違反する可能性があります。
+
+問題点:
+1. レート制限回避の明示的意図
+2. 複数APIキーのローテーション使用
+3. Google Cloud Platform利用規約への抵触リスク
+
+代替: compliant_api_manager.py を使用してください
+
+⚠️  DO NOT USE - COMPLIANCE RISK ⚠️
 """
 
 import os

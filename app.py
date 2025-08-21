@@ -41,12 +41,20 @@ from strength_analyzer import (
     get_top_strengths,
     generate_encouragement_messages
 )
-from api_key_manager import (
-    get_google_api_key,
-    handle_api_error,
-    record_api_usage,
-    get_api_key_manager
+# COMPLIANCE FIX: 規約準拠APIマネージャーに移行
+from compliant_api_manager import (
+    get_compliant_google_api_key,
+    handle_compliant_api_error,
+    record_compliant_api_usage,
+    get_compliant_api_manager
 )
+# 旧版（規約違反リスク）をコメントアウト
+# from api_key_manager import (
+#     get_google_api_key,
+#     handle_api_error,
+#     record_api_usage,
+#     get_api_key_manager
+# )
 
 # エラーハンドリングのインポート
 from errors import (
@@ -2113,8 +2121,8 @@ def text_to_speech():
             import wave
             import io
             
-            # APIキーマネージャーから次のキーを取得
-            current_api_key = get_google_api_key()
+            # COMPLIANCE FIX: 規約準拠APIキーマネージャーから取得
+            current_api_key = get_compliant_google_api_key()
             
             # Geminiクライアントの初期化
             client = genai.Client(api_key=current_api_key)
@@ -2223,8 +2231,8 @@ def text_to_speech():
             audio_content = base64.b64encode(wav_data).decode('utf-8')
             print(f"Base64 encoded for response, length: {len(audio_content)}")
             
-            # API使用成功を記録
-            record_api_usage(current_api_key)
+            # COMPLIANCE FIX: 規約準拠API使用記録
+            record_compliant_api_usage()
             
             return jsonify({
                 "audio": audio_content,
@@ -2236,9 +2244,8 @@ def text_to_speech():
         except Exception as tts_error:
             print(f"TTS error: {str(tts_error)}")
             
-            # APIエラーを記録
-            if 'current_api_key' in locals():
-                handle_api_error(current_api_key, tts_error)
+            # COMPLIANCE FIX: 規約準拠エラーハンドリング
+            handle_compliant_api_error(tts_error)
             
             # エラーの場合はフォールバックとしてWeb Speech APIの使用を提案
             return jsonify({
@@ -2736,7 +2743,8 @@ def update_feedback_with_strength_analysis(feedback_response, session_type, scen
 def get_api_key_status():
     """APIキーの使用状況を取得"""
     try:
-        manager = get_api_key_manager()
+        # COMPLIANCE FIX: 規約準拠APIマネージャーを使用
+        manager = get_compliant_api_manager()
         status = manager.get_status()
         return jsonify(status)
     except Exception as e:
