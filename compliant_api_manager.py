@@ -5,7 +5,7 @@ Google Gemini API利用規約に完全準拠した実装
 
 import os
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 import asyncio
 from collections import defaultdict
 

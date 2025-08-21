@@ -13,7 +13,7 @@ import asyncio
 # プロジェクトルートからインポート
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from api_key_manager import APIKeyManager
+from compliant_api_manager import CompliantAPIManager
 from config import Config
 
 
@@ -49,7 +49,7 @@ class LLMService:
             config: 設定オブジェクト（オプション）
         """
         self.config = config or Config()
-        self.api_key_manager = APIKeyManager()
+        self.api_key_manager = CompliantAPIManager()
         self.models = {}
         self.default_temperature = self.config.DEFAULT_TEMPERATURE
         
@@ -59,8 +59,8 @@ class LLMService:
     def _initialize_genai(self):
         """Gemini APIの初期化"""
         try:
-            # APIキーマネージャーから最初のキーを取得
-            api_key = self.api_key_manager.get_next_key()
+            # APIキーマネージャーからキーを取得
+            api_key = self.api_key_manager.get_api_key()
             genai.configure(api_key=api_key)
         except Exception as e:
             print(f"Warning: Failed to initialize Gemini API: {e}")
@@ -83,8 +83,8 @@ class LLMService:
                 model_name = self.DEPRECATED_MODELS[model_name]
                 print(f"Model '{original_model}' is deprecated. Using '{model_name}' instead.")
             
-            # APIキーマネージャーから次のキーを取得
-            current_api_key = self.api_key_manager.get_next_key()
+            # APIキーマネージャーからキーを取得
+            current_api_key = self.api_key_manager.get_api_key()
             
             # モデルインスタンスを作成
             llm = ChatGoogleGenerativeAI(
@@ -96,13 +96,13 @@ class LLMService:
             )
             
             # 使用回数を記録
-            self.api_key_manager.record_usage(current_api_key)
+            self.api_key_manager.record_successful_request(current_api_key)
             
             return llm
             
         except Exception as e:
             # エラーを記録
-            self.api_key_manager.record_error(current_api_key)
+            self.api_key_manager.record_failed_request(current_api_key, e)
             print(f"Error creating Gemini LLM: {str(e)}")
             raise
     
