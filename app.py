@@ -884,17 +884,10 @@ def scenario_chat():
             response = create_model_and_get_response(selected_model, messages)
             
         except Exception as e:
-            # エラーハンドリング共通関数を使用
-            error_msg, status_code, fallback_result, fallback_model = handle_llm_error(
-                e,
-                fallback_with_local_model,
-                {"messages_or_prompt": messages}
-            )
-            
-            if fallback_result:
-                response = fallback_result
-            else:
-                response = f"申し訳ありません。{error_msg}"
+            # LLMエラーを処理
+            app_error = handle_llm_specific_error(e, "Gemini")
+            print(f"Error in chat: {app_error.message}")
+            response = f"申し訳ありません。{app_error.message}"
 
         # セッションに履歴を保存（共通関数使用）
         add_to_session_history("scenario_history", {
@@ -1025,31 +1018,9 @@ def next_watch_message() -> Any:
                 # 次のメッセージを生成
                 next_message = generate_next_message(llm, history)
             except Exception as e:
-                # エラーハンドリング共通関数を使用
-                error_msg, status_code, fallback_result, fallback_model = handle_llm_error(
-                    e,
-                    # フォールバック関数として、ローカルモデルでの次のメッセージ生成を指定
-                    lambda fallback_model, **kwargs: generate_next_message(
-                        initialize_llm(fallback_model), history
-                    ),
-                    {}  # 追加パラメータなし
-                )
-                
-                if fallback_result:
-                    next_message = fallback_result
-                    # フォールバックモデルを保存（今後の会話用）
-                    if next_speaker == "B":
-                        settings["model_b"] = fallback_model
-                    else:
-                        settings["model_a"] = fallback_model
-                    
-                    # 正常応答でフォールバック通知付き
-                    return jsonify({
-                        "message": f"{display_name}(代替): {next_message}", 
-                        "notice": "OpenAIのクォータ制限により、ローカルモデルを使用しています。"
-                    })
-                else:
-                    return jsonify({"error": error_msg}), status_code
+                # LLMエラーを処理
+                app_error = handle_llm_specific_error(e, model)
+                return jsonify({"error": app_error.message}), app_error.status_code
             
             # 履歴に保存
             history.append({
@@ -1142,20 +1113,9 @@ def get_assist() -> Any:
             return jsonify({"suggestion": suggestion})
             
         except Exception as e:
-            # エラーハンドリング共通関数を使用
-            error_msg, status_code, fallback_result, fallback_model = handle_llm_error(
-                e,
-                fallback_with_local_model,
-                {"messages_or_prompt": assist_prompt}
-            )
-            
-            if fallback_result:
-                return jsonify({
-                    "suggestion": fallback_result, 
-                    "fallback": True
-                })
-            else:
-                return jsonify({"error": error_msg}), status_code
+            # LLMエラーを処理
+            app_error = handle_llm_specific_error(e, "Gemini")
+            return jsonify({"error": app_error.message}), app_error.status_code
 
     except Exception as e:
         print(f"AIアシストエラー: {str(e)}")
@@ -1694,10 +1654,18 @@ def get_scenario_feedback():
                 return jsonify(response_data)
             else:
                 # すべてのモデルが失敗した場合
-                return jsonify({
-                    "error": f"フィードバックの生成に失敗しました: {error_msg}",
-                    "attempted_models": "Gemini, OpenAI, Local"
-                }), 500
+                # レート制限エラーの場合は429を返す
+                if "rate limit" in str(error_msg).lower() or "レート制限" in str(error_msg):
+                    return jsonify({
+                        "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                        "attempted_models": "Gemini",
+                        "retry_after": 60  # 60秒後に再試行を推奨
+                    }), 429
+                else:
+                    return jsonify({
+                        "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                        "attempted_models": "Gemini"
+                    }), 503  # Service Unavailable
 
         except Exception as e:
             print(f"Feedback generation error: {str(e)}")
@@ -1790,11 +1758,20 @@ def get_chat_feedback():
             return jsonify(response_data)
         else:
             # すべてのモデルが失敗した場合
-            return jsonify({
-                "error": f"フィードバックの生成に失敗しました: {error_msg}",
-                "attempted_models": "Gemini, OpenAI, Local",
-                "status": "error"
-            }), 500
+            # レート制限エラーの場合は429を返す
+            if "rate limit" in str(error_msg).lower() or "レート制限" in str(error_msg):
+                return jsonify({
+                    "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                    "attempted_models": "Gemini",
+                    "retry_after": 60,
+                    "status": "error"
+                }), 429
+            else:
+                return jsonify({
+                    "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                    "attempted_models": "Gemini",
+                    "status": "error"
+                }), 503
 
     except Exception as e:
         print(f"Error in chat_feedback: {str(e)}")
@@ -2012,27 +1989,19 @@ def start_chat() -> Any:
             return jsonify({"response": response})
             
         except Exception as e:
-            # エラーハンドリング共通関数を使用
-            error_msg, status_code, fallback_result, fallback_model = handle_llm_error(
-                e,
-                fallback_with_local_model,
-                {"messages_or_prompt": first_prompt}
-            )
-            
-            if fallback_result:
+            # LLMエラーを処理
+            app_error = handle_llm_specific_error(e, "Gemini")
+            # レート制限エラーの場合は429を返す
+            if isinstance(app_error, RateLimitError):
+                return jsonify({"error": app_error.message, "retry_after": 60}), 429
+            else:
                 # 履歴に保存
                 add_to_session_history("chat_history", {
                     "human": "[雑談開始]",
-                    "ai": fallback_result
+                    "ai": f"申し訳ありません。{app_error.message}"
                 })
                 
-                # フォールバックモデルを保存
-                session["chat_settings"]["model"] = fallback_model
-                session.modified = True
-                
-                return jsonify({"response": fallback_result, "notice": "フォールバックモデルを使用しています"})
-            else:
-                return jsonify({"error": error_msg}), status_code
+                return jsonify({"error": app_error.message}), app_error.status_code
                 
     except Exception as e:
         print(f"Error in start_chat: {str(e)}")
@@ -2093,11 +2062,11 @@ def get_conversation_history():
 @app.route("/api/tts", methods=["POST"])
 def text_to_speech():
     """
-    🚨 EMERGENCY SHUTDOWN: TTS機能は高額請求（25万円）により緊急停止中
+    EMERGENCY SHUTDOWN: TTS機能は高額請求（25万円）により緊急停止中
     Gemini TTS APIは$10/100万文字で1,667万文字生成により1,667ドル（25万円）請求
     """
     return jsonify({
-        "error": "🚨 TTS機能は高額請求により緊急停止中",
+        "error": "TTS機能は高額請求により緊急停止中",
         "message": "25万円の請求が発生したため、TTS機能を停止しました。",
         "details": {
             "cost": "250,000円 ($1,667)",
@@ -2267,10 +2236,10 @@ def text_to_speech():
                 "details": str(tts_error),
                 "fallback": "Web Speech API"
             }), 500
-            
-    except Exception as e:
-        print(f"Error in text_to_speech: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    """        
+    # except Exception as e:
+    #     print(f"Error in text_to_speech: {str(e)}")
+    #     return jsonify({"error": str(e)}), 500
 
 def get_voice_for_emotion(emotion: str) -> str:
     """感情に最適な音声を選択する"""
@@ -2528,10 +2497,10 @@ def generate_character_image():
 @app.route("/api/tts/voices", methods=["GET"])
 def get_available_voices():
     """
-    🚨 EMERGENCY SHUTDOWN: TTS機能は高額請求により停止中
+    EMERGENCY SHUTDOWN: TTS機能は高額請求により停止中
     """
     return jsonify({
-        "error": "🚨 TTS音声機能は高額請求により緊急停止中",
+        "error": "TTS音声機能は高額請求により緊急停止中",
         "message": "Gemini TTSで25万円の請求が発生したため、全TTS機能を停止しました",
         "alternative": "ブラウザ内蔵のWeb Speech APIを使用してください"
     }), 503
@@ -2587,54 +2556,53 @@ def get_available_voices():
         })
         
         return jsonify({"voices": voices})
-        
-    except Exception as e:
-        print(f"Error in get_available_voices: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    """    
+    # except Exception as e:
+    #     print(f"Error in get_available_voices: {str(e)}")
+    #     return jsonify({"error": str(e)}), 500
 
 @app.route("/api/tts/styles", methods=["GET"])
 def get_available_styles():
     """
-    🚨 EMERGENCY SHUTDOWN: TTS機能は高額請求により停止中
+    EMERGENCY SHUTDOWN: TTS機能は高額請求により停止中
     """
     return jsonify({
-        "error": "🚨 TTSスタイル機能は高額請求により緊急停止中",
+        "error": "TTSスタイル機能は高額請求により緊急停止中",
         "message": "Gemini TTSで25万円の請求が発生したため、全TTS機能を停止しました",
         "alternative": "ブラウザ内蔵のWeb Speech APIを使用してください"
     }), 503
     
-    # 以下は無効化されたコード
-    """
-    try:
-        styles = {
-            "emotions": [
-                {"id": "happy", "name": "楽しい・嬉しい", "description": "明るく元気な感じ"},
-                {"id": "sad", "name": "悲しい・寂しい", "description": "優しく穏やかな感じ"},
-                {"id": "angry", "name": "怒り・不満", "description": "力強く断定的な感じ"},
-                {"id": "excited", "name": "興奮・ワクワク", "description": "活発でエネルギッシュ"},
-                {"id": "worried", "name": "心配・不安", "description": "控えめで慎重な感じ"},
-                {"id": "tired", "name": "疲れ・眠い", "description": "ゆっくりと息遣いのある感じ"},
-                {"id": "calm", "name": "落ち着き・安心", "description": "穏やかで安定した感じ"},
-                {"id": "confident", "name": "自信・確信", "description": "はっきりと明確な感じ"},
-                {"id": "professional", "name": "ビジネス・丁寧", "description": "フォーマルで礼儀正しい"},
-                {"id": "friendly", "name": "親しみ・気さく", "description": "温かく親しみやすい"},
-                {"id": "whisper", "name": "ささやき", "description": "静かで密やかな感じ"},
-                {"id": "spooky", "name": "不気味・怖い", "description": "神秘的で薄気味悪い"}
-            ],
-            "custom_styles": [
-                {"example": "in a storytelling manner", "description": "物語を語るような口調で"},
-                {"example": "like a news anchor", "description": "ニュースキャスターのように"},
-                {"example": "as if giving a presentation", "description": "プレゼンテーションをするように"},
-                {"example": "in a comforting way", "description": "慰めるような優しい口調で"},
-                {"example": "with dramatic emphasis", "description": "ドラマチックに強調して"}
-            ]
-        }
-        
-        return jsonify(styles)
-        
-    except Exception as e:
-        print(f"Error in get_available_styles: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    # 以下は無効化されたコード（高額請求のため）
+    # try:
+    #     styles = {
+    #         "emotions": [
+    #             {"id": "happy", "name": "楽しい・嬉しい", "description": "明るく元気な感じ"},
+    #             {"id": "sad", "name": "悲しい・寂しい", "description": "優しく穏やかな感じ"},
+    #             {"id": "angry", "name": "怒り・不満", "description": "力強く断定的な感じ"},
+    #             {"id": "excited", "name": "興奮・ワクワク", "description": "活発でエネルギッシュ"},
+    #             {"id": "worried", "name": "心配・不安", "description": "控えめで慎重な感じ"},
+    #             {"id": "tired", "name": "疲れ・眠い", "description": "ゆっくりと息遣いのある感じ"},
+    #             {"id": "calm", "name": "落ち着き・安心", "description": "穏やかで安定した感じ"},
+    #             {"id": "confident", "name": "自信・確信", "description": "はっきりと明確な感じ"},
+    #             {"id": "professional", "name": "ビジネス・丁寧", "description": "フォーマルで礼儀正しい"},
+    #             {"id": "friendly", "name": "親しみ・気さく", "description": "温かく親しみやすい"},
+    #             {"id": "whisper", "name": "ささやき", "description": "静かで密やかな感じ"},
+    #             {"id": "spooky", "name": "不気味・怖い", "description": "神秘的で薄気味悪い"}
+    #         ],
+    #         "custom_styles": [
+    #             {"example": "in a storytelling manner", "description": "物語を語るような口調で"},
+    #             {"example": "like a news anchor", "description": "ニュースキャスターのように"},
+    #             {"example": "as if giving a presentation", "description": "プレゼンテーションをするように"},
+    #             {"example": "in a comforting way", "description": "慰めるような優しい口調で"},
+    #             {"example": "with dramatic emphasis", "description": "ドラマチックに強調して"}
+    #         ]
+    #     }
+    #     
+    #     return jsonify(styles)
+    #     
+    # except Exception as e:
+    #     print(f"Error in get_available_styles: {str(e)}")
+    #     return jsonify({"error": str(e)}), 500
 
 
 # ========== 強み分析機能 ==========
