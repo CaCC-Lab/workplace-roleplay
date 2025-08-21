@@ -2093,7 +2093,21 @@ def get_conversation_history():
 @app.route("/api/tts", methods=["POST"])
 def text_to_speech():
     """
-    Gemini TTS APIを使用してテキストを音声に変換するAPI
+    🚨 EMERGENCY SHUTDOWN: TTS機能は高額請求（25万円）により緊急停止中
+    Gemini TTS APIは$10/100万文字で1,667万文字生成により1,667ドル（25万円）請求
+    """
+    return jsonify({
+        "error": "🚨 TTS機能は高額請求により緊急停止中",
+        "message": "25万円の請求が発生したため、TTS機能を停止しました。",
+        "details": {
+            "cost": "250,000円 ($1,667)",
+            "characters": "16,675,000文字の音声生成",
+            "requests": "約166,750回のリクエスト"
+        },
+        "alternative": "ブラウザ内蔵のWeb Speech APIをご利用ください"
+    }), 503  # Service Temporarily Unavailable
+    
+    # 以下は無効化されたコード
     """
     try:
         data = request.get_json()
@@ -2514,7 +2528,15 @@ def generate_character_image():
 @app.route("/api/tts/voices", methods=["GET"])
 def get_available_voices():
     """
-    利用可能な音声の一覧を取得するAPI
+    🚨 EMERGENCY SHUTDOWN: TTS機能は高額請求により停止中
+    """
+    return jsonify({
+        "error": "🚨 TTS音声機能は高額請求により緊急停止中",
+        "message": "Gemini TTSで25万円の請求が発生したため、全TTS機能を停止しました",
+        "alternative": "ブラウザ内蔵のWeb Speech APIを使用してください"
+    }), 503
+    
+    # 以下は無効化されたコード
     """
     try:
         # Gemini TTSの利用可能な音声（全30種類）
@@ -2573,7 +2595,15 @@ def get_available_voices():
 @app.route("/api/tts/styles", methods=["GET"])
 def get_available_styles():
     """
-    利用可能な音声スタイルと感情の一覧を取得するAPI
+    🚨 EMERGENCY SHUTDOWN: TTS機能は高額請求により停止中
+    """
+    return jsonify({
+        "error": "🚨 TTSスタイル機能は高額請求により緊急停止中",
+        "message": "Gemini TTSで25万円の請求が発生したため、全TTS機能を停止しました",
+        "alternative": "ブラウザ内蔵のWeb Speech APIを使用してください"
+    }), 503
+    
+    # 以下は無効化されたコード
     """
     try:
         styles = {
