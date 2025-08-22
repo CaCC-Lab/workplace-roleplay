@@ -283,6 +283,27 @@ document.getElementById('get-feedback-button').addEventListener('click', async (
                 scenario_id: scenarioId
             })
         });
+        
+        // レート制限エラー（429）の特別処理
+        if (response.status === 429) {
+            const errorData = await response.json();
+            const retryAfter = errorData.retry_after || 60;
+            
+            content.innerHTML = `
+                <div class="error-message">
+                    <h3>⚠️ APIレート制限</h3>
+                    <p>リクエストが制限されました。${retryAfter}秒後に再試行してください。</p>
+                    <div class="retry-info">
+                        <small>一時的な制限です。しばらくお待ちください。</small>
+                    </div>
+                </div>
+            `;
+            content.classList.add('active');
+            button.disabled = false;
+            button.textContent = "フィードバックを表示";
+            return;
+        }
+        
         const data = await response.json();
         
         if (response.ok && data.feedback) {
@@ -534,6 +555,19 @@ function resetCharacterForScenario(scenarioId) {
 async function preloadScenarioTTS(text, messageId, button) {
     console.log(`[preloadScenarioTTS] 開始: ${messageId}`);
     
+    // TTS機能が緊急停止中の場合は即座にWeb Speech APIを使用
+    const ttsEmergencyStop = localStorage.getItem('tts_emergency_stop');
+    if (ttsEmergencyStop === 'true') {
+        console.log(`[preloadScenarioTTS] TTS緊急停止中 - Web Speech APIを使用`);
+        // Web Speech APIフォールバック
+        if (button) {
+            button.classList.remove('disabled');
+            button.classList.add('tts-fallback');
+            button.setAttribute('data-tts-fallback', 'true');
+        }
+        return;
+    }
+    
     // ローディング状態をマーク
     audioCache.set(messageId, 'loading');
     
@@ -558,16 +592,29 @@ async function preloadScenarioTTS(text, messageId, button) {
         
         if (!response.ok) {
             console.error(`[preloadScenarioTTS] Gemini TTSエラー: ${messageId}`, data.error);
+            
+            // 503エラー（緊急停止）の場合はlocalStorageに記録
+            if (response.status === 503) {
+                localStorage.setItem('tts_emergency_stop', 'true');
+                // 緊急停止メッセージを1回だけ表示
+                if (!window.ttsEmergencyAlertShown) {
+                    window.ttsEmergencyAlertShown = true;
+                    console.warn('TTS機能は高額請求により緊急停止中です。Web Speech APIを使用します。');
+                }
+            }
+            
             // エラー時の処理
-            button.disabled = false;
-            button.classList.remove('tts-loading');
-            button.classList.add('tts-fallback');
-            button.innerHTML = '<i class="fas fa-volume-up"></i>';
-            button.title = 'システム音声で読み上げ（フォールバック）';
+            if (button) {
+                button.disabled = false;
+                button.classList.remove('tts-loading');
+                button.classList.add('tts-fallback');
+                button.innerHTML = '<i class="fas fa-volume-up"></i>';
+                button.title = 'システム音声で読み上げ（フォールバック）';
+            }
             
             audioCache.set(messageId, { 
                 error: true, 
-                fallback: data.fallback === 'Web Speech API',
+                fallback: true,
                 text: text,
                 voice: voice // 要求した音声も記録
             });

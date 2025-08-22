@@ -248,3 +248,53 @@ def with_error_handling(func):
         except Exception as e:
             return handle_error(e)
     return wrapper
+
+
+def secure_error_handler(func):
+    """
+    セキュリティ強化されたエラーハンドリングデコレータ
+    - ランダム遅延によるタイミング攻撃防止
+    - 情報漏洩の完全防止
+    - 統一されたエラーレスポンス
+    """
+    import random
+    import time
+    from flask import request
+    
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            # セキュリティ対策: エラー発生時のランダム遅延
+            # タイミング攻撃と自動スキャンツールを困難にする
+            delay = random.uniform(0.1, 1.2)
+            time.sleep(delay)
+            
+            # 詳細なログ記録（内部用）
+            logger.error(
+                f"Secure error handler caught exception on {request.path}",
+                extra={
+                    "endpoint": request.endpoint,
+                    "method": request.method,
+                    "user_agent": request.headers.get('User-Agent', 'Unknown'),
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                    "delay_applied": delay
+                }
+            )
+            
+            # AppErrorか判定してセキュアに処理
+            if isinstance(e, AppError):
+                # 既存のAppErrorはセキュアなので、そのまま処理
+                return handle_error(e)
+            else:
+                # 不明なエラーは汎用的なメッセージに変換
+                safe_error = AppError(
+                    message="予期せぬエラーが発生しました。しばらくしてから再試行してください。",
+                    code="INTERNAL_SERVER_ERROR",
+                    status_code=500,
+                    details={"timestamp": time.time()}
+                )
+                return handle_error(safe_error)
+    return wrapper

@@ -132,6 +132,14 @@ async function getFeedback() {
             })
         });
 
+        // レート制限エラー（429）の特別処理
+        if (response.status === 429) {
+            const errorData = await response.json();
+            const retryAfter = errorData.retry_after || 60;
+            
+            throw new Error(`APIレート制限に達しました。${retryAfter}秒後に再試行してください。`);
+        }
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

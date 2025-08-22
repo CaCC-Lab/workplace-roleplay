@@ -7,6 +7,23 @@
 window.currentAudio = null;
 window.currentPlayingButton = null;
 
+// ページロード時にTTS緊急停止状態を確認
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const response = await fetch('/api/tts', { method: 'HEAD' });
+        if (response.status === 503) {
+            // 緊急停止中の場合はlocalStorageに記録
+            localStorage.setItem('tts_emergency_stop', 'true');
+            console.warn('TTS機能は緊急停止中です。Web Speech APIを使用します。');
+        } else if (response.ok) {
+            // 正常の場合は緊急停止フラグをクリア
+            localStorage.removeItem('tts_emergency_stop');
+        }
+    } catch (error) {
+        console.error('TTS状態確認エラー:', error);
+    }
+});
+
 /**
  * 全ての音声再生を停止する統一関数
  */
@@ -132,9 +149,9 @@ async function playUnifiedTTS(text, button, isPreloaded = false, messageId = nul
             }
         }
         
-        // キャッシュにない場合はリアルタイム生成
+        // キャッシュにない場合はTTS API状態をチェック
         if (!audio) {
-            console.log(`[playUnifiedTTS] ========== リアルタイム生成開始 ==========`);
+            console.log(`[playUnifiedTTS] ========== TTS API状態確認 ==========`);
             console.log(`[playUnifiedTTS] 理由: キャッシュなし (messageId: ${messageId}, isPreloaded: ${isPreloaded})`);
             
             // ボタンをローディング状態に
@@ -142,35 +159,84 @@ async function playUnifiedTTS(text, button, isPreloaded = false, messageId = nul
             button.classList.add('tts-loading');
             button.classList.remove('tts-ready', 'tts-fallback');
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            button.title = '音声を生成中...';
+            button.title = 'TTS機能状態を確認中...';
             
-            // シナリオ固有の音声選択
-            const selectedVoice = getVoiceForScenario();
-            console.log(`[playUnifiedTTS] リアルタイム生成詳細:`);
-            console.log(`  - scenarioId: ${typeof scenarioId !== 'undefined' ? scenarioId : '未定義'}`);
-            console.log(`  - 選択音声: ${selectedVoice}`);
-            console.log(`  - messageId: ${messageId}`);
-            
-            // Gemini TTS APIを呼び出し
-            const response = await fetch('/api/tts', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    text: text,
-                    voice: selectedVoice
-                })
-            });
-            
-            const data = await response.json();
-            console.log(`[playUnifiedTTS] リアルタイム生成レスポンス: OK=${response.ok}, 要求音声=${selectedVoice}, 実際音声=${data.voice}`);
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'TTS APIエラー');
+            try {
+                // TTS API状態確認（HEAD リクエストで軽量チェック）
+                const statusResponse = await fetch('/api/tts', {
+                    method: 'HEAD'
+                });
+                
+                // 503 (Service Unavailable) の場合は即座にフォールバック
+                if (statusResponse.status === 503) {
+                    console.log('[playUnifiedTTS] ========== TTS緊急停止中 ==========');
+                    console.log('[playUnifiedTTS] Web Speech APIにフォールバック');
+                    
+                    // ボタン状態をフォールバックに変更
+                    button.classList.remove('tts-loading');
+                    button.classList.add('tts-fallback');
+                    button.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    button.title = 'TTS機能停止中 - システム音声を使用';
+                    button.disabled = false;
+                    
+                    // Web Speech APIで再生
+                    playTTSWithWebSpeech(text, button);
+                    return;
+                }
+                
+                // その他のエラーの場合もフォールバック
+                if (!statusResponse.ok) {
+                    console.log(`[playUnifiedTTS] TTS API エラー: ${statusResponse.status}`);
+                    throw new Error(`TTS API unavailable: ${statusResponse.status}`);
+                }
+                
+                // API正常の場合のみリアルタイム生成を実行
+                console.log(`[playUnifiedTTS] ========== リアルタイム生成開始 ==========`);
+                
+                // シナリオ固有の音声選択
+                const selectedVoice = getVoiceForScenario();
+                console.log(`[playUnifiedTTS] リアルタイム生成詳細:`);
+                console.log(`  - scenarioId: ${typeof scenarioId !== 'undefined' ? scenarioId : '未定義'}`);
+                console.log(`  - 選択音声: ${selectedVoice}`);
+                console.log(`  - messageId: ${messageId}`);
+                
+                button.title = '音声を生成中...';
+                
+                // Gemini TTS APIを呼び出し
+                const response = await fetch('/api/tts', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        text: text,
+                        voice: selectedVoice
+                    })
+                });
+                
+                const data = await response.json();
+                console.log(`[playUnifiedTTS] リアルタイム生成レスポンス: OK=${response.ok}, 要求音声=${selectedVoice}, 実際音声=${data.voice}`);
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'TTS APIエラー');
+                }
+                
+                // Audio要素を作成
+                const audioFormat = data.format || 'wav';
+                audio = new Audio(`data:audio/${audioFormat};base64,${data.audio}`);
+                
+            } catch (statusError) {
+                console.log(`[playUnifiedTTS] ========== TTS API不可 - フォールバック ==========`);
+                console.log(`[playUnifiedTTS] エラー: ${statusError.message}`);
+                
+                // Web Speech APIフォールバック
+                button.classList.remove('tts-loading');
+                button.classList.add('tts-fallback');
+                button.innerHTML = '<i class="fas fa-volume-up"></i>';
+                button.title = 'TTS API利用不可 - システム音声を使用';
+                button.disabled = false;
+                
+                playTTSWithWebSpeech(text, button);
+                return;
             }
-            
-            // Audio要素を作成
-            const audioFormat = data.format || 'wav';
-            audio = new Audio(`data:audio/${audioFormat};base64,${data.audio}`);
         } else {
             console.log('[playUnifiedTTS] キャッシュされた音声を使用');
         }

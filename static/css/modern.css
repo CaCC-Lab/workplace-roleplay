@@ -34,6 +34,47 @@ body {
   padding: 0;
 }
 
+/* TTS緊急停止・フォールバックスタイル */
+.tts-fallback {
+  background-color: #fef3c7 !important;
+  border-color: #f59e0b !important;
+}
+
+.tts-fallback:hover {
+  background-color: #fde68a !important;
+}
+
+.tts-fallback::after {
+  content: " (Web Speech)";
+  font-size: 0.7em;
+  opacity: 0.7;
+}
+
+/* エラーメッセージスタイル */
+.error-message {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border: 1px solid #f87171;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.error-message h3 {
+  color: #dc2626;
+  margin-top: 0;
+}
+
+.retry-info {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #fca5a5;
+}
+
+.retry-info small {
+  color: #7f1d1d;
+  font-style: italic;
+}
+
 #chat-container {
   max-width: 1200px;
   margin: 2rem auto;

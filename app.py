@@ -68,7 +68,8 @@ from errors import (
     TimeoutError,
     handle_error,
     handle_llm_specific_error,
-    with_error_handling
+    with_error_handling,
+    secure_error_handler
 )
 
 # セキュリティ関連のインポート
@@ -463,22 +464,20 @@ def get_scenario_category_summary():
 
 # ========== Flaskルート ==========
 @app.route("/health")
+@secure_error_handler
 def health_check():
     """ヘルスチェックエンドポイント"""
-    try:
-        # 基本的なヘルスチェック
-        health_status = {
-            "status": "healthy",
-            "timestamp": datetime.now().isoformat(),
-            "version": "1.0.0",
-            "checks": {
-                "database": "N/A",  # DBを使用していない
-                "llm": "ready" if llm else "not configured"
-            }
+    # 基本的なヘルスチェック
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "checks": {
+            "database": "N/A",  # DBを使用していない
+            "llm": "ready" if llm else "not configured"
         }
-        return jsonify(health_status), 200
-    except Exception as e:
-        return jsonify({"status": "unhealthy", "error": str(e)}), 503
+    }
+    return jsonify(health_status), 200
 
 @app.route("/")
 def index():
@@ -933,6 +932,7 @@ def clear_scenario_history():
         }), 500
 
 @app.route("/api/watch/start", methods=["POST"])
+@secure_error_handler
 # @CSRFToken.require_csrf  # TODO: CSRF保護を後で有効化
 def start_watch():
     """会話観戦モードの開始"""
@@ -986,13 +986,20 @@ def start_watch():
 
         except Exception as e:
             print(f"Error in watch initialization: {str(e)}")
-            return jsonify({"error": f"観戦の初期化に失敗しました: {str(e)}"}), 500
+            raise ExternalAPIError(
+                service="LLM", 
+                message="観戦の初期化に失敗しました"
+            )
 
     except Exception as e:
+        # 外側tryブロックのexceptハンドラ
         print(f"Error in start_watch: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"観戦モードの開始に失敗しました: {SecurityUtils.get_safe_error_message(e)}"
+        }), 500
 
 @app.route("/api/watch/next", methods=["POST"])
+@secure_error_handler
 # @CSRFToken.require_csrf  # TODO: CSRF保護を後で有効化
 def next_watch_message() -> Any:
     """次の発言を生成"""
@@ -1037,11 +1044,17 @@ def next_watch_message() -> Any:
 
         except Exception as e:
             print(f"Error generating next message: {str(e)}")
-            return jsonify({"error": f"メッセージの生成に失敗しました: {str(e)}"}), 500
+            raise ExternalAPIError(
+                service="LLM",
+                message="メッセージの生成に失敗しました"
+            )
 
     except Exception as e:
+        # 外側tryブロックのexceptハンドラ
         print(f"Error in next_watch_message: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"次のメッセージ生成に失敗しました: {SecurityUtils.get_safe_error_message(e)}"
+        }), 500
 
 def generate_next_message(llm, history):
     """観戦モードの次のメッセージを生成"""
@@ -1077,23 +1090,23 @@ def generate_next_message(llm, history):
     return extract_content(response)
 
 @app.route("/api/get_assist", methods=["POST"])
+@with_error_handling
 def get_assist() -> Any:
     """AIアシストの提案を取得するエンドポイント"""
-    try:
-        data = request.get_json()
-        scenario_id = data.get("scenario_id")
-        current_context = data.get("current_context", "")
+    data = request.get_json()
+    scenario_id = data.get("scenario_id")
+    current_context = data.get("current_context", "")
 
-        if not scenario_id:
-            return jsonify({"error": "シナリオIDが必要です"}), 400
+    if not scenario_id:
+        raise ValidationError("シナリオIDが必要です")
 
-        # シナリオ情報を取得
-        scenario = scenarios.get(scenario_id)
-        if not scenario:
-            return jsonify({"error": "シナリオが見つかりません"}), 404
+    # シナリオ情報を取得
+    scenario = scenarios.get(scenario_id)
+    if not scenario:
+        raise NotFoundError("シナリオ", scenario_id)
 
-        # AIアシストのプロンプトを作成
-        assist_prompt = f"""
+    # AIアシストのプロンプトを作成
+    assist_prompt = f"""
 現在のシナリオ: {scenario.get('title', '無題のシナリオ')}
 状況: {scenario.get('description', '説明なし')}
 学習ポイント: {', '.join(scenario.get('learning_points', []))}
@@ -1104,22 +1117,12 @@ def get_assist() -> Any:
 上記の状況で、適切な返答のヒントを1-2文で簡潔に提案してください。
 """
 
-        # 選択されているモデルを取得
-        selected_model = session.get("selected_model", DEFAULT_MODEL)
-        
-        try:
-            # 共通関数を使用して応答を生成
-            suggestion = create_model_and_get_response(selected_model, assist_prompt)
-            return jsonify({"suggestion": suggestion})
-            
-        except Exception as e:
-            # LLMエラーを処理
-            app_error = handle_llm_specific_error(e, "Gemini")
-            return jsonify({"error": app_error.message}), app_error.status_code
-
-    except Exception as e:
-        print(f"AIアシストエラー: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    # 選択されているモデルを取得
+    selected_model = session.get("selected_model", DEFAULT_MODEL)
+    
+    # 共通関数を使用して応答を生成
+    suggestion = create_model_and_get_response(selected_model, assist_prompt)
+    return jsonify({"suggestion": suggestion})
 
 # もし消えてしまった場合に備えてextract_content関数の再追加
 def extract_content(resp: Any) -> str:
@@ -1296,17 +1299,14 @@ def get_csrf_token():
         })
 
 @app.route("/api/models", methods=["GET"])
+@with_error_handling
 def api_models():
     """
     利用可能なGeminiモデル一覧を返す
     """
-    try:
-        # 共通関数を使用してモデル情報を取得
-        model_info = get_all_available_models()
-        return jsonify(model_info)
-    except Exception as e:
-        print(f"Error fetching models: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    # 共通関数を使用してモデル情報を取得
+    model_info = get_all_available_models()
+    return jsonify(model_info)
 
 # シナリオ一覧を表示するページ
 @app.route("/scenarios")
@@ -1350,63 +1350,57 @@ def show_scenario(scenario_id):
 
 # 新規: カテゴリ分けされたシナリオ一覧を取得するAPIエンドポイント
 @app.route("/api/categorized_scenarios")
+@with_error_handling
 def get_categorized_scenarios_api():
     """カテゴリ分けされたシナリオ一覧をJSON形式で返す"""
-    try:
-        scenario_summary = get_scenario_category_summary()
-        return jsonify(scenario_summary)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    scenario_summary = get_scenario_category_summary()
+    return jsonify(scenario_summary)
 
 # 新規: 通常のコミュニケーションシナリオ一覧ページ
 @app.route("/scenarios/regular")
+@with_error_handling
 def list_regular_scenarios():
     """通常のコミュニケーションシナリオ一覧ページ"""
-    try:
-        regular_scenarios, _ = get_categorized_scenarios()
-        
-        # 共通関数を使用してモデル情報を取得
-        model_info = get_all_available_models()
-        available_models = model_info["models"]
-        
-        return render_template(
-            "scenarios/regular_list.html",
-            scenarios=regular_scenarios,
-            models=available_models,
-            category="regular_communication"
-        )
-    except Exception as e:
-        return f"エラーが発生しました: {str(e)}", 500
+    regular_scenarios, _ = get_categorized_scenarios()
+    
+    # 共通関数を使用してモデル情報を取得
+    model_info = get_all_available_models()
+    available_models = model_info["models"]
+    
+    return render_template(
+        "scenarios/regular_list.html",
+        scenarios=regular_scenarios,
+        models=available_models,
+        category="regular_communication"
+    )
 
 # 新規: ハラスメント防止シナリオ一覧ページ
 @app.route("/scenarios/harassment")
+@with_error_handling
 def list_harassment_scenarios():
     """ハラスメント防止シナリオ一覧ページ（同意チェック付き）"""
-    try:
-        # セッションで同意状態を確認
-        harassment_consent = session.get('harassment_consent', False)
-        
-        if not harassment_consent:
-            # 同意画面にリダイレクト
-            return render_template(
-                "scenarios/harassment_consent.html",
-                next_url="/scenarios/harassment"
-            )
-        
-        _, harassment_scenarios = get_categorized_scenarios()
-        
-        # 共通関数を使用してモデル情報を取得
-        model_info = get_all_available_models()
-        available_models = model_info["models"]
-        
+    # セッションで同意状態を確認
+    harassment_consent = session.get('harassment_consent', False)
+    
+    if not harassment_consent:
+        # 同意画面にリダイレクト
         return render_template(
-            "scenarios/harassment_list.html",
-            scenarios=harassment_scenarios,
-            models=available_models,
-            category="harassment_prevention"
+            "scenarios/harassment_consent.html",
+            next_url="/scenarios/harassment"
         )
-    except Exception as e:
-        return f"エラーが発生しました: {str(e)}", 500
+    
+    _, harassment_scenarios = get_categorized_scenarios()
+    
+    # 共通関数を使用してモデル情報を取得
+    model_info = get_all_available_models()
+    available_models = model_info["models"]
+    
+    return render_template(
+        "scenarios/harassment_list.html",
+        scenarios=harassment_scenarios,
+        models=available_models,
+        category="harassment_prevention"
+    )
 
 # 新規: ハラスメント防止研修同意処理
 @app.route("/harassment/consent", methods=["GET", "POST"])
@@ -1437,22 +1431,20 @@ def harassment_consent():
 
 # 新規: シナリオのカテゴリ判定API
 @app.route("/api/scenario/<scenario_id>/category")
+@with_error_handling
 def get_scenario_category(scenario_id):
     """指定シナリオのカテゴリを返す"""
-    try:
-        if scenario_id not in scenarios:
-            return jsonify({"error": "シナリオが見つかりません"}), 404
-        
-        is_harassment = is_harassment_scenario(scenario_id)
-        category = "harassment_prevention" if is_harassment else "regular_communication"
-        
-        return jsonify({
-            "scenario_id": scenario_id,
-            "category": category,
-            "requires_consent": is_harassment
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if scenario_id not in scenarios:
+        raise NotFoundError("シナリオ", scenario_id)
+    
+    is_harassment = is_harassment_scenario(scenario_id)
+    category = "harassment_prevention" if is_harassment else "regular_communication"
+    
+    return jsonify({
+        "scenario_id": scenario_id,
+        "category": category,
+        "requires_consent": is_harassment
+    })
 
 # モデル試行パターンを統一するためのヘルパー関数
 def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]]:
@@ -1924,6 +1916,7 @@ def view_journal():
 
 # 雑談練習開始用のエンドポイントを追加
 @app.route("/api/start_chat", methods=["POST"])
+@secure_error_handler
 def start_chat() -> Any:
     """
     雑談練習を開始するAPI
@@ -2004,67 +1997,72 @@ def start_chat() -> Any:
                 return jsonify({"error": app_error.message}), app_error.status_code
                 
     except Exception as e:
+        # 外側tryブロックのexceptハンドラ
         print(f"Error in start_chat: {str(e)}")
-        return jsonify({"error": f"雑談の開始に失敗しました: {str(e)}"}), 500
+        return jsonify({
+            "error": f"雑談開始に失敗しました: {SecurityUtils.get_safe_error_message(e)}"
+        }), 500
 
 @app.route("/api/conversation_history", methods=["POST"])
+@with_error_handling
 def get_conversation_history():
     """
     会話履歴を取得するAPI
     """
-    try:
-        data = request.get_json()
-        if data is None:
-            return jsonify({"error": "Invalid JSON"}), 400
-
-        history_type = data.get("type")
+    data = request.get_json()
+    history_type = data.get("type")
+    
+    if history_type == "scenario":
+        scenario_id = data.get("scenario_id")
+        if not scenario_id:
+            raise ValidationError("シナリオIDが必要です")
+            
+        # 指定されたシナリオの履歴を取得
+        if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
+            return jsonify({"history": []})
+            
+        return jsonify({"history": session["scenario_history"][scenario_id]})
         
-        if history_type == "scenario":
-            scenario_id = data.get("scenario_id")
-            if not scenario_id:
-                return jsonify({"error": "シナリオIDが必要です"}), 400
-                
-            # 指定されたシナリオの履歴を取得
-            if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
-                return jsonify({"history": []})
-                
-            return jsonify({"history": session["scenario_history"][scenario_id]})
+    elif history_type == "chat":
+        # 雑談履歴を取得
+        if "chat_history" not in session:
+            return jsonify({"history": []})
             
-        elif history_type == "chat":
-            # 雑談履歴を取得
-            if "chat_history" not in session:
-                return jsonify({"history": []})
-                
-            return jsonify({"history": session["chat_history"]})
+        return jsonify({"history": session["chat_history"]})
+        
+    elif history_type == "watch":
+        # 観戦履歴を取得
+        if "watch_history" not in session:
+            return jsonify({"history": []})
             
-        elif history_type == "watch":
-            # 観戦履歴を取得
-            if "watch_history" not in session:
-                return jsonify({"history": []})
-                
-            # 観戦履歴は形式が異なるので変換
-            watch_history = []
-            for entry in session["watch_history"]:
-                watch_history.append({
-                    "timestamp": entry.get("timestamp"),
-                    "human" if entry["speaker"] == "A" else "ai": entry["message"]
-                })
-                
-            return jsonify({"history": watch_history})
+        # 観戦履歴は形式が異なるので変換
+        watch_history = []
+        for entry in session["watch_history"]:
+            watch_history.append({
+                "timestamp": entry.get("timestamp"),
+                "human" if entry["speaker"] == "A" else "ai": entry["message"]
+            })
             
-        else:
-            return jsonify({"error": "不明な履歴タイプです"}), 400
-            
-    except Exception as e:
-        print(f"Error in get_conversation_history: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"history": watch_history})
+        
+    else:
+        raise ValidationError("不明な履歴タイプです")
 
-@app.route("/api/tts", methods=["POST"])
+@app.route("/api/tts", methods=["POST", "HEAD"])
+@with_error_handling
 def text_to_speech():
     """
     EMERGENCY SHUTDOWN: TTS機能は高額請求（25万円）により緊急停止中
     Gemini TTS APIは$10/100万文字で1,667万文字生成により1,667ドル（25万円）請求
+    
+    HEADリクエスト: フロントエンドでの軽量状態チェック用
+    POSTリクエスト: 実際のTTS生成（現在は503エラー）
     """
+    # HEADリクエストの場合は即座に503を返す
+    if request.method == "HEAD":
+        return "", 503  # Service Temporarily Unavailable (ボディなし)
+    
+    # POSTリクエストの場合は詳細なエラー情報を返す
     return jsonify({
         "error": "TTS機能は高額請求により緊急停止中",
         "message": "25万円の請求が発生したため、TTS機能を停止しました。",
@@ -2073,7 +2071,8 @@ def text_to_speech():
             "characters": "16,675,000文字の音声生成",
             "requests": "約166,750回のリクエスト"
         },
-        "alternative": "ブラウザ内蔵のWeb Speech APIをご利用ください"
+        "alternative": "ブラウザ内蔵のWeb Speech APIをご利用ください",
+        "fallback_available": True
     }), 503  # Service Temporarily Unavailable
     
     # 以下は無効化されたコード
@@ -2264,6 +2263,7 @@ image_cache = {}
 MAX_CACHE_SIZE = 50  # 最大50個までキャッシュ
 
 @app.route("/api/generate_character_image", methods=["POST"])
+@secure_error_handler
 def generate_character_image():
     """
     AIキャラクターの画像を生成するAPI
@@ -2485,14 +2485,17 @@ def generate_character_image():
             
         except Exception as e:
             print(f"Image generation error: {str(e)}")
-            return jsonify({
-                "error": "画像生成に失敗しました",
-                "details": str(e)
-            }), 500
+            raise ExternalAPIError(
+                service="Image Generator",
+                message="画像生成に失敗しました"
+            )
             
     except Exception as e:
+        # 外側tryブロックのexceptハンドラ
         print(f"Error in generate_character_image: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"画像生成に失敗しました: {SecurityUtils.get_safe_error_message(e)}"
+        }), 500
 
 @app.route("/api/tts/voices", methods=["GET"])
 def get_available_voices():
@@ -2613,6 +2616,7 @@ def strength_analysis_page():
 
 
 @app.route("/api/strength_analysis", methods=["POST"])
+@secure_error_handler
 def analyze_strengths():
     """会話履歴から強みを分析"""
     try:
@@ -2702,8 +2706,11 @@ def analyze_strengths():
         })
         
     except Exception as e:
+        # 外側tryブロックのexceptハンドラ
         print(f"Error in analyze_strengths: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"強み分析に失敗しました: {SecurityUtils.get_safe_error_message(e)}"
+        }), 500
 
 
 def update_feedback_with_strength_analysis(feedback_response, session_type, scenario_id=None):
@@ -2738,19 +2745,18 @@ def update_feedback_with_strength_analysis(feedback_response, session_type, scen
 
 # ========== APIキー管理 ==========
 @app.route("/api/key_status", methods=["GET"])
+@secure_error_handler
 def get_api_key_status():
     """APIキーの使用状況を取得"""
-    try:
-        # COMPLIANCE FIX: 規約準拠APIマネージャーを使用
-        manager = get_compliant_api_manager()
-        status = manager.get_status()
-        return jsonify(status)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # COMPLIANCE FIX: 規約準拠APIマネージャーを使用
+    manager = get_compliant_api_manager()
+    status = manager.get_status()
+    return jsonify(status)
 
 
 # ========== セッション管理・監視 ==========
 @app.route("/api/session/health", methods=["GET"])
+@secure_error_handler
 def session_health_check():
     """セッションストアの健全性チェック"""
     try:
@@ -2780,13 +2786,15 @@ def session_health_check():
             })
             
     except Exception as e:
+        # 外側tryブロックのexceptハンドラ
+        print(f"Error in session_health_check: {str(e)}")
         return jsonify({
-            "status": "error",
-            "error": f"セッション健全性チェックエラー: {str(e)}"
+            "error": f"セッションヘルスチェックに失敗しました: {SecurityUtils.get_safe_error_message(e)}"
         }), 500
 
 
 @app.route("/api/session/info", methods=["GET"])
+@secure_error_handler
 def session_info():
     """現在のセッション情報を取得"""
     try:
@@ -2809,7 +2817,11 @@ def session_info():
         return jsonify(session_data)
         
     except Exception as e:
-        return jsonify({"error": f"セッション情報取得エラー: {str(e)}"}), 500
+        # 外側tryブロックのexceptハンドラ
+        print(f"Error in get_session_info: {str(e)}")
+        return jsonify({
+            "error": f"セッション情報取得に失敗しました: {SecurityUtils.get_safe_error_message(e)}"
+        }), 500
 
 
 @app.route("/api/session/clear", methods=["POST"])
