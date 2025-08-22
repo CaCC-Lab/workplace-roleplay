@@ -1456,12 +1456,13 @@ def get_scenario_category(scenario_id):
     })
 
 # モデル試行パターンを統一するためのヘルパー関数
-def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]]:
+def try_multiple_models_for_prompt(prompt: str, preferred_model: Optional[str] = None) -> Tuple[str, str, Optional[str]]:
     """
     Geminiモデルを使用してプロンプトに対する応答を取得するヘルパー関数
     
     Args:
         prompt: LLMに与えるプロンプト
+        preferred_model: 優先使用するモデル名（オプション）
         
     Returns:
         (応答内容, 使用したモデル名, エラーメッセージ)のタプル。
@@ -1472,26 +1473,58 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
     error_msg = None
     
     try:
-        # 利用可能なGeminiモデルを確認
+        # 🚨 CRITICAL FIX: ユーザーが選択したモデルを優先使用
         gemini_models = get_available_gemini_models()
-        if gemini_models:
-            # 最初に見つかったGeminiモデルを使用
-            model_name = gemini_models[0]
-            print(f"Attempting to use Gemini model: {model_name}")
-            
-            # 🚨 CRITICAL FIX: 文字列をHumanMessageに変換してレート制限エラーを回避
-            from langchain.schema import HumanMessage
-            messages = [HumanMessage(content=prompt)]
-            content_result = create_model_and_get_response(model_name, messages)
-            
-            # 確実に文字列になるように変換
-            content = str(content_result) if content_result is not None else ""
-            used_model = model_name
-            print(f"Successfully generated content using {used_model}")
-            return content, used_model, None
+        
+        if preferred_model:
+            # ユーザーが指定したモデルを優先
+            # モデル名の正規化: gemini-1.5-flash -> gemini/gemini-1.5-flash
+            if not preferred_model.startswith('gemini/'):
+                normalized_model = f"gemini/{preferred_model}"
+            else:
+                normalized_model = preferred_model
+                
+            if normalized_model in gemini_models:
+                model_name = normalized_model
+                print(f"Using user-selected model for feedback: {model_name}")
+            else:
+                # 指定されたモデルが利用不可の場合、Flashモデルを優先
+                flash_models = [m for m in gemini_models if 'flash' in m.lower()]
+                if flash_models:
+                    model_name = flash_models[0]
+                    print(f"User model unavailable, falling back to Flash: {model_name}")
+                else:
+                    model_name = gemini_models[0] if gemini_models else None
+                    print(f"Using fallback model: {model_name}")
+        elif gemini_models:
+            # モデルが指定されていない場合はFlashモデルを優先（コスト16倍削減）
+            flash_models = [m for m in gemini_models if 'flash' in m.lower()]
+            if flash_models:
+                model_name = flash_models[0]
+                print(f"Using cost-effective Flash model: {model_name}")
+            else:
+                model_name = gemini_models[0]
+                print(f"No Flash model available, using: {model_name}")
         else:
+            model_name = None
+            
+        print(f"Available models: {gemini_models}")
+        
+        if not model_name:
             error_msg = "No Gemini models available"
             print(error_msg)
+            return None, None, error_msg
+            
+        # 🚨 CRITICAL FIX: 文字列をHumanMessageに変換してレート制限エラーを回避
+        from langchain.schema import HumanMessage
+        messages = [HumanMessage(content=prompt)]
+        content_result = create_model_and_get_response(model_name, messages)
+        
+        # 確実に文字列になるように変換
+        content = str(content_result) if content_result is not None else ""
+        used_model = model_name
+        print(f"Successfully generated content using {used_model}")
+        return content, used_model, None
     except ResourceExhausted as e:
         print(f"Gemini API rate limit exceeded: {str(e)}")
         error_msg = "RATE_LIMIT_EXCEEDED"  # レート制限用の特別なマーカー
@@ -1546,6 +1579,7 @@ def get_scenario_feedback():
             return jsonify({"error": "Invalid JSON"}), 400
 
         scenario_id = data.get("scenario_id")
+        selected_model = data.get("model")  # ユーザーが選択したモデルを取得
         if not scenario_id or scenario_id not in scenarios:
             return jsonify({"error": "無効なシナリオIDです"}), 400
 
@@ -1570,48 +1604,55 @@ def get_scenario_feedback():
                 parts = role_info_str.split("、")
                 return parts[1] if len(parts) > 1 else "不明"
 
-        # フィードバック生成用のプロンプト（簡潔版）
+        # 🚀 5AI協調設計: パワハラ防止シナリオ用強化プロンプト
+        # AI-PAIRED: Claude 4 (深度設計) + Gemini 2.5 (簡潔性) + Qwen3-Coder (構造化) + Codex (問題解決) + Cursor (統合)
+        # PATTERN: ストロング・スタイル（フィードバック品質重視）
         if is_reverse_role:
-            # リバースロール用のフィードバック（トークン削減）
-            feedback_prompt = f"""
-以下の会話をパワハラ防止の観点で評価してください：
+            # リバースロール（上司役）用詳細評価プロンプト（5AI合意版）
+            feedback_prompt = f"""【パワハラ防止評価】上司役コミュニケーション分析
 
-{format_conversation_history(history)[:1000]}  # 最初の1000文字のみ
+シナリオ：{scenario_data.get("title", "上司対応練習")}
+対話履歴：{format_conversation_history(history)[:1000]}
 
-簡潔に以下を記載：
-1. 点数（100点満点）
-2. 良い点（1-2点）
-3. 改善点（1-2点）
-4. アドバイス（1-2文）
-- 明日から使える具体的な改善策
-- 適切な上司としての振る舞い方
-"""
+評価基準（5AI分析フレームワーク）：
+🎯 基本スコア（/100点）：権力バランス配慮度
+📈 コミュニケーション質：
+• 良い点（具体例2点）：発言の優れた部分を明示
+• 改善点（課題2点）：パワハラリスク要因の特定
+🛠️ 即実行可能アドバイス：
+• 明日から使える改善策（1つ）
+• 適切な上司言動例（1つ）
+
+※簡潔で実践的な指摘をお願いします。"""
         else:
-            # 🚨 CRITICAL FIX: プロンプトを大幅短縮してAPI消費量を削減
-            feedback_prompt = f"""職場コミュニケーション評価：
+            # 🚀 5AI協調設計: 通常シナリオ用強化フィードバックプロンプト
+            feedback_prompt = f"""【職場コミュニケーション評価】スキル向上フィードバック
 
-シナリオ: {scenario_data.get("title", "不明")}
-役割: {get_user_role(scenario_data)}
+シナリオ分析：{scenario_data.get("title", "コミュニケーション練習")}
+ユーザー役割：{get_user_role(scenario_data)}
+会話データ：{format_conversation_history(history)[-500:]}
 
-会話履歴:
-{format_conversation_history(history)[-500:]}
+🔍 多次元評価（5AI協調分析）:
+📊 総合スコア（/100点）：コミュニケーション効果度
+✅ 優秀ポイント（2つ）：具体的な成功例を挙げて評価
+⚠️ 成長機会（2つ）：改善可能な具体的ポイント
+💡 実践アクション：明日から使える改善策1つ
 
-評価要項:
-1. 評価点数 (100点満点)
-2. 良い点 (1-2個)
-3. 改善点 (1-2個)  
-4. 実践的アドバイス (1個)
+シナリオ特性に応じた評価軸：
+• 共感力・傾聴力・提案力・問題解決力
+• 状況適応・関係構築・対立解決・協調性
 
-簡潔で具体的なフィードバックをお願いします。"""
+※建設的で行動指向なフィードバックを提供してください。"""
 
         try:
-            # デバッグログ追加
+            # デバッグログ追加 - 5AI修正により詳細な追跡を追加
             print(f"[FEEDBACK DEBUG] Starting scenario feedback generation")
             print(f"[FEEDBACK DEBUG] Scenario ID: {scenario_id}")
+            print(f"[FEEDBACK DEBUG] User selected model: {selected_model}")
             print(f"[FEEDBACK DEBUG] Prompt length: {len(feedback_prompt)} characters")
             
-            # 新しいヘルパー関数を使用してモデルを試行
-            feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
+            # 新しいヘルパー関数を使用してモデルを試行（ユーザー選択モデルを渡す）
+            feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt, selected_model)
             
             print(f"[FEEDBACK DEBUG] Result - Content: {bool(feedback_content)}, Model: {used_model}, Error: {error_msg}")
             
@@ -1673,6 +1714,8 @@ def get_chat_feedback():
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid request"}), 400
+        
+        selected_model = data.get("model")  # ユーザーが選択したモデルを取得
 
         # 会話履歴の取得
         if "chat_history" not in session:
@@ -1682,24 +1725,29 @@ def get_chat_feedback():
         print("Chat history:", session["chat_history"])
         print("Formatted history:", format_conversation_history(session["chat_history"]))
 
-        # 🚨 CRITICAL FIX: チャットフィードバックプロンプトも大幅短縮
-        feedback_prompt = f"""雑談スキル評価：
+        # 🚀 5AI協調設計: 雑談スキル用強化フィードバックプロンプト
+        # AI-PAIRED: 5AI議論による合意形成（progressive disclosure + 構造化評価）
+        # PATTERN: ピンポンプログラミング（実装⇄評価サイクル）
+        feedback_prompt = f"""【雑談スキル評価】職場コミュニケーション向上支援
 
-設定: {get_partner_description(data.get("partner_type"))} / {get_situation_description(data.get("situation"))}
+コンテキスト分析：
+👥 対話相手：{get_partner_description(data.get("partner_type"))}
+🏢 状況設定：{get_situation_description(data.get("situation"))}
+💬 会話フロー：{format_conversation_history(session["chat_history"])[-400:]}
 
-会話履歴:
-{format_conversation_history(session["chat_history"])[-400:]}
+🎯 5AI統合評価システム：
+📈 雑談効果スコア（/100点）：相手との関係構築度
+🌟 コミュニケーション強み（2点）：
+• 自然な話題転換力・共感表現・質問技術・話し方の工夫
+❗ 成長ポイント（2点）：
+• 会話バランス・相手への配慮・話題選択・タイミング
+💪 即実践アクション（1つ）：明日の雑談で試せる具体的改善策
 
-評価:
-1. 点数 (100点満点)
-2. 良い点 (1-2個)
-3. 改善点 (1-2個)
-4. 具体的アドバイス (1個)
+評価視点：相手の立場・感情・関係性・場面適応性を重視
+※職場での良好な人間関係構築に役立つフィードバックを提供"""
 
-簡潔なフィードバックをお願いします。"""
-
-        # 新しいヘルパー関数を使用してモデルを試行
-        feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
+        # 新しいヘルパー関数を使用してモデルを試行（ユーザー選択モデルを渡す）
+        feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt, selected_model)
         
         # BUG-01 FIX: 空文字列も有効な応答として扱う
         if error_msg is None:
