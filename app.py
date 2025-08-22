@@ -1478,7 +1478,12 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
             # 最初に見つかったGeminiモデルを使用
             model_name = gemini_models[0]
             print(f"Attempting to use Gemini model: {model_name}")
-            content_result = create_model_and_get_response(model_name, prompt)
+            
+            # 🚨 CRITICAL FIX: 文字列をHumanMessageに変換してレート制限エラーを回避
+            from langchain.schema import HumanMessage
+            messages = [HumanMessage(content=prompt)]
+            content_result = create_model_and_get_response(model_name, messages)
+            
             # 確実に文字列になるように変換
             content = str(content_result) if content_result is not None else ""
             used_model = model_name
@@ -1556,90 +1561,39 @@ def get_scenario_feedback():
                 parts = role_info_str.split("、")
                 return parts[1] if len(parts) > 1 else "不明"
 
-        # フィードバック生成用のプロンプト
+        # フィードバック生成用のプロンプト（簡潔版）
         if is_reverse_role:
-            # リバースロール用のフィードバック
+            # リバースロール用のフィードバック（トークン削減）
             feedback_prompt = f"""
-# パワーハラスメント防止研修フィードバック
+以下の会話をパワハラ防止の観点で評価してください：
 
-## シナリオ概要
-{scenario_data.get("description", "説明がありません。")}
+{format_conversation_history(history)[:1000]}  # 最初の1000文字のみ
 
-## あなたの役割
-{scenario_data.get("user_role", "上司")}として、{scenario_data.get("ai_role", "部下")}への対応
-
-## 会話履歴の分析
-{format_conversation_history(history)}
-
-## 評価基準
-### 良い行動:
-{chr(10).join('- ' + b for b in scenario_data.get("evaluation_criteria", {}).get("positive_behaviors", []))}
-
-### 避けるべき行動:
-{chr(10).join('- ' + b for b in scenario_data.get("evaluation_criteria", {}).get("negative_behaviors", []))}
-
-# フィードバック形式
-
-## 1. 全体評価（100点満点）
-- パワーハラスメント防止の観点から点数評価
-
-## 2. 良かった点
-- 部下への配慮が見られた対応
-- 建設的なコミュニケーション
-
-## 3. 改善が必要な点
-- パワーハラスメントのリスクがある言動
-- より適切な表現方法の提案
-
-## 4. 実践的アドバイス
+簡潔に以下を記載：
+1. 点数（100点満点）
+2. 良い点（1-2点）
+3. 改善点（1-2点）
+4. アドバイス（1-2文）
 - 明日から使える具体的な改善策
 - 適切な上司としての振る舞い方
 """
         else:
-            # 従来のフィードバック
-            feedback_prompt = f"""
-# フィードバック生成の指示
-あなたは職場コミュニケーションの専門家として、以下のロールプレイでのユーザーの対応を評価し、具体的で実践的なフィードバックを提供してください。
+            # 🚨 CRITICAL FIX: プロンプトを大幅短縮してAPI消費量を削減
+            feedback_prompt = f"""職場コミュニケーション評価：
 
-## シナリオ概要
-{scenario_data.get("description", "説明がありません。")}
+シナリオ: {scenario_data.get("title", "不明")}
+役割: {get_user_role(scenario_data)}
 
-## ユーザーの立場
-{get_user_role(scenario_data)}
+会話履歴:
+{format_conversation_history(history)[-500:]}
 
-## 会話履歴の分析
-{format_conversation_history(history)}
+評価要項:
+1. 評価点数 (100点満点)
+2. 良い点 (1-2個)
+3. 改善点 (1-2個)  
+4. 実践的アドバイス (1個)
 
-## 評価の観点
-{', '.join(scenario_data.get("feedback_points", ["一般的なコミュニケーションスキル"]))}
-
-## 学習目標
-{', '.join(scenario_data.get("learning_points", ["状況に応じた適切な対応"]))}
-
-# フィードバック形式
-
-## 1. 全体評価（100点満点）
-- 点数と、その理由を簡潔に説明
-
-## 2. 良かった点（具体例を含めて）
-- コミュニケーションの効果的だった部分
-- 特に評価できる対応や姿勢
-- なぜそれが良かったのかの説明
-
-## 3. 改善のヒント
-- より効果的な表現方法の具体例
-- 状況に応じた対応の選択肢
-- 実際の言い回しの例示
-
-## 4. 実践アドバイス
-1. 明日から使える具体的なテクニック
-2. 類似シーンでの応用ポイント
-3. 次回のロールプレイでの注目ポイント
-
-## 5. モチベーション向上のメッセージ
-- 成長が見られた点への励まし
-- 次のステップへの期待
-"""
+簡潔で具体的なフィードバックをお願いします。"""
 
         try:
             # 新しいヘルパー関数を使用してモデルを試行
@@ -1712,42 +1666,21 @@ def get_chat_feedback():
         print("Chat history:", session["chat_history"])
         print("Formatted history:", format_conversation_history(session["chat_history"]))
 
-        # フィードバック生成用のプロンプト
-        feedback_prompt = f"""# フィードバック生成の指示
-あなたは雑談スキル向上のための専門コーチです。以下のユーザーの発言を分析し、具体的で実践的なフィードバックを提供してください。
+        # 🚨 CRITICAL FIX: チャットフィードバックプロンプトも大幅短縮
+        feedback_prompt = f"""雑談スキル評価：
 
-## 会話の設定
-- 相手: {get_partner_description(data.get("partner_type"))}
-- 状況: {get_situation_description(data.get("situation"))}
-- 話題: {get_topic_description(data.get("topic"))}
+設定: {get_partner_description(data.get("partner_type"))} / {get_situation_description(data.get("situation"))}
 
-## ユーザーの発言履歴
-{format_conversation_history(session["chat_history"])}
+会話履歴:
+{format_conversation_history(session["chat_history"])[-400:]}
 
-# フィードバック形式
-## 1. 全体評価（100点満点）
-- 雑談スキルの点数
-- 評価理由（特に良かった点、改善点を簡潔に）
+評価:
+1. 点数 (100点満点)
+2. 良い点 (1-2個)
+3. 改善点 (1-2個)
+4. 具体的アドバイス (1個)
 
-## 2. 発言の分析
-- 適切な言葉遣いができている部分
-- 相手との関係性に配慮できている表現
-- 会話の流れを作れている箇所
-
-## 3. 改善のヒント
-- より自然な表現例
-- 話題の広げ方の具体例
-- 相手の興味を引き出す質問の仕方
-
-## 4. 実践アドバイス
-1. 即実践できる会話テクニック
-2. 状況に応じた話題選びのコツ
-3. 適切な距離感の保ち方
-
-## 5. 今後のステップアップ
-- 次回挑戦してほしい会話スキル
-- 伸ばせそうな強みとその活かし方
-"""
+簡潔なフィードバックをお願いします。"""
 
         # 新しいヘルパー関数を使用してモデルを試行
         feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
