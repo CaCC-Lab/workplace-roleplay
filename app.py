@@ -1185,6 +1185,19 @@ def format_conversation_history(history):
             formatted.append(f"ユーザー: {entry['human']}")
     return "\n".join(formatted)
 
+def format_conversation_history_for_feedback(history):
+    """フィードバック分析用に、AIとユーザー双方の会話履歴をフォーマットする"""
+    formatted = []
+    for entry in history:
+        # 内部的な開始メッセージは分析に不要なため除外
+        if entry.get("human") and entry["human"] not in ("[シナリオ開始]", "[雑談開始]"):
+            formatted.append(f"ユーザー: {entry['human']}")
+        if entry.get("ai"):
+            # AIからの初期状況説明なども除外した方が分析精度が上がる可能性がある
+            # が、一旦はすべてのAI発言を含める
+            formatted.append(f"AI: {entry['ai']}")
+    return "\n".join(formatted)
+
 # get_partner_description関数の追加
 def get_partner_description(partner_type: str) -> str:
     """相手の説明を取得"""
@@ -1608,13 +1621,14 @@ def get_scenario_feedback():
         # AI-PAIRED: Claude 4 (深度設計) + Gemini 2.5 (簡潔性) + Qwen3-Coder (構造化) + Codex (問題解決) + Cursor (統合)
         # PATTERN: ストロング・スタイル（フィードバック品質重視）
         if is_reverse_role:
-            # リバースロール（上司役）用詳細評価プロンプト（5AI合意版）
+            # リバースロール（上司役）用詳細評価プロンプト（修正版）
             feedback_prompt = f"""【パワハラ防止評価】上司役コミュニケーション分析
 
 シナリオ：{scenario_data.get("title", "上司対応練習")}
-対話履歴：{format_conversation_history(history)[:1000]}
+会話履歴：
+{format_conversation_history_for_feedback(history)}
 
-評価基準（5AI分析フレームワーク）：
+評価基準（AI分析フレームワーク）：
 🎯 基本スコア（/100点）：権力バランス配慮度
 📈 コミュニケーション質：
 • 良い点（具体例2点）：発言の優れた部分を明示
@@ -1625,22 +1639,19 @@ def get_scenario_feedback():
 
 ※簡潔で実践的な指摘をお願いします。"""
         else:
-            # 🚀 5AI協調設計: 通常シナリオ用強化フィードバックプロンプト
+            # 通常シナリオ用強化フィードバックプロンプト（修正版）
             feedback_prompt = f"""【職場コミュニケーション評価】スキル向上フィードバック
 
 シナリオ分析：{scenario_data.get("title", "コミュニケーション練習")}
 ユーザー役割：{get_user_role(scenario_data)}
-会話データ：{format_conversation_history(history)[-500:]}
+会話履歴：
+{format_conversation_history_for_feedback(history)}
 
-🔍 多次元評価（5AI協調分析）:
+🔍 AIによる会話分析:
 📊 総合スコア（/100点）：コミュニケーション効果度
 ✅ 優秀ポイント（2つ）：具体的な成功例を挙げて評価
 ⚠️ 成長機会（2つ）：改善可能な具体的ポイント
 💡 実践アクション：明日から使える改善策1つ
-
-シナリオ特性に応じた評価軸：
-• 共感力・傾聴力・提案力・問題解決力
-• 状況適応・関係構築・対立解決・協調性
 
 ※建設的で行動指向なフィードバックを提供してください。"""
 
@@ -1733,9 +1744,10 @@ def get_chat_feedback():
 コンテキスト分析：
 👥 対話相手：{get_partner_description(data.get("partner_type"))}
 🏢 状況設定：{get_situation_description(data.get("situation"))}
-💬 会話フロー：{format_conversation_history(session["chat_history"])[-400:]}
+💬 会話履歴：
+{format_conversation_history_for_feedback(session["chat_history"])}
 
-🎯 5AI統合評価システム：
+🎯 AIによる評価システム：
 📈 雑談効果スコア（/100点）：相手との関係構築度
 🌟 コミュニケーション強み（2点）：
 • 自然な話題転換力・共感表現・質問技術・話し方の工夫
