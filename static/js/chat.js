@@ -153,6 +153,9 @@ async function getFeedback() {
         // CSRFトークンを取得
         const token = await getCSRFToken();
         
+        // ユーザーが選択したモデルを取得
+        const selectedModel = localStorage.getItem('selectedModel');
+        
         const response = await fetch("/api/chat_feedback", {
             method: "POST",
             headers: {
@@ -162,7 +165,8 @@ async function getFeedback() {
             body: JSON.stringify({
                 partner_type: document.getElementById('partner-type').value,
                 situation: document.getElementById('situation').value,
-                topic: document.getElementById('topic').value
+                topic: document.getElementById('topic').value,
+                model: selectedModel  // ユーザーが選択したモデルを送信
             })
         });
 

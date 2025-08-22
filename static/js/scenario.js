@@ -279,6 +279,9 @@ document.getElementById('get-feedback-button').addEventListener('click', async (
         // CSRFトークンを取得
         const token = await getCSRFToken();
         
+        // ユーザーが選択したモデルを取得
+        const selectedModel = localStorage.getItem('selectedModel');
+        
         const response = await fetch('/api/scenario_feedback', {
             method: 'POST',
             headers: {
@@ -286,7 +289,8 @@ document.getElementById('get-feedback-button').addEventListener('click', async (
                 'X-CSRF-Token': token
             },
             body: JSON.stringify({
-                scenario_id: scenarioId
+                scenario_id: scenarioId,
+                model: selectedModel  // ユーザーが選択したモデルを送信
             })
         });
         
