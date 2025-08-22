@@ -1493,6 +1493,9 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
     except Exception as gemini_error:
         print(f"Gemini model error: {str(gemini_error)}")
         error_msg = str(gemini_error)
+        # レート制限エラーの文字列パターンをチェック
+        if any(keyword in str(gemini_error).lower() for keyword in ["rate limit", "quota", "レート制限", "429"]):
+            error_msg = "RATE_LIMIT_EXCEEDED"
     
     # Geminiが失敗した場合
     return "", "", error_msg or "Gemini model error occurred"
