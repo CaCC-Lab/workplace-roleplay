@@ -188,6 +188,39 @@ class SecurityUtils:
             user_id.encode(),
             hashlib.sha256
         ).hexdigest()
+    
+    @staticmethod
+    def get_safe_error_message(error: Exception) -> str:
+        """
+        クライアント向けの安全なエラーメッセージを生成
+        内部詳細を隠蔽し、セキュリティリスクを軽減
+        
+        Args:
+            error: 発生した例外オブジェクト
+        
+        Returns:
+            クライアント向けの一般的なエラーメッセージ
+        """
+        # 詳細なエラー情報はサーバーサイドログに記録
+        logger.error(f"Internal error details: {str(error)}", exc_info=True)
+        
+        # エラータイプに基づいた一般的なメッセージを返す
+        error_str = str(error).lower()
+        
+        # レート制限エラーの場合
+        if any(keyword in error_str for keyword in ["rate limit", "quota", "429", "レート制限"]):
+            return "システムが混雑しています"
+        
+        # 認証エラーの場合
+        if any(keyword in error_str for keyword in ["authentication", "auth", "api key", "unauthorized"]):
+            return "認証エラーが発生しました"
+        
+        # ネットワークエラーの場合
+        if any(keyword in error_str for keyword in ["connection", "network", "timeout", "unreachable"]):
+            return "ネットワークエラーが発生しました"
+        
+        # その他の場合は一般的なメッセージ
+        return "システムエラーが発生しました"
 
 
 class CSRFProtection:

@@ -1645,7 +1645,8 @@ def get_scenario_feedback():
             # 新しいヘルパー関数を使用してモデルを試行
             feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
             
-            if feedback_content:
+            # BUG-01 FIX: 空文字列も有効な応答として扱う
+            if error_msg is None:
                 # フィードバックレスポンスを作成
                 response_data = {
                     "feedback": feedback_content,
@@ -1669,8 +1670,10 @@ def get_scenario_feedback():
                         "retry_after": 60  # 60秒後に再試行を推奨
                     }), 429
                 else:
+                    # セキュリティ対策: エラー詳細を隠蔽
+                    safe_message = SecurityUtils.get_safe_error_message(Exception(error_msg))
                     return jsonify({
-                        "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                        "error": f"フィードバックの生成に失敗しました: {safe_message}",
                         "attempted_models": "Gemini"
                     }), 503  # Service Unavailable
 
@@ -1749,7 +1752,8 @@ def get_chat_feedback():
         # 新しいヘルパー関数を使用してモデルを試行
         feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
         
-        if feedback_content:
+        # BUG-01 FIX: 空文字列も有効な応答として扱う
+        if error_msg is None:
             # フィードバックレスポンスを作成
             response_data = {
                 "feedback": feedback_content,
@@ -1774,8 +1778,10 @@ def get_chat_feedback():
                     "status": "error"
                 }), 429
             else:
+                # セキュリティ対策: エラー詳細を隠蔽
+                safe_message = SecurityUtils.get_safe_error_message(Exception(error_msg))
                 return jsonify({
-                    "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                    "error": f"フィードバックの生成に失敗しました: {safe_message}",
                     "attempted_models": "Gemini",
                     "status": "error"
                 }), 503
