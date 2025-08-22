@@ -10,6 +10,14 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import time
 
+# Google API固有の例外をインポート
+try:
+    from google.api_core.exceptions import ResourceExhausted
+except ImportError:
+    # フォールバック定義（本来のGoogle API例外が利用できない場合）
+    class ResourceExhausted(Exception):
+        pass
+
 # LangChain関連
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
@@ -21,6 +29,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
+from google.api_core.exceptions import ResourceExhausted
 
 # 環境変数の読み込み
 from dotenv import load_dotenv
@@ -1478,6 +1487,9 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
         else:
             error_msg = "No Gemini models available"
             print(error_msg)
+    except ResourceExhausted as e:
+        print(f"Gemini API rate limit exceeded: {str(e)}")
+        error_msg = "RATE_LIMIT_EXCEEDED"  # レート制限用の特別なマーカー
     except Exception as gemini_error:
         print(f"Gemini model error: {str(gemini_error)}")
         error_msg = str(gemini_error)
@@ -1647,9 +1659,9 @@ def get_scenario_feedback():
             else:
                 # すべてのモデルが失敗した場合
                 # レート制限エラーの場合は429を返す
-                if "rate limit" in str(error_msg).lower() or "レート制限" in str(error_msg):
+                if error_msg == "RATE_LIMIT_EXCEEDED":
                     return jsonify({
-                        "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                        "error": "現在、アクセスが集中しているため、フィードバックを生成できませんでした。しばらくしてからもう一度お試しください。",
                         "attempted_models": "Gemini",
                         "retry_after": 60  # 60秒後に再試行を推奨
                     }), 429
@@ -1751,9 +1763,9 @@ def get_chat_feedback():
         else:
             # すべてのモデルが失敗した場合
             # レート制限エラーの場合は429を返す
-            if "rate limit" in str(error_msg).lower() or "レート制限" in str(error_msg):
+            if error_msg == "RATE_LIMIT_EXCEEDED":
                 return jsonify({
-                    "error": f"フィードバックの生成に失敗しました: {error_msg}",
+                    "error": "現在、アクセスが集中しているため、フィードバックを生成できませんでした。しばらくしてからもう一度お試しください。",
                     "attempted_models": "Gemini",
                     "retry_after": 60,
                     "status": "error"
