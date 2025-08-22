@@ -1496,7 +1496,16 @@ def try_multiple_models_for_prompt(prompt: str) -> Tuple[str, str, Optional[str]
         print(f"Gemini API rate limit exceeded: {str(e)}")
         error_msg = "RATE_LIMIT_EXCEEDED"  # レート制限用の特別なマーカー
     except Exception as gemini_error:
-        print(f"Gemini model error: {str(gemini_error)}")
+        # 詳細なエラーログを出力
+        print(f"=" * 60)
+        print(f"Gemini model error in try_multiple_models_for_prompt:")
+        print(f"Error type: {type(gemini_error).__name__}")
+        print(f"Error message: {str(gemini_error)}")
+        print(f"Model attempted: {model_name if 'model_name' in locals() else 'Unknown'}")
+        print(f"Prompt length: {len(prompt)} characters")
+        print(f"Prompt preview: {prompt[:200]}...")
+        print(f"=" * 60)
+        
         error_msg = str(gemini_error)
         # レート制限エラーの文字列パターンをチェック
         if any(keyword in str(gemini_error).lower() for keyword in ["rate limit", "quota", "レート制限", "429"]):
@@ -1596,8 +1605,15 @@ def get_scenario_feedback():
 簡潔で具体的なフィードバックをお願いします。"""
 
         try:
+            # デバッグログ追加
+            print(f"[FEEDBACK DEBUG] Starting scenario feedback generation")
+            print(f"[FEEDBACK DEBUG] Scenario ID: {scenario_id}")
+            print(f"[FEEDBACK DEBUG] Prompt length: {len(feedback_prompt)} characters")
+            
             # 新しいヘルパー関数を使用してモデルを試行
             feedback_content, used_model, error_msg = try_multiple_models_for_prompt(feedback_prompt)
+            
+            print(f"[FEEDBACK DEBUG] Result - Content: {bool(feedback_content)}, Model: {used_model}, Error: {error_msg}")
             
             # BUG-01 FIX: 空文字列も有効な応答として扱う
             if error_msg is None:
