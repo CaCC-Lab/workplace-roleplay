@@ -8,6 +8,22 @@ const feedbackArea = document.getElementById('feedback-area');
 
 let conversationStarted = false;
 
+// CSRFトークン管理
+let csrfToken = '';
+
+async function getCSRFToken() {
+    if (!csrfToken) {
+        try {
+            const response = await fetch('/api/csrf-token');
+            const data = await response.json();
+            csrfToken = data.csrf_token || data.token;  // csrf_tokenまたはtokenフィールドを取得
+        } catch (error) {
+            console.error('Failed to get CSRF token:', error);
+        }
+    }
+    return csrfToken;
+}
+
 // 会話開始処理
 async function startConversation() {
     if (conversationStarted) return;
@@ -28,9 +44,15 @@ async function startConversation() {
     startButton.disabled = true;
 
     try {
+        // CSRFトークンを取得
+        const token = await getCSRFToken();
+        
         const response = await fetch("/api/start_chat", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": token
+            },
             body: JSON.stringify({
                 model: selectedModel,
                 partner_type: partnerType,
@@ -83,9 +105,15 @@ async function sendMessage() {
     messageInput.value = "";
 
     try {
+        // CSRFトークンを取得
+        const token = await getCSRFToken();
+        
         const response = await fetch("/api/chat", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": token
+            },
             body: JSON.stringify({
                 message: msg,
                 model: selectedModel
@@ -122,9 +150,15 @@ async function getFeedback() {
             <span class="loading-feedback">⌛</span>
         `;
         
+        // CSRFトークンを取得
+        const token = await getCSRFToken();
+        
         const response = await fetch("/api/chat_feedback", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": token
+            },
             body: JSON.stringify({
                 partner_type: document.getElementById('partner-type').value,
                 situation: document.getElementById('situation').value,
@@ -208,9 +242,15 @@ async function clearHistory() {
             selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
             localStorage.setItem('selectedModel', selectedModel);
         }
+        // CSRFトークンを取得
+        const token = await getCSRFToken();
+        
         const response = await fetch("/api/clear_history", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": token
+            },
             body: JSON.stringify({
                 model: selectedModel,
                 mode: "chat"

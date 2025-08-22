@@ -276,9 +276,15 @@ document.getElementById('get-feedback-button').addEventListener('click', async (
         button.disabled = true;
         button.textContent = "フィードバック生成中...";
         
+        // CSRFトークンを取得
+        const token = await getCSRFToken();
+        
         const response = await fetch('/api/scenario_feedback', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': token
+            },
             body: JSON.stringify({
                 scenario_id: scenarioId
             })
