@@ -27,16 +27,20 @@
             <div class="info-section">
                 <h2><i class="fas fa-lightbulb"></i> 使い方</h2>
                 <div class="usage-steps">
+                    {% set step_counter = [1] %}
+                    {% if enable_model_selection %}
                     <div class="usage-step">
-                        <div class="step-number">1</div>
+                        <div class="step-number">{{ step_counter[0] }}</div>
                         <div class="step-content">
                             <h3><i class="fas fa-robot"></i> AIモデルを選択する</h3>
                             <p>ドロップダウンメニューから、使用したいGoogle Geminiモデルを選択します。
                             モデルによって応答の速度や特性が異なります。</p>
                         </div>
                     </div>
+                    {% set _ = step_counter.append(step_counter.pop() + 1) %}
+                    {% endif %}
                     <div class="usage-step">
-                        <div class="step-number">2</div>
+                        <div class="step-number">{{ step_counter[0] }}</div>
                         <div class="step-content">
                             <h3><i class="fas fa-theater-masks"></i> 練習モードを選択する</h3>
                             <p>目的に合わせて以下のいずれかを選択します：</p>
@@ -47,16 +51,18 @@
                             </ul>
                         </div>
                     </div>
+                    {% set _ = step_counter.append(step_counter.pop() + 1) %}
                     <div class="usage-step">
-                        <div class="step-number">3</div>
+                        <div class="step-number">{{ step_counter[0] }}</div>
                         <div class="step-content">
                             <h3><i class="fas fa-play"></i> シナリオを選んで練習を開始</h3>
                             <p>シナリオロールプレイを選んだ場合、様々な職場状況から練習したいものを選択します。
                             各シナリオには状況説明と役割の指定があります。指示に従ってAIと会話を始めてください。</p>
                         </div>
                     </div>
+                    {% set _ = step_counter.append(step_counter.pop() + 1) %}
                     <div class="usage-step">
-                        <div class="step-number">4</div>
+                        <div class="step-number">{{ step_counter[0] }}</div>
                         <div class="step-content">
                             <h3><i class="fas fa-comment-dots"></i> AIとの会話を実施</h3>
                             <p>メッセージ入力欄に文章を入力して送信し、AIからの返答を待ちます。
@@ -64,8 +70,9 @@
                             必要に応じて会話の途中でAIに別の役割を演じるよう指示することもできます。</p>
                         </div>
                     </div>
+                    {% set _ = step_counter.append(step_counter.pop() + 1) %}
                     <div class="usage-step">
-                        <div class="step-number">5</div>
+                        <div class="step-number">{{ step_counter[0] }}</div>
                         <div class="step-content">
                             <h3><i class="fas fa-clipboard-check"></i> フィードバックを受け取る</h3>
                             <p>会話が終了したら「フィードバックを取得」ボタンを押すことで、
@@ -73,8 +80,9 @@
                             特定の観点（例：傾聴力、共感性、明確さなど）についての評価を依頼することも可能です。</p>
                         </div>
                     </div>
+                    {% set _ = step_counter.append(step_counter.pop() + 1) %}
                     <div class="usage-step">
-                        <div class="step-number">6</div>
+                        <div class="step-number">{{ step_counter[0] }}</div>
                         <div class="step-content">
                             <h3><i class="fas fa-sync-alt"></i> 繰り返し練習して上達</h3>
                             <p>フィードバックを元に改善点を意識し、同じシナリオまたは別のシナリオで繰り返し練習することで、
@@ -85,6 +93,7 @@
                 </div>
             </div>
 
+            {% if enable_model_selection %}
             <div class="model-selection-wrapper" id="model-selection-section" style="display: none;">
                 <div class="model-selection">
                     <h2><i class="fas fa-robot"></i> AIモデルを選択</h2>
@@ -102,6 +111,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <div class="features-section">
                 <h2 class="features-title"><i class="fas fa-graduation-cap"></i> 練習カテゴリー</h2>

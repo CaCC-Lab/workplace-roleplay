@@ -505,7 +505,12 @@ def index():
     model_info = get_all_available_models()
     available_models = model_info["models"]
     
-    return render_template("index.html", models=available_models)
+    # モデル選択機能の有効/無効を制御するフラグ
+    enable_model_selection = os.getenv('ENABLE_MODEL_SELECTION', 'true').lower() == 'true'
+    
+    return render_template("index.html", 
+                         models=available_models,
+                         enable_model_selection=enable_model_selection)
 
 @app.route("/chat")
 def chat():
