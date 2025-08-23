@@ -17,6 +17,7 @@ class ScenarioCategoryManager:
     def __init__(self):
         self._regular_scenarios = None
         self._harassment_scenarios = None
+        self.all_scenarios = None  # 5AI CONSENSUS: Initialize all_scenarios attribute
     
     def categorize_scenarios(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
@@ -34,6 +35,7 @@ class ScenarioCategoryManager:
     def _categorize_internal(self):
         """内部的なシナリオ分類処理"""
         all_scenarios = get_all_scenarios()
+        self.all_scenarios = all_scenarios  # 5AI CONSENSUS: Store all_scenarios as instance attribute
         
         regular_scenarios = {}
         harassment_scenarios = {}
@@ -52,16 +54,30 @@ class ScenarioCategoryManager:
         シナリオIDがハラスメント関連かを判定する
         
         判定基準:
-        - scenario34-43: パワハラ・セクハラ関連シナリオ
+        - YAMLファイルのcategoryフィールドが'harassment'または'harassment_prevention'
+        - scenario31-43: パワハラ・セクハラ関連シナリオ（31-33を追加）
         - harassment_gray_zones: グレーゾーン事例集
         - 'harassment'を含むID
         """
-        # scenario34-43の範囲チェック
+        # 5AI CONSENSUS: Ensure all_scenarios is loaded before access
+        if self.all_scenarios is None:
+            # Force loading if not yet loaded
+            self._categorize_internal()
+        
+        # YAMLファイルのcategoryフィールドを最優先で確認
+        if self.all_scenarios:
+            scenario_data = self.all_scenarios.get(scenario_id)
+            if scenario_data and isinstance(scenario_data, dict):
+                category = scenario_data.get('category', '').lower()
+                if category in ['harassment', 'harassment_prevention']:
+                    return True
+        
+        # scenario31-43の範囲チェック（31-33追加、後方互換性のため）
         if scenario_id.startswith('scenario'):
             match = re.search(r'scenario(\d+)', scenario_id)
             if match:
                 scenario_num = int(match.group(1))
-                if 34 <= scenario_num <= 43:
+                if 31 <= scenario_num <= 43:  # 5AI CONSENSUS: Include scenarios 31-33
                     return True
         
         # ハラスメント関連キーワードチェック
@@ -157,6 +173,7 @@ class ScenarioCategoryManager:
         """キャッシュをクリア（開発・テスト用）"""
         self._regular_scenarios = None
         self._harassment_scenarios = None
+        self.all_scenarios = None  # 5AI CONSENSUS: Clear all_scenarios cache
 
 
 # グローバルインスタンス
