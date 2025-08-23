@@ -1,18 +1,39 @@
 :root {
-    --primary-color: #3b3b6b;
-    --secondary-color: #f5f5f5;
-    --text-color: #333;
+    /* === 5AI協調設計による新カラーパレット === */
+    /* Primary Colors */
+    --primary-color: #4A90E2;      /* 信頼性のある青（旧: #3b3b6b） */
+    --primary-hover: #357ABD;      /* プライマリのホバー色 */
+    --primary-light: #E8F2FF;      /* プライマリの薄い色 */
+    
+    /* Background */
+    --bg-main: #FFFFFF;            /* 純白背景 - 心理的安全性 */
+    --bg-secondary: #F8F9FA;       /* セカンダリ背景 */
+    --secondary-color: #F8F9FA;    /* 互換性のため残す */
+    
+    /* Actions */
+    --success-color: #28A745;      /* 安心の緑（旧: #D24848の赤） */
+    --warning-color: #F0B429;      /* 警告の琥珀色（旧: #ccaf60） */
+    --danger-color: #DC3545;       /* 危険の赤 */
+    
+    /* Text */
+    --text-color: #2F355B;         /* 読みやすい濃紺（旧: #333） */
+    --text-primary: #2F355B;       /* プライマリテキスト */
+    --text-secondary: #6C757D;     /* セカンダリテキスト */
+    
+    /* Design System */
     --border-radius: 8px;
     --transition: all 0.3s ease;
+    --border-color: #E0E6ED;       /* 境界線色 */
 }
 
 body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     line-height: 1.6;
     color: var(--text-color);
-    background-color: #ccaf60;
+    background-color: var(--bg-main);  /* 5AI合意: 純白背景で心理的安全性 */
     margin: 0;
     padding: 0;
+    transition: var(--transition);
 }
 
 #chat-container {
@@ -99,13 +120,13 @@ button {
 }
 
 #send-button {
-    background-color: #D24848;
+    background-color: var(--success-color);  /* 5AI合意: 緑で積極的行動を促進 */
     color: white;
     margin-left: 10px;
 }
 
 #send-button:hover {
-    background-color: #b93c3c;
+    background-color: #218838;  /* 緑のダーク版 */
 }
 
 #clear-button {
@@ -184,7 +205,7 @@ button {
 }
 
 .primary-button {
-    background-color: #D24848;
+    background-color: var(--primary-color);  /* 5AI合意: 信頼性のある青 */
     color: white;
     padding: 12px 24px;
     font-size: 16px;
@@ -198,7 +219,7 @@ button {
 }
 
 .primary-button:hover {
-    background-color: #b93c3c;
+    background-color: var(--primary-hover);  /* 青のダーク版 */
 }
 
 .primary-button .icon {
@@ -298,7 +319,7 @@ button {
 }
 
 .scenario-card h3 {
-    color: #3b3b6b;
+    color: var(--primary-color);
     margin-top: 0;
 }
 
@@ -316,8 +337,8 @@ button {
 .nav-button {
     display: inline-block;
     padding: 10px 20px;
-    background-color: #f0f2f5;
-    color: var(--text-color);
+    background-color: var(--primary-light);  /* 5AI合意: プライマリの薄い色 */
+    color: var(--primary-color);
     text-decoration: none;
     border-radius: var(--border-radius);
     transition: var(--transition);
@@ -325,7 +346,8 @@ button {
 }
 
 .nav-button:hover {
-    background-color: #e0e0e0;
+    background-color: var(--primary-color);
+    color: white;
 }
 
 /* トップページ用のスタイル */
@@ -338,7 +360,7 @@ button {
 }
 
 .welcome-section h2 {
-    color: #3b3b6b;
+    color: var(--primary-color);
     margin-top: 0;
 }
 
@@ -362,7 +384,7 @@ button {
 }
 
 .feature-card h3 {
-    color: #3b3b6b;
+    color: var(--primary-color);
     margin-top: 0;
 }
 
@@ -379,7 +401,7 @@ button {
 }
 
 .info-section h2 {
-    color: #3b3b6b;
+    color: var(--primary-color);
     margin-top: 0;
 }
 
@@ -415,7 +437,7 @@ button {
 }
 
 .reference-section a {
-    color: #3b3b6b;
+    color: var(--primary-color);
     text-decoration: none;
     transition: color 0.2s;
 }
@@ -475,7 +497,7 @@ button {
 
 .intro-section li:before {
     content: "✓";
-    color: #D24848;
+    color: var(--danger-color);
     position: absolute;
     left: -1.2rem;
 }
@@ -495,12 +517,12 @@ button {
 
 .scenario-header h3 {
     margin: 0;
-    color: #3b3b6b;
+    color: var(--primary-color);
 }
 
 .difficulty-badge {
     background: #f0e9d2;
-    color: #3b3b6b;
+    color: var(--primary-color);
     padding: 0.4rem 0.8rem;
     border-radius: 20px;
     font-size: 0.9rem;
@@ -537,7 +559,7 @@ button {
 .tips-button {
     background: transparent;
     border: 1px solid #D24848;
-    color: #D24848;
+    color: var(--danger-color);
     padding: 0.8rem 1.5rem;
     border-radius: 4px;
     cursor: pointer;
@@ -698,7 +720,7 @@ button {
 }
 
 .model-selection h2 {
-    color: #3b3b6b;
+    color: var(--primary-color);
     font-size: 1.4rem;
     margin-bottom: 1rem;
 }
