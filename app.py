@@ -443,7 +443,15 @@ def get_categorized_scenarios():
     harassment_scenarios = {}
     
     for scenario_id, scenario_data in scenarios.items():
-        # ハラスメント関連シナリオの判定
+        # YAMLファイルのcategoryフィールドを最優先で確認
+        if scenario_data and isinstance(scenario_data, dict):
+            category = scenario_data.get('category', '').lower()
+            if category in ['harassment', 'harassment_prevention']:
+                # categoryフィールドで明示的にハラスメント関連と指定されている
+                harassment_scenarios[scenario_id] = scenario_data
+                continue
+        
+        # 既存のハラスメント関連シナリオの判定（後方互換性のため）
         if (scenario_id.startswith('scenario') and 
             scenario_id[-2:].isdigit() and 
             int(scenario_id[-2:]) >= 34):
