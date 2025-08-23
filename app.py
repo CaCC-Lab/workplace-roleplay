@@ -526,6 +526,8 @@ def chat():
     """
     自由会話ページ
     """
+    # feature_flagsを取得
+    feature_flags = get_feature_flags()
     # モデル一覧の取得を削除
     return render_template("chat.html", 
                          default_model=DEFAULT_MODEL,
