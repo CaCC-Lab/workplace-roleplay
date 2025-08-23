@@ -59,28 +59,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // モデルリストを更新
             updateModelSelect();
-            modelSelectContainer.style.display = 'flex';
+            
+            // modelSelectContainerが存在する場合のみ表示
+            if (modelSelectContainer) {
+                modelSelectContainer.style.display = 'flex';
+            }
             
             // 保存された選択を復元するか、デフォルト値を設定
             const savedModel = localStorage.getItem('selectedModel');
             
-            if (savedModel && geminiModels.some(model => model.value === savedModel)) {
-                modelSelect.value = savedModel;
-            } else {
-                // デフォルトでgemini-1.5-flashを選択
-                const defaultModel = 'gemini/gemini-1.5-flash';
-                const defaultModelExists = geminiModels.some(model => model.value === defaultModel);
-                
-                if (defaultModelExists) {
-                    modelSelect.value = defaultModel;
-                } else if (geminiModels.length > 0) {
-                    // なければ最初のモデルを選択
-                    modelSelect.value = geminiModels[0].value;
-                }
-                
-                // 選択を保存
-                if (modelSelect.value) {
-                    localStorage.setItem('selectedModel', modelSelect.value);
+            // modelSelectが存在する場合のみ値を設定
+            if (modelSelect) {
+                if (savedModel && geminiModels.some(model => model.value === savedModel)) {
+                    modelSelect.value = savedModel;
+                } else {
+                    // デフォルトでgemini-1.5-flashを選択
+                    const defaultModel = 'gemini/gemini-1.5-flash';
+                    const defaultModelExists = geminiModels.some(model => model.value === defaultModel);
+                    
+                    if (defaultModelExists) {
+                        modelSelect.value = defaultModel;
+                    } else if (geminiModels.length > 0) {
+                        // なければ最初のモデルを選択
+                        modelSelect.value = geminiModels[0].value;
+                    }
+                    
+                    // 選択を保存
+                    if (modelSelect.value) {
+                        localStorage.setItem('selectedModel', modelSelect.value);
+                    }
                 }
             }
         })
@@ -90,14 +97,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
 
-    // モデル選択時の処理
-    modelSelect.addEventListener('change', function() {
-        const selectedModel = this.value;
-        localStorage.setItem('selectedModel', selectedModel);
-    });
+    // モデル選択時の処理（要素が存在する場合のみ）
+    if (modelSelect) {
+        modelSelect.addEventListener('change', function() {
+            const selectedModel = this.value;
+            localStorage.setItem('selectedModel', selectedModel);
+        });
+    }
 
     // モデル選択の更新
     function updateModelSelect() {
+        // modelSelectが存在しない場合は何もしない
+        if (!modelSelect) {
+            return;
+        }
+        
         // 既存のオプションをクリア
         modelSelect.innerHTML = '';
         
@@ -113,6 +127,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // エラーハンドリング
     function handleError(error) {
         console.error('Error in model selection:', error);
+        
+        // modelSelectContainerが存在しない場合は何もしない
+        if (!modelSelectContainer) {
+            return;
+        }
+        
         const errorMessage = document.createElement('div');
         errorMessage.className = 'error-message';
         errorMessage.textContent = 'モデル一覧の取得に失敗しました。ページを更新してください。';
