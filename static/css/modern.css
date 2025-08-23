@@ -8,27 +8,39 @@
 }
 
 :root {
-  /* === 5AI協調設計による新カラーパレット === */
-  --primary-color: #4A90E2;      /* 信頼性のある青（旧: #3b3b6b） */
-  --primary-hover: #357ABD;      /* プライマリのホバー色 */
-  --primary-light: #E8F2FF;      /* プライマリの薄い色 */
-  --secondary-color: #f9fafb;
-  --accent-color: #28A745;       /* 安心の緑（旧: #D24848） */
-  --accent-hover: #218838;       /* 緑のホバー色 */
-  --success-color: #28A745;      /* 成功の緑 */
-  --warning-color: #F0B429;      /* 警告の琥珀色 */
-  --danger-color: #DC3545;       /* 危険の赤 */
-  --text-color: #2F355B;         /* 読みやすい濃紺 */
+  /* === 5AI協調設計：既存ブランド調和型カラーパレット === */
+  /* Core Brand Colors (ユーザー指定・変更厳禁) */
+  --brand-deep-purple: #3b3b6b;  /* 深い紫みの青 - メインブランド */
+  --brand-warm-red: #D24848;     /* 温かみのある赤 - 重要アクション */
+  --brand-gentle-gold: #ccaf60;  /* 優しい金色 - アクセント */
+  
+  /* Primary System Colors (ブランドカラー基準) */
+  --primary-color: var(--brand-deep-purple);    /* 主要アクション・見出し */
+  --primary-hover: #2a2a5a;                     /* ホバー時（より深い紫） */
+  --primary-light: #f0f0f8;                     /* 薄い背景（紫ベース） */
+  
+  /* Semantic Action Colors */
+  --accent-color: var(--brand-warm-red);        /* アクセント（ブランド赤） */
+  --accent-hover: #b93c3c;                      /* 赤のホバー色 */
+  --success-color: #3E8E7E;                     /* 成功・完了（安心の青緑） */
+  --warning-color: var(--brand-gentle-gold);    /* 注意・警告（ブランド金） */
+  --danger-color: var(--brand-warm-red);        /* 危険・削除（ブランド赤） */
+  
+  /* Text & Background */
+  --text-color: #1A1A1A;         /* 主要テキスト（最高コントラスト） */
   --text-light: #6b7280;
+  --bg-main: #FFFFFF;            /* 純白背景 */
+  --bg-secondary: #f0f0f8;       /* セカンダリ背景（紫系統） */
+  --secondary-color: #f0f0f8;    /* 互換性のため */
+  
+  /* Design System */
   --border-color: #e5e7eb;
   --border-radius: 12px;
   --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --transition: all 0.3s ease;
   --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-  --gradient-primary: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-  --gradient-accent: linear-gradient(135deg, #28A745 0%, #218838 100%);
-  --bg-main: #FFFFFF;            /* 純白背景 */
-  --bg-secondary: #F8F9FA;       /* セカンダリ背景 */
+  --gradient-primary: linear-gradient(135deg, var(--brand-deep-purple) 0%, #2a2a5a 100%);
+  --gradient-accent: linear-gradient(135deg, var(--brand-warm-red) 0%, #b93c3c 100%);
 }
 
 /* ベーススタイル */
