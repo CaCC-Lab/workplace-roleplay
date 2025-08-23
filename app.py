@@ -527,7 +527,9 @@ def chat():
     自由会話ページ
     """
     # モデル一覧の取得を削除
-    return render_template("chat.html", default_model=DEFAULT_MODEL)
+    return render_template("chat.html", 
+                         default_model=DEFAULT_MODEL,
+                         feature_flags=feature_flags.to_dict())
 
 # 既存のhandle_llm_error関数を削除（errors.pyの機能に置き換え）
 
@@ -1926,7 +1928,7 @@ def generate_initial_message(llm, partner_type, situation, topic):
 def watch_mode():
     """観戦モードページ"""
     # 観戦モードはモデル情報が不要なため、シンプルにテンプレートを返す
-    return render_template("watch.html")
+    return render_template("watch.html", feature_flags=feature_flags.to_dict())
 
 # 学習履歴を表示するルートを追加
 @app.route("/journal")

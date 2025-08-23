@@ -63,12 +63,6 @@ class Config(BaseSettings):
     # その他のフラグ
     ENABLE_DEBUG: bool = Field(default=False, alias="ENABLE_DEBUG")
     
-    # 機能フラグ（段階的無効化システム）
-    ENABLE_MODEL_SELECTION: bool = Field(default=True, alias="ENABLE_MODEL_SELECTION")
-    ENABLE_TTS: bool = Field(default=True, alias="ENABLE_TTS")
-    ENABLE_LEARNING_HISTORY: bool = Field(default=True, alias="ENABLE_LEARNING_HISTORY")
-    ENABLE_STRENGTH_ANALYSIS: bool = Field(default=True, alias="ENABLE_STRENGTH_ANALYSIS")
-    
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
