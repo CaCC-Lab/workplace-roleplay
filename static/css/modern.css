@@ -1061,3 +1061,69 @@ input:focus, select:focus, textarea:focus {
         margin-bottom: 0.5rem;
     }
 }
+
+/* === 5AI協調設計：雑談練習・会話観戦モードのカテゴリースタイル === */
+
+/* 雑談練習カテゴリー */
+.small-talk-category {
+  background: linear-gradient(145deg, #ffffff, #f8fdff);
+  border-color: #1e88e5;
+}
+
+.small-talk-category:hover {
+  border-color: #1565c0;
+  box-shadow: 0 20px 30px rgba(30, 136, 229, 0.15);
+}
+
+.small-talk-icon {
+  color: #1e88e5 !important;
+}
+
+.small-talk-button {
+  background: linear-gradient(135deg, #1e88e5, #1565c0) !important;
+  color: white !important;
+}
+
+.small-talk-button:hover {
+  background: linear-gradient(135deg, #1565c0, #0d47a1) !important;
+}
+
+/* 会話観戦モードカテゴリー */
+.watch-mode-category {
+  background: linear-gradient(145deg, #ffffff, #fdf8ff);
+  border-color: #8e24aa;
+}
+
+.watch-mode-category:hover {
+  border-color: #7b1fa2;
+  box-shadow: 0 20px 30px rgba(142, 36, 170, 0.15);
+}
+
+.watch-mode-icon {
+  color: #8e24aa !important;
+}
+
+.watch-mode-button {
+  background: linear-gradient(135deg, #8e24aa, #7b1fa2) !important;
+  color: white !important;
+}
+
+.watch-mode-button:hover {
+  background: linear-gradient(135deg, #7b1fa2, #4a148c) !important;
+}
+
+/* アクセシビリティ強化：フォーカス状態 */
+.small-talk-button:focus-visible,
+.watch-mode-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* 統計情報のスタイリング強化 */
+.small-talk-category .category-stats {
+  background: rgba(30, 136, 229, 0.1);
+}
+
+.watch-mode-category .category-stats {
+  background: rgba(142, 36, 170, 0.1);
+}

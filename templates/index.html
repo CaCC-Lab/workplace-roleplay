@@ -150,18 +150,30 @@
                         </a>
                     </div>
 
-                    <div class="feature-card card-shadow">
-                        <div class="feature-icon"><i class="fas fa-comment-dots"></i></div>
+                    <div class="feature-card main-category small-talk-category">
+                        <div class="feature-icon small-talk-icon"><i class="fas fa-comment-dots"></i></div>
                         <h3>雑談練習</h3>
-                        <p>ビジネスシーンでの雑談力を向上させるための練習ができます。</p>
-                        <a href="{{ url_for('chat') }}" class="primary-button"><i class="fas fa-comments"></i> 雑談練習を始める</a>
+                        <p>AI相手に何度でも気軽に練習可能。リアルな職場の話題で会話力を鍛えよう。</p>
+                        <div class="category-stats">
+                            <span class="stat-item"><i class="fas fa-user-friends"></i> 1,234人が練習中</span>
+                            <span class="stat-item"><i class="fas fa-redo"></i> 何度でも挑戦可能</span>
+                        </div>
+                        <a href="{{ url_for('chat') }}" class="primary-button small-talk-button">
+                            <i class="fas fa-play"></i> 練習を始める
+                        </a>
                     </div>
 
-                    <div class="feature-card card-shadow">
-                        <div class="feature-icon"><i class="fas fa-users"></i></div>
+                    <div class="feature-card main-category watch-mode-category">
+                        <div class="feature-icon watch-mode-icon"><i class="fas fa-users"></i></div>
                         <h3>会話観戦モード</h3>
-                        <p>2つのAIモデルが会話する様子をリアルタイムで観戦できます。</p>
-                        <a href="{{ url_for('watch_mode') }}" class="primary-button"><i class="fas fa-eye"></i> 観戦する</a>
+                        <p>AI同士の会話を観察し、会話のコツや流れを客観的に学べます。学習ポイントの自動解説付き。</p>
+                        <div class="category-stats">
+                            <span class="stat-item"><i class="fas fa-book-reader"></i> 2,589人が観戦中</span>
+                            <span class="stat-item"><i class="fas fa-robot"></i> 2つのAIが対話</span>
+                        </div>
+                        <a href="{{ url_for('watch_mode') }}" class="primary-button watch-mode-button">
+                            <i class="fas fa-eye"></i> 観戦する
+                        </a>
                     </div>
                     
                     <div class="feature-card card-shadow" id="learning-history-card" style="display: none;">
