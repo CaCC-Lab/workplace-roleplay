@@ -1422,6 +1422,18 @@ def show_scenario(scenario_id):
     else:
         back_url = url_for('list_regular_scenarios')
 
+    # フィーチャーフラグを取得（エラーハンドリング付き）
+    try:
+        feature_flags = get_feature_flags()
+        # 正しいプロパティ名を使用
+        enable_tts = feature_flags.tts_enabled
+        enable_learning_history = feature_flags.learning_history_enabled
+    except (AttributeError, Exception) as e:
+        # エラー時はデフォルト値を使用
+        print(f"Warning: Failed to get feature flags: {e}")
+        enable_tts = False
+        enable_learning_history = False
+    
     return render_template(
         "scenario.html",
         scenario_id=scenario_id,
@@ -1429,7 +1441,9 @@ def show_scenario(scenario_id):
         scenario_desc=scenarios[scenario_id].get("description", "説明がありません。"),
         scenario=scenarios[scenario_id],
         default_model=DEFAULT_MODEL,
-        back_url=back_url  # テンプレートに戻り先URLを渡す
+        back_url=back_url,  # テンプレートに戻り先URLを渡す
+        enable_tts=enable_tts,
+        enable_learning_history=enable_learning_history
     )
 
 # 新規: カテゴリ分けされたシナリオ一覧を取得するAPIエンドポイント

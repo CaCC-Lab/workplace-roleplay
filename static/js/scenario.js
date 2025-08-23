@@ -163,6 +163,9 @@ function displayMessage(text, className, enableTTS = false) {
     const div = document.createElement("div");
     div.className = "message " + className;
     
+    // フィーチャーフラグを確認（型安全性を強化）
+    const isTTSEnabled = window.ENABLE_TTS === true || window.ENABLE_TTS === 'true';
+    
     // メッセージIDを生成して要素に設定
     const messageId = `msg-${++messageIdCounter}`;
     div.setAttribute('data-message-id', messageId);
@@ -216,8 +219,8 @@ function displayMessage(text, className, enableTTS = false) {
     textSpan.textContent = text;
     messageContainer.appendChild(textSpan);
     
-    // TTSボタンを追加（AIのメッセージのみ）
-    if (enableTTS && className.includes('bot')) {
+    // TTSボタンを追加（AIのメッセージのみ、かつフィーチャーフラグが有効な場合）
+    if (enableTTS && className.includes('bot') && isTTSEnabled) {
         const ttsButton = document.createElement("button");
         ttsButton.className = "tts-button tts-loading";
         ttsButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';

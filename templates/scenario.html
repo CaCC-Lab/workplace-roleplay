@@ -16,6 +16,9 @@
     <script>
         // サーバー側のデフォルトモデルを設定
         window.DEFAULT_MODEL = '{{ default_model }}';
+        // フィーチャーフラグを設定
+        window.ENABLE_TTS = {{ 'true' if enable_tts else 'false' }};
+        window.ENABLE_LEARNING_HISTORY = {{ 'true' if enable_learning_history else 'false' }};
     </script>
 </head>
 <body>
@@ -64,7 +67,9 @@
     <div class="navigation">
         <a href="{{ back_url }}" class="nav-button"><i class="fas fa-list"></i> シナリオ一覧に戻る</a>
         <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> トップページに戻る</a>
+        {% if enable_learning_history %}
         <a href="{{ url_for('view_journal') }}" class="nav-button"><i class="fas fa-book"></i> 学習履歴を見る</a>
+        {% endif %}
     </div>
 
     <script src="{{ url_for('static', filename='js/csrf-manager.js') }}"></script>
