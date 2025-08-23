@@ -75,12 +75,22 @@ def validate_model_name(model_name: Any, allowed_models: Optional[List[str]] = N
     if not isinstance(model_name, str):
         return False, "モデル名は文字列である必要があります"
     
-    # デフォルトの許可モデルリスト
+    # デフォルトの許可モデルリスト（SecurityUtilsと同期）
     if allowed_models is None:
         allowed_models = [
             'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash-002',
+            'gemini-1.5-flash-8b',
             'gemini-1.5-pro',
-            'gemini-1.0-pro'
+            'gemini-1.5-pro-latest',
+            'gemini-1.5-pro-002',
+            'gemini-1.0-pro',
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-exp',
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',  # 追加！Geminiで存在確認済み
+            'gemini-2.5-pro'
         ]
     
     if model_name not in allowed_models:

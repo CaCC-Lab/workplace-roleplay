@@ -85,7 +85,7 @@
                 </div>
             </div>
 
-            <div class="model-selection-wrapper">
+            <div class="model-selection-wrapper" id="model-selection-section" style="display: none;">
                 <div class="model-selection">
                     <h2><i class="fas fa-robot"></i> AIモデルを選択</h2>
                     <p>会話に使用するGoogle Geminiモデルを選択してください。</p>
@@ -154,14 +154,14 @@
                         <a href="{{ url_for('watch_mode') }}" class="primary-button"><i class="fas fa-eye"></i> 観戦する</a>
                     </div>
                     
-                    <div class="feature-card card-shadow">
+                    <div class="feature-card card-shadow" id="learning-history-card" style="display: none;">
                         <div class="feature-icon"><i class="fas fa-book"></i></div>
                         <h3>学習履歴</h3>
                         <p>これまでの練習記録を確認して、学習の進捗状況を把握できます。</p>
                         <a href="{{ url_for('view_journal') }}" class="primary-button"><i class="fas fa-chart-line"></i> 履歴を見る</a>
                     </div>
                     
-                    <div class="feature-card card-shadow">
+                    <div class="feature-card card-shadow" id="strength-analysis-card" style="display: none;">
                         <div class="feature-icon"><i class="fas fa-star"></i></div>
                         <h3>強み分析</h3>
                         <p>会話練習から、あなたのコミュニケーションスキルの強みを分析します。</p>

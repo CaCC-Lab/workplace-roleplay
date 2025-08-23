@@ -1,9 +1,40 @@
 document.addEventListener('DOMContentLoaded', function() {
     const modelSelect = document.getElementById('model-select');
     const modelSelectContainer = document.querySelector('.model-select');
+    const modelSelectionSection = document.getElementById('model-selection-section');
+    const learningHistoryCard = document.getElementById('learning-history-card');
+    const strengthAnalysisCard = document.getElementById('strength-analysis-card');
 
     // Geminiモデルのリスト
     let geminiModels = [];
+    
+    // 機能フラグを取得
+    fetch('/api/feature_flags')
+        .then(response => response.json())
+        .then(flags => {
+            // UIの条件表示
+            if (flags.model_selection && modelSelectionSection) {
+                modelSelectionSection.style.display = 'block';
+            }
+            if (flags.learning_history && learningHistoryCard) {
+                learningHistoryCard.style.display = 'block';
+            }
+            if (flags.strength_analysis && strengthAnalysisCard) {
+                strengthAnalysisCard.style.display = 'block';
+            }
+            
+            // モデル選択が無効の場合はデフォルトモデルを使用
+            if (!flags.model_selection && flags.default_model) {
+                localStorage.setItem('selectedModel', flags.default_model);
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load feature flags:', err);
+            // エラー時はデフォルトで表示
+            if (modelSelectionSection) modelSelectionSection.style.display = 'block';
+            if (learningHistoryCard) learningHistoryCard.style.display = 'block';
+            if (strengthAnalysisCard) strengthAnalysisCard.style.display = 'block';
+        });
 
     // APIからモデル一覧を取得
     fetch('/api/models')

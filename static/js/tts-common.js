@@ -7,22 +7,50 @@
 window.currentAudio = null;
 window.currentPlayingButton = null;
 
-// ページロード時にTTS緊急停止状態を確認
+// ページロード時にTTS機能状態を確認
 document.addEventListener('DOMContentLoaded', async function() {
     try {
-        const response = await fetch('/api/tts', { method: 'HEAD' });
-        if (response.status === 503) {
-            // 緊急停止中の場合はlocalStorageに記録
+        // 機能フラグ状態を確認
+        const response = await fetch('/api/feature_flags');
+        if (response.ok) {
+            const flags = await response.json();
+            if (!flags.tts) {
+                // TTS機能が無効化されている場合
+                localStorage.setItem('tts_disabled', 'true');
+                console.warn('TTS機能は無効化されています。');
+                hideTTSButtons();
+                return;
+            } else {
+                localStorage.removeItem('tts_disabled');
+            }
+        }
+        
+        // 従来の緊急停止チェック
+        const ttsResponse = await fetch('/api/tts', { method: 'HEAD' });
+        if (ttsResponse.status === 503) {
             localStorage.setItem('tts_emergency_stop', 'true');
             console.warn('TTS機能は緊急停止中です。Web Speech APIを使用します。');
-        } else if (response.ok) {
-            // 正常の場合は緊急停止フラグをクリア
+        } else if (ttsResponse.ok) {
             localStorage.removeItem('tts_emergency_stop');
         }
     } catch (error) {
         console.error('TTS状態確認エラー:', error);
     }
 });
+
+/**
+ * TTSボタンを非表示にする
+ */
+function hideTTSButtons() {
+    document.querySelectorAll('.tts-button').forEach(btn => {
+        btn.style.display = 'none';
+    });
+    
+    // TTSボタンの親要素がある場合も非表示
+    document.querySelectorAll('.tts-controls').forEach(controls => {
+        controls.style.display = 'none';
+    });
+}
 
 /**
  * 全ての音声再生を停止する統一関数

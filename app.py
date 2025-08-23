@@ -37,6 +37,16 @@ load_dotenv()
 
 # 設定モジュールのインポート
 from config import get_cached_config
+from config.feature_flags import (
+    FeatureFlags,
+    FeatureDisabledException,
+    is_model_selection_enabled,
+    is_tts_enabled,
+    is_learning_history_enabled,
+    is_strength_analysis_enabled,
+    get_feature_flags,
+    require_feature
+)
 
 # 既存のimport文の下に追加
 from scenarios import load_scenarios
@@ -1290,6 +1300,19 @@ def favicon():
         # favicon.icoが存在しない場合は204 No Contentを返す
         return '', 204
 
+@app.route("/api/feature_flags", methods=["GET"])
+def get_feature_flags_api():
+    """
+    現在の機能フラグ設定を返すAPIエンドポイント
+    フロントエンドが機能の有効/無効を判断するために使用
+    """
+    try:
+        flags = get_feature_flags()
+        return jsonify(flags.to_dict())
+    except Exception as e:
+        print(f"Error getting feature flags: {str(e)}")
+        return jsonify({"error": "Failed to get feature flags"}), 500
+
 @app.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token():
     """
@@ -1326,9 +1349,35 @@ def api_models():
     """
     利用可能なGeminiモデル一覧を返す
     """
+    # モデル選択機能が無効化されている場合の処理
+    if not is_model_selection_enabled():
+        config = get_cached_config()
+        return jsonify({
+            "models": [{"name": config.DEFAULT_MODEL, "display_name": "Default Model"}],
+            "feature_disabled": True,
+            "message": "モデル選択機能は現在無効化されています。"
+        })
+    
     # 共通関数を使用してモデル情報を取得
     model_info = get_all_available_models()
     return jsonify(model_info)
+
+
+@app.route("/api/feature_flags", methods=["GET"])
+@with_error_handling
+def api_feature_flags():
+    """
+    機能フラグの状態を返すAPI
+    フロントエンドで機能の有効/無効を判定するために使用
+    """
+    try:
+        flags = FeatureFlags.get_all_flags()
+        return jsonify(flags)
+    except Exception as e:
+        return jsonify({
+            "error": "Failed to get feature flags",
+            "message": str(e)
+        }), 500
 
 # シナリオ一覧を表示するページ
 @app.route("/scenarios")
@@ -1847,6 +1896,7 @@ def watch_mode():
 
 # 学習履歴を表示するルートを追加
 @app.route("/journal")
+@require_feature('learning_history')
 def view_journal():
     """学習履歴ページ"""
     # 履歴データを取得
@@ -2642,6 +2692,12 @@ def get_available_styles():
 @app.route("/strength_analysis")
 def strength_analysis_page():
     """強み分析ページを表示"""
+    # 強み分析機能が無効化されている場合
+    if not is_strength_analysis_enabled():
+        return render_template("feature_disabled.html", 
+                             feature_name="強み分析",
+                             message="強み分析機能は現在無効化されています。")
+    
     return render_template("strength_analysis.html")
 
 
@@ -2649,6 +2705,13 @@ def strength_analysis_page():
 @secure_error_handler
 def analyze_strengths():
     """会話履歴から強みを分析"""
+    # 強み分析機能が無効化されている場合
+    if not is_strength_analysis_enabled():
+        return jsonify({
+            "error": "Feature disabled",
+            "message": "強み分析機能は現在無効化されています。"
+        }), 403
+    
     try:
         data = request.get_json()
         if data is None:

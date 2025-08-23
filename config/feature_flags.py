@@ -1,85 +1,142 @@
 """
-フィーチャーフラグ管理
-A/Bテストや段階的ロールアウトのための機能切り替え設定
+機能フラグ管理モジュール
+段階的無効化のための機能制御
 """
-import os
-from typing import Dict, Any
-from enum import Enum
+from functools import lru_cache, wraps
+from typing import Optional, Callable, Any
+from flask import jsonify, abort
+import logging
 
-class ServiceMode(Enum):
-    """サービスモード"""
-    LEGACY = "legacy"      # 既存実装のみ
-    PARALLEL = "parallel"  # 並行稼働（A/Bテスト）
-    CANARY = "canary"      # カナリアリリース（一部ユーザー）
-    NEW = "new"           # 新実装のみ
+logger = logging.getLogger(__name__)
+
+
+class FeatureDisabledException(Exception):
+    """機能が無効化されている場合の例外"""
+    pass
+
 
 class FeatureFlags:
-    """フィーチャーフラグ管理クラス"""
+    """機能フラグの管理クラス"""
     
-    def __init__(self):
-        """環境変数から設定を読み込み"""
-        # サービスモード
-        self.service_mode = ServiceMode(
-            os.getenv('SERVICE_MODE', ServiceMode.LEGACY.value)
-        )
+    def __init__(self, config):
+        self.config = config
         
-        # 個別機能のフラグ
-        self.use_new_chat_service = self._get_bool_env('USE_NEW_CHAT_SERVICE', False)
-        self.use_new_scenario_service = self._get_bool_env('USE_NEW_SCENARIO_SERVICE', False)
-        self.use_new_watch_service = self._get_bool_env('USE_NEW_WATCH_SERVICE', False)
-        
-        # A/Bテスト設定
-        self.ab_test_enabled = self._get_bool_env('AB_TEST_ENABLED', True)
-        self.ab_test_ratio = float(os.getenv('AB_TEST_RATIO', '0.1'))  # 10%のユーザーで新サービス
-        
-        # デバッグ設定
-        self.compare_mode = self._get_bool_env('COMPARE_MODE', True)  # 新旧比較モード
-        self.log_differences = self._get_bool_env('LOG_DIFFERENCES', True)  # 差分をログ出力
-        
-    def _get_bool_env(self, key: str, default: bool = False) -> bool:
-        """環境変数からブール値を取得"""
-        value = os.getenv(key, str(default)).lower()
-        return value in ('true', '1', 'yes', 'on')
+    @property
+    def model_selection_enabled(self) -> bool:
+        """モデル選択機能の有効/無効"""
+        return self.config.ENABLE_MODEL_SELECTION
     
-    def should_use_new_service(self, service_name: str, user_id: str = None) -> bool:
-        """新サービスを使用すべきか判定"""
-        if self.service_mode == ServiceMode.NEW:
-            return True
-        
-        if self.service_mode == ServiceMode.LEGACY:
-            return False
-        
-        if self.service_mode == ServiceMode.CANARY and user_id:
-            # ユーザーIDのハッシュ値で一貫した振り分け（SHA-256使用）
-            from utils.security import SecurityUtils
-            hash_hex = SecurityUtils.hash_user_id(user_id)
-            # 最初の8文字を使用して数値化
-            hash_value = int(hash_hex[:8], 16)
-            return (hash_value % 100) < (self.ab_test_ratio * 100)
-        
-        # 個別フラグをチェック
-        if service_name == 'chat':
-            return self.use_new_chat_service
-        elif service_name == 'scenario':
-            return self.use_new_scenario_service
-        elif service_name == 'watch':
-            return self.use_new_watch_service
-        
-        return False
+    @property
+    def tts_enabled(self) -> bool:
+        """TTS機能の有効/無効"""
+        return self.config.ENABLE_TTS
     
-    def get_config(self) -> Dict[str, Any]:
-        """現在の設定を取得"""
+    @property
+    def learning_history_enabled(self) -> bool:
+        """学習履歴機能の有効/無効"""
+        return self.config.ENABLE_LEARNING_HISTORY
+    
+    @property
+    def strength_analysis_enabled(self) -> bool:
+        """強み分析機能の有効/無効"""
+        return self.config.ENABLE_STRENGTH_ANALYSIS
+    
+    @property
+    def default_model(self) -> str:
+        """デフォルトモデル"""
+        return self.config.DEFAULT_MODEL
+    
+    def to_dict(self) -> dict:
+        """現在の機能フラグ設定を辞書形式で返す"""
         return {
-            'service_mode': self.service_mode.value,
-            'ab_test_enabled': self.ab_test_enabled,
-            'ab_test_ratio': self.ab_test_ratio,
-            'compare_mode': self.compare_mode,
-            'features': {
-                'chat': self.use_new_chat_service,
-                'scenario': self.use_new_scenario_service,
-                'watch': self.use_new_watch_service
-            }
+            "model_selection": self.model_selection_enabled,
+            "tts": self.tts_enabled,
+            "learning_history": self.learning_history_enabled,
+            "strength_analysis": self.strength_analysis_enabled,
+            "default_model": self.default_model
         }
 
-# シングルトンインスタンス
-feature_flags = FeatureFlags()
+
+@lru_cache()
+def get_feature_flags() -> FeatureFlags:
+    """機能フラグインスタンスを取得（キャッシュ済み）"""
+    from config import get_cached_config
+    return FeatureFlags(get_cached_config())
+
+
+# ショートカット関数
+def is_model_selection_enabled() -> bool:
+    """モデル選択機能が有効かどうか"""
+    return get_feature_flags().model_selection_enabled
+
+
+def is_tts_enabled() -> bool:
+    """TTS機能が有効かどうか"""
+    return get_feature_flags().tts_enabled
+
+
+def is_learning_history_enabled() -> bool:
+    """学習履歴機能が有効かどうか"""
+    return get_feature_flags().learning_history_enabled
+
+
+def is_strength_analysis_enabled() -> bool:
+    """強み分析機能が有効かどうか"""
+    return get_feature_flags().strength_analysis_enabled
+
+
+def get_default_model() -> str:
+    """デフォルトモデルを取得"""
+    return get_feature_flags().default_model
+
+
+# デコレーター
+def require_feature(feature_name: str):
+    """
+    機能が有効でない場合はアクセスを拒否するデコレーター
+    
+    Usage:
+        @require_feature('model_selection')
+        def some_route():
+            ...
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            flags = get_feature_flags()
+            feature_map = {
+                'model_selection': flags.model_selection_enabled,
+                'tts': flags.tts_enabled,
+                'learning_history': flags.learning_history_enabled,
+                'strength_analysis': flags.strength_analysis_enabled
+            }
+            
+            if feature_name not in feature_map:
+                logger.error(f"Unknown feature: {feature_name}")
+                abort(500)
+            
+            if not feature_map[feature_name]:
+                logger.info(f"Feature {feature_name} is disabled")
+                return jsonify({
+                    "error": f"This feature is currently disabled",
+                    "feature": feature_name,
+                    "message": "この機能は現在無効化されています。"
+                }), 403
+            
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+# エクスポート
+__all__ = [
+    'FeatureFlags',
+    'FeatureDisabledException',
+    'get_feature_flags',
+    'is_model_selection_enabled',
+    'is_tts_enabled',
+    'is_learning_history_enabled',
+    'is_strength_analysis_enabled',
+    'get_default_model',
+    'require_feature'
+]

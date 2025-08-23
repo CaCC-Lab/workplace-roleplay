@@ -54,8 +54,20 @@ class Config(BaseSettings):
     WTF_CSRF_ENABLED: bool = Field(default=True, alias="WTF_CSRF_ENABLED")
     SECURE_COOKIES: bool = Field(default=False, alias="SECURE_COOKIES")
     
+    # 機能フラグ（段階的無効化）
+    ENABLE_MODEL_SELECTION: bool = Field(default=True, alias="ENABLE_MODEL_SELECTION")
+    ENABLE_TTS: bool = Field(default=True, alias="ENABLE_TTS")
+    ENABLE_LEARNING_HISTORY: bool = Field(default=True, alias="ENABLE_LEARNING_HISTORY")
+    ENABLE_STRENGTH_ANALYSIS: bool = Field(default=True, alias="ENABLE_STRENGTH_ANALYSIS")
+    
     # その他のフラグ
     ENABLE_DEBUG: bool = Field(default=False, alias="ENABLE_DEBUG")
+    
+    # 機能フラグ（段階的無効化システム）
+    ENABLE_MODEL_SELECTION: bool = Field(default=True, alias="ENABLE_MODEL_SELECTION")
+    ENABLE_TTS: bool = Field(default=True, alias="ENABLE_TTS")
+    ENABLE_LEARNING_HISTORY: bool = Field(default=True, alias="ENABLE_LEARNING_HISTORY")
+    ENABLE_STRENGTH_ANALYSIS: bool = Field(default=True, alias="ENABLE_STRENGTH_ANALYSIS")
     
     model_config = {
         "env_file": ".env",
@@ -81,13 +93,46 @@ class Config(BaseSettings):
     
     @field_validator("DEFAULT_MODEL")
     def validate_model(cls, v):
-        """モデル名のバリデーション"""
+        """モデル名のバリデーション（動的パターンマッチング対応）"""
+        import re
+        
+        # サポートされているモデルの明示的リスト（2024年12月最新）
         supported_models = [
+            # Gemini 2.5系（最新）
+            "gemini/gemini-2.5-pro",
+            "gemini/gemini-2.5-flash",
+            "gemini/gemini-2.5-flash-lite",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            
+            # Gemini 2.0系（現行）
+            "gemini/gemini-2.0-flash",
+            "gemini/gemini-2.0-flash-lite",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            
+            # Gemini 1.5系（レガシー）
             "gemini/gemini-1.5-pro",
-            "gemini/gemini-1.5-flash"
+            "gemini/gemini-1.5-flash",
+            "gemini/gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b"
         ]
-        if v not in supported_models:
-            raise ValueError(f"Unsupported model: {v}")
+        
+        # 明示的リストにある場合は即座に許可
+        if v in supported_models:
+            return v
+        
+        # 動的パターンマッチング（将来の拡張性）
+        # gemini-X.Y-{pro|flash|flash-lite}[-variant]パターンをサポート
+        gemini_pattern = re.compile(r'^(gemini/)?gemini-\d+\.\d+-(pro|flash|flash-lite)(-.*)?$')
+        if gemini_pattern.match(v):
+            warnings.warn(f"Using experimental model pattern: {v}. Please verify compatibility.", UserWarning)
+            return v
+        
+        raise ValueError(f"Unsupported model: {v}")
         return v
     
     @field_validator("API_BASE_URL")
@@ -253,6 +298,18 @@ def get_cached_config() -> Config:
     return get_config()
 
 
+# 機能フラグヘルパー関数
+def get_feature_flags() -> dict:
+    """現在の機能フラグ設定を取得"""
+    config = get_cached_config()
+    return {
+        "model_selection": config.ENABLE_MODEL_SELECTION,
+        "tts": config.ENABLE_TTS,
+        "learning_history": config.ENABLE_LEARNING_HISTORY,
+        "strength_analysis": config.ENABLE_STRENGTH_ANALYSIS,
+        "default_model": config.DEFAULT_MODEL
+    }
+
 # エクスポート
 __all__ = [
     "Config",
@@ -260,5 +317,6 @@ __all__ = [
     "ProductionConfig",
     "ConfigForTesting",
     "get_config",
-    "get_cached_config"
+    "get_cached_config",
+    "get_feature_flags"
 ]

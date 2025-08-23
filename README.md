@@ -280,6 +280,30 @@ class RedisSessionManager:
 - Google Cloud アカウント（Gemini API用）
 - Redis（オプション - セッション管理の高速化）
 
+### 段階的無効化機能（Feature Flags）
+
+アプリケーションの機能を環境変数で制御できます。`.env`ファイルで以下の設定が可能です：
+
+```bash
+# 機能フラグ設定
+ENABLE_MODEL_SELECTION=false  # モデル選択UIの表示（デフォルト: true）
+ENABLE_TTS=false              # TTS（音声読み上げ）機能（デフォルト: true）
+ENABLE_LEARNING_HISTORY=false # 学習履歴機能（デフォルト: true）
+ENABLE_STRENGTH_ANALYSIS=false # 強み分析機能（デフォルト: true）
+
+# モデル選択が無効の場合のデフォルトモデル
+DEFAULT_MODEL=gemini-1.5-flash
+```
+
+#### 設定の効果
+- **ENABLE_MODEL_SELECTION=false**: モデル選択UIが非表示になり、DEFAULT_MODELが使用されます
+- **ENABLE_TTS=false**: 音声読み上げボタンが非表示になります
+- **ENABLE_LEARNING_HISTORY=false**: 学習履歴カードが非表示になり、アクセスが制限されます
+- **ENABLE_STRENGTH_ANALYSIS=false**: 強み分析カードが非表示になり、アクセスが制限されます
+
+#### 機能の復活
+環境変数を`true`に戻すだけで、いつでも機能を復活できます。データは保持されているため、再有効化時に以前のデータが利用可能です。
+
 ### セットアップ
 
 #### 🚀 自動セットアップ（推奨）
