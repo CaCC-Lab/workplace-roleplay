@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session, stream_with_context, send_from_directory, url_for
 from flask_session import Session
 import requests
+import re
 import os
 from typing import Optional, Dict, List, Tuple, Any
 from datetime import datetime
@@ -1111,6 +1112,7 @@ def generate_next_message(llm, history):
 - 1回の応答は3行程度まで
 - 必ず日本語のみを使用する
 - ローマ字や英語は使用しない
+- 重要：話者名（太郎、花子など）を含めず、発言内容のみを返してください
 """
 
     messages = [
@@ -1119,7 +1121,12 @@ def generate_next_message(llm, history):
     ]
     
     response = llm.invoke(messages)
-    return extract_content(response)
+    content = extract_content(response)
+    
+    # バックアップ機能：名前パターンを除去（太郎: や 花子: など）
+    content = re.sub(r'^(太郎|花子):\s*', '', content.strip())
+    
+    return content
 
 @app.route("/api/get_assist", methods=["POST"])
 @with_error_handling
