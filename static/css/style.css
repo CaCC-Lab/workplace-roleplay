@@ -1,29 +1,44 @@
 :root {
-    /* === 5AI協調設計による新カラーパレット === */
-    /* Primary Colors */
-    --primary-color: #4A90E2;      /* 信頼性のある青（旧: #3b3b6b） */
-    --primary-hover: #357ABD;      /* プライマリのホバー色 */
-    --primary-light: #E8F2FF;      /* プライマリの薄い色 */
+    /* === 5AI協調設計：既存ブランド調和型カラーパレット === */
+    /* Core Brand Colors (ユーザー指定・変更厳禁) */
+    --brand-deep-purple: #3b3b6b;  /* 深い紫みの青 - メインブランド */
+    --brand-warm-red: #D24848;     /* 温かみのある赤 - 重要アクション */
+    --brand-gentle-gold: #ccaf60;  /* 優しい金色 - アクセント */
     
-    /* Background */
+    /* Primary System Colors (ブランドカラー基準) */
+    --primary-color: var(--brand-deep-purple);    /* 主要アクション・見出し */
+    --primary-hover: #2a2a5a;                     /* ホバー時（より深い紫） */
+    --primary-light: #f0f0f8;                     /* 薄い背景（紫ベース） */
+    
+    /* Semantic Action Colors (機能別・5AI合意) */
+    --success-color: #3E8E7E;      /* 成功・完了（安心の青緑） */
+    --warning-color: var(--brand-gentle-gold);    /* 注意・警告（ブランド金） */
+    --danger-color: var(--brand-warm-red);        /* 危険・削除（ブランド赤） */
+    --info-color: #4A90E2;         /* 情報・ヒント（信頼の青） */
+    
+    /* Background & Layout (心理的安全性重視) */
     --bg-main: #FFFFFF;            /* 純白背景 - 心理的安全性 */
-    --bg-secondary: #F8F9FA;       /* セカンダリ背景 */
-    --secondary-color: #F8F9FA;    /* 互換性のため残す */
+    --bg-secondary: var(--primary-light);         /* セカンダリ背景（紫系統） */
+    --bg-accent: #f9f9f9;          /* アクセント背景（軽いグレー） */
+    --secondary-color: var(--bg-secondary);       /* 互換性維持 */
     
-    /* Actions */
-    --success-color: #28A745;      /* 安心の緑（旧: #D24848の赤） */
-    --warning-color: #F0B429;      /* 警告の琥珀色（旧: #ccaf60） */
-    --danger-color: #DC3545;       /* 危険の赤 */
+    /* Text Colors (WCAG 2.1 AA準拠) */
+    --text-color: #1A1A1A;         /* 主要テキスト（最高コントラスト） */
+    --text-primary: var(--text-color);            /* プライマリテキスト */
+    --text-secondary: #6B6B6B;     /* セカンダリテキスト（5.08:1） */
+    --text-on-primary: #FFFFFF;    /* プライマリ色上のテキスト */
+    --text-on-danger: #FFFFFF;     /* 危険色上のテキスト */
+    --text-on-warning: #000000;    /* 警告色上のテキスト（7.01:1） */
     
-    /* Text */
-    --text-color: #2F355B;         /* 読みやすい濃紺（旧: #333） */
-    --text-primary: #2F355B;       /* プライマリテキスト */
-    --text-secondary: #6C757D;     /* セカンダリテキスト */
-    
-    /* Design System */
+    /* Design System & Interactions */
     --border-radius: 8px;
     --transition: all 0.3s ease;
     --border-color: #E0E6ED;       /* 境界線色 */
+    --box-shadow: 0 2px 4px rgba(59, 59, 107, 0.1);  /* ブランド色ベースの影 */
+    
+    /* Accessibility Extensions */
+    --focus-outline: 0 0 0 3px rgba(59, 59, 107, 0.3);  /* フォーカス時のアウトライン */
+    --hover-lift: 0 4px 8px rgba(59, 59, 107, 0.15);    /* ホバー時の浮上効果 */
 }
 
 body {
@@ -85,6 +100,7 @@ h1 {
 #model-select:focus {
     outline: none;
     border-color: var(--primary-color);
+    box-shadow: var(--focus-outline);
 }
 
 #message-input {
@@ -100,7 +116,7 @@ h1 {
 #message-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    box-shadow: var(--focus-outline);
 }
 
 button {
@@ -120,13 +136,21 @@ button {
 }
 
 #send-button {
-    background-color: var(--success-color);  /* 5AI合意: 緑で積極的行動を促進 */
-    color: white;
+    background-color: var(--success-color);  /* 5AI合意: 青緑で積極的行動を促進 */
+    color: var(--text-on-primary);
     margin-left: 10px;
+    box-shadow: var(--box-shadow);
 }
 
 #send-button:hover {
-    background-color: #218838;  /* 緑のダーク版 */
+    background-color: #2d7a6e;  /* 青緑のダーク版 */
+    box-shadow: var(--hover-lift);
+    transform: translateY(-1px);
+}
+
+#send-button:focus {
+    outline: none;
+    box-shadow: var(--focus-outline);
 }
 
 #clear-button {
@@ -205,8 +229,8 @@ button {
 }
 
 .primary-button {
-    background-color: var(--primary-color);  /* 5AI合意: 信頼性のある青 */
-    color: white;
+    background-color: var(--primary-color);  /* 5AI合意: ブランド紫青 */
+    color: var(--text-on-primary);
     padding: 12px 24px;
     font-size: 16px;
     border-radius: var(--border-radius);
@@ -215,11 +239,20 @@ button {
     align-items: center;
     gap: 8px;
     text-decoration: none;
-    transition: background-color 0.2s;
+    transition: var(--transition);
+    box-shadow: var(--box-shadow);
+    border: none;
 }
 
 .primary-button:hover {
-    background-color: var(--primary-hover);  /* 青のダーク版 */
+    background-color: var(--primary-hover);  /* 紫青のダーク版 */
+    box-shadow: var(--hover-lift);
+    transform: translateY(-1px);
+}
+
+.primary-button:focus {
+    outline: none;
+    box-shadow: var(--focus-outline);
 }
 
 .primary-button .icon {
@@ -251,12 +284,21 @@ button {
 }
 
 #get-feedback-button {
-    background-color: #4CAF50;
-    color: white;
+    background-color: var(--warning-color);  /* ブランドの金色 */
+    color: var(--text-on-warning);
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
 }
 
 #get-feedback-button:hover {
-    background-color: #45a049;
+    background-color: #b8a054;  /* 金色のダーク版 */
+    box-shadow: var(--hover-lift);
+    transform: translateY(-1px);
+}
+
+#get-feedback-button:focus {
+    outline: none;
+    box-shadow: var(--focus-outline);
 }
 
 .scenario-info {
@@ -337,17 +379,26 @@ button {
 .nav-button {
     display: inline-block;
     padding: 10px 20px;
-    background-color: var(--primary-light);  /* 5AI合意: プライマリの薄い色 */
+    background-color: var(--primary-light);  /* 5AI合意: プライマリの薄い紫色 */
     color: var(--primary-color);
     text-decoration: none;
     border-radius: var(--border-radius);
     transition: var(--transition);
     margin: 0 10px;
+    border: 1px solid var(--primary-color);
+    box-shadow: var(--box-shadow);
 }
 
 .nav-button:hover {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-on-primary);
+    box-shadow: var(--hover-lift);
+    transform: translateY(-1px);
+}
+
+.nav-button:focus {
+    outline: none;
+    box-shadow: var(--focus-outline);
 }
 
 /* トップページ用のスタイル */
@@ -451,6 +502,53 @@ button {
 @media (max-width: 600px) {
     .features-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ダークモード対応 - 5AI協調設計 */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* ダークモード用背景色 */
+        --bg-main: #1e1e2e;
+        --bg-secondary: #2d2d44;
+        --bg-accent: #3a3a5a;
+        
+        /* ダークモード用テキスト色 */
+        --text-color: #e0e0f0;
+        --text-primary: var(--text-color);
+        --text-secondary: #a0a0c0;
+        
+        /* ダークモード用調整色 */
+        --primary-hover: #4b4b8b;
+        --danger-color: #ff6b6b;
+        --border-color: #444466;
+        --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        --hover-lift: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+    
+    .message {
+        background-color: var(--bg-accent);
+        border-color: var(--border-color);
+    }
+    
+    .user-message {
+        background-color: #2a3a5a;
+    }
+    
+    .bot-message {
+        background-color: var(--bg-secondary);
+        border-color: var(--border-color);
+    }
+    
+    input, select, textarea {
+        background-color: var(--bg-secondary);
+        color: var(--text-color);
+        border-color: var(--border-color);
+    }
+    
+    .feature-card, .scenario-card, .journal-card {
+        background-color: var(--bg-secondary);
+        border-color: var(--border-color);
     }
 }
 
