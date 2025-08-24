@@ -16,6 +16,13 @@
     <script>
         // サーバー側のデフォルトモデルを設定
         window.DEFAULT_MODEL = '{{ default_model }}';
+        // フィーチャフラグの設定
+        window.FEATURE_FLAGS = {
+            tts: {{ 'true' if feature_flags.tts else 'false' }},
+            model_selection: {{ 'true' if feature_flags.model_selection else 'false' }},
+            learning_history: {{ 'true' if feature_flags.learning_history else 'false' }},
+            strength_analysis: {{ 'true' if feature_flags.strength_analysis else 'false' }}
+        };
     </script>
 </head>
 <body>

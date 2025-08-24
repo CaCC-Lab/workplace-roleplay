@@ -71,7 +71,9 @@ async function startConversation() {
         }
 
         if (data.response) {
-            displayMessage("相手: " + data.response, "bot-message", true);
+            // TTS機能のフラグをチェックしてボタン表示を制御
+            const enableTTS = window.FEATURE_FLAGS && window.FEATURE_FLAGS.tts;
+            displayMessage("相手: " + data.response, "bot-message", enableTTS);
             messageInput.disabled = false;
             sendButton.disabled = false;
             getFeedbackButton.disabled = false;
@@ -130,7 +132,9 @@ async function sendMessage() {
         }
 
         if (data.response) {
-            displayMessage("相手: " + data.response, "bot-message", true);
+            // TTS機能のフラグをチェックしてボタン表示を制御
+            const enableTTS = window.FEATURE_FLAGS && window.FEATURE_FLAGS.tts;
+            displayMessage("相手: " + data.response, "bot-message", enableTTS);
         }
     } catch (err) {
         console.error("Error:", err);
@@ -307,8 +311,8 @@ function displayMessage(text, className, enableTTS = false) {
     textSpan.textContent = unescapedText;
     messageContainer.appendChild(textSpan);
     
-    // TTSボタンを追加（AIのメッセージのみ）
-    if (enableTTS && className.includes('bot')) {
+    // TTSボタンを追加（AIのメッセージかつTTS機能が有効な場合のみ）
+    if (enableTTS && className.includes('bot') && window.FEATURE_FLAGS && window.FEATURE_FLAGS.tts) {
         const ttsButton = document.createElement("button");
         ttsButton.className = "tts-button tts-loading";
         ttsButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -559,6 +563,16 @@ function playTTSWithWebSpeech(text, button) {
 
 // 雑談モード用の音声事前生成関数
 async function preloadChatTTS(text, button) {
+    // TTS機能が無効化されている場合は処理をスキップ
+    if (!window.FEATURE_FLAGS || !window.FEATURE_FLAGS.tts) {
+        console.log('[preloadChatTTS] TTS機能が無効化されているため処理をスキップ');
+        // ボタン自体を非表示にする
+        if (button) {
+            button.style.display = 'none';
+        }
+        return;
+    }
+    
     console.log('[preloadChatTTS] 雑談モードで音声生成開始');
     
     try {

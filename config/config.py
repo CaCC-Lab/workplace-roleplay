@@ -56,7 +56,7 @@ class Config(BaseSettings):
     
     # 機能フラグ（段階的無効化）
     ENABLE_MODEL_SELECTION: bool = Field(default=True, alias="ENABLE_MODEL_SELECTION")
-    ENABLE_TTS: bool = Field(default=True, alias="ENABLE_TTS")
+    ENABLE_TTS: bool = Field(default=False, alias="ENABLE_TTS")  # 高額請求により無効化
     ENABLE_LEARNING_HISTORY: bool = Field(default=True, alias="ENABLE_LEARNING_HISTORY")
     ENABLE_STRENGTH_ANALYSIS: bool = Field(default=True, alias="ENABLE_STRENGTH_ANALYSIS")
     

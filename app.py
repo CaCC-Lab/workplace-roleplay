@@ -2167,23 +2167,24 @@ def get_conversation_history():
         raise ValidationError("不明な履歴タイプです")
 
 @app.route("/api/tts", methods=["POST", "HEAD"])
+@require_feature('tts')
 @with_error_handling
 def text_to_speech():
     """
-    EMERGENCY SHUTDOWN: TTS機能は高額請求（25万円）により緊急停止中
-    Gemini TTS APIは$10/100万文字で1,667万文字生成により1,667ドル（25万円）請求
+    テキストを音声に変換するAPI
+    フィーチャフラグ制御により、無効化されている場合は403エラーが返される
     
     HEADリクエスト: フロントエンドでの軽量状態チェック用
-    POSTリクエスト: 実際のTTS生成（現在は503エラー）
+    POSTリクエスト: 実際のTTS生成
     """
-    # HEADリクエストの場合は即座に503を返す
+    # HEADリクエストの場合は軽量レスポンス
     if request.method == "HEAD":
-        return "", 503  # Service Temporarily Unavailable (ボディなし)
+        return "", 200
     
-    # POSTリクエストの場合は詳細なエラー情報を返す
+    # POSTリクエストの場合は詳細なエラー情報を返す（現在は機能停止中）
     return jsonify({
-        "error": "TTS機能は高額請求により緊急停止中",
-        "message": "25万円の請求が発生したため、TTS機能を停止しました。",
+        "error": "TTS機能は現在停止中です",
+        "message": "高額請求が発生したため、TTS機能を停止しています。",
         "details": {
             "cost": "250,000円 ($1,667)",
             "characters": "16,675,000文字の音声生成",

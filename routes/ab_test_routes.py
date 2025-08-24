@@ -14,7 +14,7 @@ from datetime import datetime
 from services.chat_service import ChatService
 from services.session_service import SessionService
 from services.llm_service import LLMService
-from config.feature_flags import feature_flags
+from config.feature_flags import get_feature_flags
 
 # Blueprintの作成
 ab_test_bp = Blueprint('ab_test', __name__, url_prefix='/api/v2')
@@ -231,7 +231,7 @@ def chat_compare():
         }
         
         # 差分があればログ出力
-        if not is_identical and feature_flags.log_differences:
+        if not is_identical:
             print(f"[A/B Test Difference] Message: {message[:50]}...")
             print(f"  Legacy length: {len(legacy_response)}, New length: {len(new_response)}")
             print(f"  Time: Legacy {legacy_time:.2f}s, New {new_time:.2f}s")
@@ -249,7 +249,8 @@ def get_ab_config():
     現在のA/Bテスト設定を取得
     /api/v2/config
     """
-    return jsonify(feature_flags.get_config())
+    feature_flags = get_feature_flags()
+    return jsonify(feature_flags.to_dict())
 
 @ab_test_bp.route('/health', methods=['GET'])
 def health_check():
@@ -259,6 +260,7 @@ def health_check():
     """
     try:
         chat_service, session_service, llm_service = get_services()
+        feature_flags = get_feature_flags()
         
         health_status = {
             'status': 'healthy',
@@ -268,7 +270,7 @@ def health_check():
                 'session_service': session_service is not None,
                 'llm_service': llm_service is not None
             },
-            'feature_flags': feature_flags.get_config()
+            'feature_flags': feature_flags.to_dict()
         }
         
         return jsonify(health_status)
