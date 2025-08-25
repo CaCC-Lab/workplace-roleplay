@@ -21,7 +21,15 @@ def load_scenarios() -> Dict[str, Any]:
             scenario_id = filename.rsplit('.', 1)[0]  # 拡張子を除去
             try:
                 with open(os.path.join(data_dir, filename), 'r', encoding='utf-8') as f:
-                    scenarios[scenario_id] = yaml.safe_load(f)
+                    data = yaml.safe_load(f)
+                    # リスト形式のYAMLに対応
+                    if isinstance(data, dict) and 'scenarios' in data:
+                        # 各シナリオを個別に登録
+                        for scenario in data['scenarios']:
+                            if 'id' in scenario:
+                                scenarios[scenario['id']] = scenario
+                    else:
+                        scenarios[scenario_id] = data
             except Exception as e:
                 print(f"Error loading scenario {filename}: {e}")
 
