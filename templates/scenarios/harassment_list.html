@@ -51,7 +51,7 @@
                 <div class="scenario-card harassment-card" 
                      data-category="{% if 'グレーゾーン' in scenario_data.get('tags', []) %}グレーゾーン{% elif 'パワハラ' in scenario_data.get('tags', []) %}パワハラ{% else %}その他{% endif %}">
                     <div class="scenario-header harassment-header">
-                        <span class="scenario-id">研修{{ loop.index }}</span>
+                        <span class="scenario-id">{{ scenario_data.get('title', 'タイトル未設定') }}</span>
                         <span class="difficulty-badge harassment">
                             {{ scenario_data.get('difficulty', '中級') }}
                         </span>

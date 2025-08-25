@@ -464,7 +464,7 @@ def get_categorized_scenarios():
         elif scenario_data and isinstance(scenario_data, dict):
             # タグでの判定
             tags = scenario_data.get('tags', [])
-            if any('ハラスメント' in str(tag) or 'グレーゾーン' in str(tag) for tag in tags):
+            if any('ハラスメント' in str(tag) or 'グレーゾーン' in str(tag) or 'パワハラ' in str(tag) for tag in tags):
                 harassment_scenarios[scenario_id] = scenario_data
             else:
                 regular_scenarios[scenario_id] = scenario_data

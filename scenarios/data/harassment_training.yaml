@@ -2,6 +2,7 @@ scenarios:
   - id: "training_01"
     title: "パワハラ防止の基本"
     description: "パワハラの定義、具体例、そして防止するための基本的な心構えを学びます"
+    category: "harassment_prevention"
     difficulty: "beginner"
     tags: ["パワハラ", "基本", "認識"]
     ai_role: "研修担当（HR）"
