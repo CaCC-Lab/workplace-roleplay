@@ -5,6 +5,7 @@
 """
 import sys
 import os
+import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def test_security_utils():
@@ -99,18 +100,18 @@ def test_feature_flags():
     """フィーチャーフラグのテスト"""
     print("\n🚩 フィーチャーフラグのテスト...")
     
-    from config.feature_flags import feature_flags
+    from config.feature_flags import get_feature_flags
     
-    # SHA-256が使用されているか確認
-    result = feature_flags.should_use_new_service('chat', 'test_user_123')
-    print(f"  ✓ SHA-256ベースの振り分け: {result}")
+    # フィーチャーフラグを取得
+    flags = get_feature_flags()
     
     # 設定の取得
-    config = feature_flags.get_config()
-    assert 'service_mode' in config
-    assert 'features' in config
-    print(f"  ✓ サービスモード: {config['service_mode']}")
-    print(f"  ✓ A/Bテスト有効: {config['ab_test_enabled']}")
+    config = flags.to_dict()
+    assert 'model_selection' in config
+    assert 'tts' in config
+    print(f"  ✓ モデル選択有効: {config['model_selection']}")
+    print(f"  ✓ TTS有効: {config['tts']}")
+    print(f"  ✓ デフォルトモデル: {config['default_model']}")
     
     return True
 

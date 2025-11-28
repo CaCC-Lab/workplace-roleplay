@@ -35,16 +35,15 @@ class TestCSRFToken:
             assert token not in tokens
             tokens.add(token)
     
-    def test_generate_token_with_seed(self):
-        """シード値を使用したCSRFトークン生成テスト"""
-        # 同じシード値で同じトークンが生成されることを確認
-        seed = "test_seed_123"
-        token1 = CSRFToken.generate_with_seed(seed)
-        token2 = CSRFToken.generate_with_seed(seed)
-        assert token1 == token2
+    def test_generate_token_randomness(self):
+        """CSRFトークンのランダム性テスト"""
+        # 連続生成したトークンが異なることを確認
+        token1 = CSRFToken.generate()
+        token2 = CSRFToken.generate()
+        token3 = CSRFToken.generate()
         
-        # 異なるシード値で異なるトークンが生成されることを確認
-        token3 = CSRFToken.generate_with_seed("different_seed")
+        assert token1 != token2
+        assert token2 != token3
         assert token1 != token3
     
     def test_validate_token_valid(self):
@@ -161,7 +160,7 @@ class TestCSRFMiddleware:
             
             # 有効なトークンでリクエスト（JSONデータも含める）
             response = client.post('/protected', 
-                                 headers={'X-CSRFToken': token},
+                                 headers={'X-CSRF-Token': token},
                                  json={'test': 'data'})
             assert response.status_code == 200
     
@@ -221,19 +220,24 @@ class TestCSRFMiddleware:
             response = client.get('/protected')
             assert response.status_code == 200
     
-    def test_csrf_exempt_decorator(self):
-        """CSRF免除デコレータのテスト"""
+    def test_require_csrf_decorator_with_form_data(self):
+        """フォームデータでのCSRF検証テスト"""
         app = Flask(__name__)
         app.secret_key = 'test_secret_key_for_testing'
         
-        @app.route('/exempt', methods=['POST'])
-        @CSRFToken.csrf_exempt
-        def exempt_route():
+        @app.route('/protected', methods=['POST'])
+        @CSRFToken.require_csrf
+        def protected_route():
             return {'status': 'success'}
         
         with app.test_client() as client:
-            # CSRF免除ルートはトークンなしでも成功
-            response = client.post('/exempt')
+            with client.session_transaction() as sess:
+                token = CSRFToken.generate()
+                sess['csrf_token'] = token
+            
+            # フォームデータにトークンを含める
+            response = client.post('/protected', 
+                                 data={'csrf_token': token, 'test': 'data'})
             assert response.status_code == 200
 
 
@@ -290,7 +294,7 @@ class TestCSRFIntegration:
             # Ajax形式のリクエスト（JSONデータも含める）
             response = client.post('/api/test',
                                  headers={
-                                     'X-CSRFToken': token,
+                                     'X-CSRF-Token': token,
                                      'X-Requested-With': 'XMLHttpRequest',
                                      'Content-Type': 'application/json'
                                  },
