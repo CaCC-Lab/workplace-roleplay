@@ -133,6 +133,48 @@ class CompliantAPIManager:
         print(f"API error recorded. Consecutive errors: {self.consecutive_errors}")
         print(f"Implementing exponential backoff as per Google's best practices.")
     
+    def record_successful_request(self, api_key: str) -> None:
+        """
+        成功したリクエストを記録
+        
+        Args:
+            api_key: 使用したAPIキー（互換性のため保持、現在は単一キーのみ使用）
+        """
+        # リクエスト履歴に追加（get_api_key()で既に追加されているが、明示的に記録）
+        current_time = time.time()
+        if not self.request_history or self.request_history[-1] != current_time:
+            self.request_history.append(current_time)
+        
+        # 連続エラー回数をリセット
+        self.consecutive_errors = 0
+    
+    def record_failed_request(self, api_key: str, error: Exception) -> None:
+        """
+        失敗したリクエストを記録
+        
+        Args:
+            api_key: 使用したAPIキー（互換性のため保持、現在は単一キーのみ使用）
+            error: 発生したエラー
+        """
+        # 連続エラー回数をインクリメント
+        self.consecutive_errors += 1
+        
+        # 最終エラー時刻を更新
+        self.last_error_time = time.time()
+        
+        # エラーの種類に応じた処理
+        error_str = str(error).lower()
+        
+        # レート制限エラーの場合、特に長い待機時間を設定
+        if any(keyword in error_str for keyword in [
+            'rate limit', '429', 'quota exceeded', 'too many requests'
+        ]):
+            # Google推奨: Exponential backoffを実装
+            self.consecutive_errors = min(self.consecutive_errors, 5)  # 最大5回まで
+        
+        print(f"API failed request recorded. Consecutive errors: {self.consecutive_errors}")
+        print(f"Implementing exponential backoff as per Google's best practices.")
+    
     def get_status(self) -> Dict[str, Any]:
         """現在の状態情報を取得"""
         current_time = time.time()

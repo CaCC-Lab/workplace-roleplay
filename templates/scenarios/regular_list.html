@@ -12,7 +12,7 @@
     <div class="container">
         <header class="page-header">
             <div class="header-content">
-                <a href="{{ url_for('index') }}" class="back-link">
+                <a href="{{ url_for('main.index') }}" class="back-link">
                     <i class="fas fa-arrow-left"></i> ホームに戻る
                 </a>
                 <h1><i class="fas fa-comments"></i> 職場のコミュニケーションシナリオ</h1>
@@ -54,7 +54,7 @@
                     </div>
                     {% endif %}
                     
-                    <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="start-btn">
+                    <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario_id) }}" class="start-btn">
                         <i class="fas fa-play"></i> このシナリオを始める
                     </a>
                 </div>

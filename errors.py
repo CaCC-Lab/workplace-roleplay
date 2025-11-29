@@ -142,6 +142,32 @@ class TimeoutError(AppError):
         )
 
 
+class LLMError(AppError):
+    """LLM関連エラー"""
+    
+    def __init__(
+        self,
+        message: str,
+        model_name: Optional[str] = None,
+        error_type: Optional[str] = None,
+        original_error: Optional[str] = None
+    ):
+        details = {}
+        if model_name:
+            details["model_name"] = model_name
+        if error_type:
+            details["error_type"] = error_type
+        if original_error:
+            details["original_error"] = original_error
+        
+        super().__init__(
+            message=message,
+            code="LLM_ERROR",
+            status_code=503,
+            details=details
+        )
+
+
 def handle_error(error: Exception) -> tuple:
     """
     エラーハンドリングの共通処理

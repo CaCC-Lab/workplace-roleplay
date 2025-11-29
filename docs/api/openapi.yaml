@@ -1,0 +1,560 @@
+openapi: 3.0.3
+info:
+  title: 職場コミュニケーション練習アプリ API
+  description: |
+    AIを活用したロールプレイシナリオを通じて職場でのコミュニケーションスキルを練習するためのAPI。
+
+    ## 主要機能
+    - **雑談練習**: 職場での適切な雑談スキルを向上
+    - **シナリオロールプレイ**: 30種類以上の職場シナリオでAIと対話練習
+    - **会話観戦モード**: 2つのAIモデル間の会話を観察して学習
+    - **学習履歴**: 進捗状況の追跡と過去の会話の振り返り
+
+    ## 認証
+    このAPIはセッションベースの認証を使用します。CSRFトークンが必要なエンドポイントがあります。
+
+  version: 2.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: 開発サーバー
+
+tags:
+  - name: health
+    description: ヘルスチェック関連
+  - name: chat
+    description: 雑談練習API
+  - name: scenario
+    description: シナリオロールプレイAPI
+  - name: watch
+    description: 会話観戦モードAPI
+  - name: model
+    description: モデル管理API
+  - name: session
+    description: セッション管理API
+  - name: strength
+    description: 強み分析API
+  - name: tts
+    description: 音声合成API
+
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: ヘルスチェック
+      description: アプリケーションの稼働状態を確認
+      responses:
+        '200':
+          description: 正常稼働
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                timestamp: "2024-01-01T00:00:00Z"
+
+  /api/csrf-token:
+    get:
+      tags:
+        - session
+      summary: CSRFトークン取得
+      description: CSRF保護されたエンドポイントで使用するトークンを取得
+      responses:
+        '200':
+          description: CSRFトークン
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CSRFTokenResponse'
+
+  /api/models:
+    get:
+      tags:
+        - model
+      summary: 利用可能モデル一覧
+      description: 使用可能なAIモデルの一覧を取得
+      responses:
+        '200':
+          description: モデル一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelsResponse'
+
+  /api/chat:
+    post:
+      tags:
+        - chat
+      summary: 雑談メッセージ送信
+      description: 雑談練習モードでメッセージを送信し、AIの応答を取得
+      security:
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: AIの応答
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: 不正なリクエスト
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: CSRF検証失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/start_chat:
+    post:
+      tags:
+        - chat
+      summary: 雑談セッション開始
+      description: 新しい雑談セッションを開始
+      security:
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartChatRequest'
+      responses:
+        '200':
+          description: セッション開始成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartChatResponse'
+
+  /api/clear_history:
+    post:
+      tags:
+        - chat
+      summary: 会話履歴クリア
+      description: 現在のセッションの会話履歴をクリア
+      security:
+        - csrfToken: []
+      responses:
+        '200':
+          description: クリア成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/chat_feedback:
+    post:
+      tags:
+        - chat
+      summary: 雑談フィードバック取得
+      description: 雑談練習のフィードバックを取得
+      security:
+        - csrfToken: []
+      responses:
+        '200':
+          description: フィードバック
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+
+  /api/scenarios:
+    get:
+      tags:
+        - scenario
+      summary: シナリオ一覧取得
+      description: 利用可能なシナリオの一覧を取得
+      responses:
+        '200':
+          description: シナリオ一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenariosResponse'
+
+  /api/scenario_chat:
+    post:
+      tags:
+        - scenario
+      summary: シナリオメッセージ送信
+      description: シナリオロールプレイでメッセージを送信
+      security:
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioChatRequest'
+      responses:
+        '200':
+          description: AIの応答
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioChatResponse'
+
+  /api/scenario_feedback:
+    post:
+      tags:
+        - scenario
+      summary: シナリオフィードバック取得
+      description: シナリオ練習のフィードバックを取得
+      security:
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioFeedbackRequest'
+      responses:
+        '200':
+          description: フィードバック
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+
+  /api/watch/start:
+    post:
+      tags:
+        - watch
+      summary: 観戦モード開始
+      description: AI同士の会話観戦モードを開始
+      security:
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchStartRequest'
+      responses:
+        '200':
+          description: 観戦開始成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchStartResponse'
+
+  /api/watch/next:
+    post:
+      tags:
+        - watch
+      summary: 次の会話を生成
+      description: 観戦モードで次のAIの発言を生成
+      security:
+        - csrfToken: []
+      responses:
+        '200':
+          description: 次の発言
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchNextResponse'
+
+  /api/strength/analyze:
+    post:
+      tags:
+        - strength
+      summary: 強み分析
+      description: ユーザーのコミュニケーションの強みを分析
+      security:
+        - csrfToken: []
+      responses:
+        '200':
+          description: 分析結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrengthAnalysisResponse'
+
+components:
+  securitySchemes:
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: CSRFトークン（/api/csrf-tokenから取得）
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+
+    CSRFTokenResponse:
+      type: object
+      properties:
+        csrf_token:
+          type: string
+          description: CSRFトークン
+
+    ModelsResponse:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelInfo'
+
+    ModelInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: gemini-1.5-flash
+        name:
+          type: string
+          example: Gemini 1.5 Flash
+        provider:
+          type: string
+          example: google
+
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: ユーザーのメッセージ
+          maxLength: 10000
+        model:
+          type: string
+          description: 使用するモデル名
+          default: gemini-1.5-flash
+
+    ChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          description: AIの応答
+        emotion:
+          type: string
+          description: 検出された感情
+
+    StartChatRequest:
+      type: object
+      properties:
+        partner_type:
+          type: string
+          description: 相手のタイプ（同僚、上司など）
+          default: 同僚
+        situation:
+          type: string
+          description: 状況設定
+          default: 休憩時間
+        topic:
+          type: string
+          description: 話題
+          default: 天気
+        model:
+          type: string
+          description: 使用するモデル
+
+    StartChatResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: エラーメッセージ
+        error_id:
+          type: string
+          description: エラー追跡用ID
+
+    FeedbackResponse:
+      type: object
+      properties:
+        feedback:
+          type: string
+          description: フィードバック内容
+        used_model:
+          type: string
+          description: 使用されたモデル
+        strength_analysis:
+          $ref: '#/components/schemas/StrengthAnalysis'
+
+    ScenariosResponse:
+      type: object
+      properties:
+        scenarios:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ScenarioInfo'
+
+    ScenarioInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        difficulty:
+          type: string
+          enum: [初級, 中級, 上級]
+        tags:
+          type: array
+          items:
+            type: string
+
+    ScenarioChatRequest:
+      type: object
+      required:
+        - message
+        - scenario_id
+      properties:
+        message:
+          type: string
+          description: ユーザーのメッセージ
+        scenario_id:
+          type: string
+          description: シナリオID
+        model:
+          type: string
+          description: 使用するモデル
+
+    ScenarioChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          description: AIの応答
+        emotion:
+          type: string
+          description: 検出された感情
+        scenario_id:
+          type: string
+          description: シナリオID
+
+    ScenarioFeedbackRequest:
+      type: object
+      required:
+        - scenario_id
+      properties:
+        scenario_id:
+          type: string
+          description: シナリオID
+        is_reverse_role:
+          type: boolean
+          description: リバースロールかどうか
+          default: false
+
+    WatchStartRequest:
+      type: object
+      properties:
+        partner_type:
+          type: string
+          description: 相手のタイプ
+        situation:
+          type: string
+          description: 状況設定
+        topic:
+          type: string
+          description: 話題
+        model1:
+          type: string
+          description: AI1のモデル
+        model2:
+          type: string
+          description: AI2のモデル
+
+    WatchStartResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        initial_message:
+          type: string
+          description: 最初のAIの発言
+        speaker:
+          type: string
+          description: 話者
+          enum: [A, B]
+
+    WatchNextResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: AIの発言
+        speaker:
+          type: string
+          description: 話者
+          enum: [A, B]
+        speaker_name:
+          type: string
+          description: 話者の名前
+
+    StrengthAnalysisResponse:
+      type: object
+      properties:
+        strength_analysis:
+          $ref: '#/components/schemas/StrengthAnalysis'
+
+    StrengthAnalysis:
+      type: object
+      properties:
+        scores:
+          type: object
+          additionalProperties:
+            type: number
+        top_strengths:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              score:
+                type: number
+              description:
+                type: string
+        encouragement_message:
+          type: string
