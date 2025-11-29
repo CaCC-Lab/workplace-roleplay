@@ -114,11 +114,11 @@
     </div>
 
     <div class="navigation">
-        <a href="{{ url_for('index') }}" class="nav-button">
+        <a href="{{ url_for('main.index') }}" class="nav-button">
             <i class="fas fa-home"></i> トップページに戻る
         </a>
         {% if feature_flags.learning_history %}
-        <a href="{{ url_for('view_journal') }}" class="nav-button">
+        <a href="{{ url_for('journal.view_journal') }}" class="nav-button">
             <i class="fas fa-book"></i> 学習履歴を見る
         </a>
         {% endif %}

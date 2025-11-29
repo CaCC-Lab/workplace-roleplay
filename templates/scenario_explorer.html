@@ -103,16 +103,16 @@
     <!-- メインナビゲーション -->
     <nav class="main-nav">
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-logo">
+            <a href="{{ url_for('main.index') }}" class="nav-logo">
                 <span class="logo-icon">💼</span>
                 <span class="logo-text">職場コミュニケーション</span>
             </a>
             
             <div class="nav-links">
-                <a href="{{ url_for('index') }}" class="nav-link">ホーム</a>
-                <a href="{{ url_for('chat_casual') }}" class="nav-link">雑談練習</a>
+                <a href="{{ url_for('main.index') }}" class="nav-link">ホーム</a>
+                <a href="{{ url_for('main.chat_page') }}" class="nav-link">雑談練習</a>
                 <a href="/scenario_explorer" class="nav-link active">シナリオ探索</a>
-                <a href="{{ url_for('watch_conversation') }}" class="nav-link">会話観戦</a>
+                <a href="{{ url_for('watch.watch_mode') }}" class="nav-link">会話観戦</a>
             </div>
         </div>
     </nav>

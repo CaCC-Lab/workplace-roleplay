@@ -84,7 +84,7 @@
                             </div>
                         </div>
                         <div class="scenario-card-footer">
-                            <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="primary-button"><i class="fas fa-play"></i> 開始</a>
+                            <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario_id) }}" class="primary-button"><i class="fas fa-play"></i> 開始</a>
                         </div>
                     </div>
                 {% endfor %}
@@ -93,8 +93,8 @@
     </div>
 
     <div class="navigation">
-        <a href="{{ url_for('index') }}" class="nav-button"><i class="fas fa-home"></i> トップページに戻る</a>
-        <a href="{{ url_for('view_journal') }}" class="nav-button"><i class="fas fa-book"></i> 学習履歴を見る</a>
+        <a href="{{ url_for('main.index') }}" class="nav-button"><i class="fas fa-home"></i> トップページに戻る</a>
+        <a href="{{ url_for('journal.view_journal') }}" class="nav-button"><i class="fas fa-book"></i> 学習履歴を見る</a>
     </div>
 
     <!-- Tips Modal -->

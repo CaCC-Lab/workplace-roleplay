@@ -12,7 +12,7 @@
     <div class="container harassment-container">
         <header class="page-header harassment-header">
             <div class="header-content">
-                <a href="{{ url_for('index') }}" class="back-link">
+                <a href="{{ url_for('main.index') }}" class="back-link">
                     <i class="fas fa-arrow-left"></i> ホームに戻る
                 </a>
                 <h1><i class="fas fa-shield-alt"></i> 職場のハラスメント防止研修シナリオ</h1>
@@ -72,7 +72,7 @@
                         <span>教育目的のシナリオです</span>
                     </div>
                     
-                    <a href="{{ url_for('show_scenario', scenario_id=scenario_id) }}" class="start-btn harassment-btn">
+                    <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario_id) }}" class="start-btn harassment-btn">
                         <i class="fas fa-graduation-cap"></i> 研修を開始する
                     </a>
                 </div>
