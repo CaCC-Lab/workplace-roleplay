@@ -1,0 +1,73 @@
+[tool.black]
+line-length = 120
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | htmlcov
+    | node_modules
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip = [".git", "venv", "__pycache__", "htmlcov", "node_modules"]
+known_first_party = ["app", "config", "services", "routes", "utils", "core"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".git", "htmlcov"]
+skips = ["B101", "B104"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers --tb=short"
+markers = [
+    "asyncio: mark test as async",
+    "slow: mark test as slow running",
+    "integration: mark test as integration test",
+    "unit: mark test as unit test",
+    "e2e: mark test as end-to-end test",
+]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "venv/*",
+    "tests/*",
+    "htmlcov/*",
+    "*.pyc",
+    "__pycache__/*",
+    "setup.py",
+    "conftest.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
