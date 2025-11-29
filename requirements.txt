@@ -1,18 +1,41 @@
-# Multi-AI Orchestrium - Python Requirements
-# Multi-AI Orchestration Platform for Claude Code
-# Version: 3.0.0 (Multi-AI)
-# Updated: 2025-10-22
+# Workplace Roleplay - Python Requirements
+# Flask-based workplace communication practice app
+# Updated: 2025-11-29
 
-# ========== CORE DEPENDENCIES ==========
-# Required for Multi-AI orchestration system
+# ========== CORE FRAMEWORK ==========
+flask>=2.3.0
+flask-session>=0.5.0
+flask-wtf>=1.2.0
+flask-babel>=4.0.0
+gunicorn>=21.0.0
+gevent>=23.0.0
 
-vibelogger>=0.1.1        # AI-native logging with structured context
-pyyaml>=6.0              # YAML configuration parser (multi-ai-profiles.yaml)
-psutil>=5.9.0            # System resource monitoring and process management
-pandas>=1.5.0            # Multi-AI metrics analysis and reporting
-numpy>=1.24.0            # pandas dependency
-redis>=4.0.0             # Redis client for rate limiting and caching
-python-json-logger>=2.0.0  # Structured JSON logging format
-python-dotenv>=0.21.0    # Environment variable management (.env.collective)
-click>=8.1.0             # CLI framework for command execution
+# ========== AI/LLM ==========
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-google-genai>=0.0.3
+google-generativeai>=0.3.0
+google-cloud-aiplatform>=1.36.0
+google-api-core>=2.15.0
+google-genai>=1.28.0
 
+# ========== DATA & CONFIG ==========
+python-dotenv>=0.21.0
+pyyaml>=6.0
+pydantic>=1.10.0
+pydantic-settings>=2.0.0
+requests>=2.28.0
+redis>=4.0.0
+
+# ========== MEDIA ==========
+pydub>=0.25.1
+Pillow>=9.0.0
+
+# ========== SECURITY ==========
+bleach>=6.0.0
+
+# ========== LOGGING & MONITORING ==========
+python-json-logger>=2.0.0
+
+# ========== API DOCUMENTATION ==========
+flasgger>=0.9.7
