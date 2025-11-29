@@ -184,6 +184,10 @@ class TestClearHistory:
         data = response.get_json()
         assert data["status"] == "success"
 
+        # セッション上の履歴が実際にクリアされていることも確認
+        with csrf_client.session_transaction() as sess:
+            assert sess.get("chat_history") in (None, [])
+
     def test_観戦履歴をクリアできる(self, csrf_client):
         """観戦モードの履歴をクリア"""
         with csrf_client.session_transaction() as sess:
@@ -195,6 +199,10 @@ class TestClearHistory:
         assert response.status_code == 200
         data = response.get_json()
         assert data["status"] == "success"
+
+        # セッション上の履歴が実際にクリアされていることも確認
+        with csrf_client.session_transaction() as sess:
+            assert sess.get("watch_history") in (None, [])
 
     def test_シナリオ履歴をクリアできる(self, csrf_client):
         """シナリオモードの履歴をクリア"""

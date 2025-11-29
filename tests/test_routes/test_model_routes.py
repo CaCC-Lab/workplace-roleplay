@@ -69,9 +69,7 @@ class TestGetAllAvailableModels:
         """APIキーがない場合はフォールバックモデルを返す"""
         from routes.model_routes import get_all_available_models
 
-        with patch("routes.model_routes.config") as mock_config:
-            mock_config.GOOGLE_API_KEY = None
-
+        with patch("routes.model_routes.config.GOOGLE_API_KEY", None):
             result = get_all_available_models()
 
             assert "models" in result

@@ -66,11 +66,15 @@ def test_client(test_app):
 class TestRegisterErrorHandlers:
     """register_error_handlers関数のテスト"""
 
-    def test_エラーハンドラが登録される(self, test_app):
-        """エラーハンドラが正しく登録されること"""
-        # エラーハンドラがアプリに登録されていることを確認
-        assert 404 in test_app.error_handler_spec.get(None, {})
-        assert 500 in test_app.error_handler_spec.get(None, {})
+    def test_404エラーハンドラが動作する(self, test_client):
+        """404エラーハンドラが正しく動作すること"""
+        response = test_client.get("/nonexistent-route-for-test")
+        assert response.status_code == 404
+
+    def test_500エラーハンドラが動作する(self, test_client):
+        """500エラーハンドラが正しく動作すること"""
+        response = test_client.get("/test/unexpected-error")
+        assert response.status_code == 500
 
 
 class TestAppErrorHandler:
@@ -89,9 +93,9 @@ class TestAppErrorHandler:
         response = test_client.get("/test/app-error")
         data = response.get_json()
 
-        # error_idが含まれているか確認
-        if "error" in data and isinstance(data["error"], dict):
-            assert "error_id" in data["error"]
+        # エラー構造とerror_idの存在を確認
+        assert isinstance(data.get("error"), dict)
+        assert "error_id" in data["error"]
 
 
 class TestValidationErrorHandler:
@@ -231,13 +235,9 @@ class TestErrorIdGeneration:
         data1 = response1.get_json()
         data2 = response2.get_json()
 
-        # 両方にエラーIDが含まれている場合、異なることを確認
-        if (
-            "error" in data1
-            and isinstance(data1["error"], dict)
-            and "error_id" in data1["error"]
-            and "error" in data2
-            and isinstance(data2["error"], dict)
-            and "error_id" in data2["error"]
-        ):
-            assert data1["error"]["error_id"] != data2["error"]["error_id"]
+        # 両方に error_id が含まれていることと、値が異なることを確認
+        assert isinstance(data1.get("error"), dict)
+        assert isinstance(data2.get("error"), dict)
+        assert "error_id" in data1["error"]
+        assert "error_id" in data2["error"]
+        assert data1["error"]["error_id"] != data2["error"]["error_id"]
