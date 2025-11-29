@@ -1,5 +1,8 @@
 """
 ゴールデンテストデータに基づくリグレッションテスト
+
+注: このテストは実行中のサーバーに対してリクエストを送信するため、
+    ローカル開発環境でのみ実行してください。
 """
 import json
 import pytest
@@ -7,6 +10,9 @@ import requests
 from datetime import datetime
 from typing import Dict, Any, List
 from deepdiff import DeepDiff
+
+
+pytestmark = pytest.mark.skip(reason="リグレッションテストは実行中のサーバーが必要です")
 
 
 class TestRegression:

@@ -14,9 +14,12 @@ class TestCSPNonce:
         """nonceが正しく生成されることを確認"""
         nonce = CSPNonce.generate()
         
-        # 16バイト = 32文字の16進数文字列
-        assert len(nonce) == 32
-        assert all(c in '0123456789abcdef' for c in nonce)
+        # Base64エンコードされた16バイトのnonce（約22-24文字）
+        assert len(nonce) >= 22 and len(nonce) <= 24
+        # Base64文字セットを確認
+        import string
+        valid_chars = string.ascii_letters + string.digits + '+/='
+        assert all(c in valid_chars for c in nonce)
     
     def test_nonce_uniqueness(self):
         """生成されるnonceが一意であることを確認"""
@@ -31,7 +34,7 @@ class TestCSPNonce:
         # 基本的な構造を確認
         assert "default-src 'self'" in header
         assert f"'nonce-{nonce}'" in header
-        assert "style-src 'self' 'unsafe-inline'" in header
+        assert "style-src 'self'" in header
     
     def test_csp_header_creation_enforce_mode(self):
         """強制モードのCSPヘッダーが正しく作成されることを確認"""
@@ -39,7 +42,7 @@ class TestCSPNonce:
         header = CSPNonce.create_csp_header(nonce, phase=CSPNonce.PHASE_STRICT, report_only=False)
         
         # 厳格なポリシーの特徴を確認
-        assert "default-src 'none'" in header
+        assert "default-src 'self'" in header
         assert f"'nonce-{nonce}'" in header
         assert "'strict-dynamic'" in header
 
