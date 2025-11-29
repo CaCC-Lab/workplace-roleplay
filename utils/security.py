@@ -158,6 +158,7 @@ class SecurityUtils:
     def validate_scenario_id(scenario_id: str) -> bool:
         """
         シナリオIDの検証
+        実際のシナリオID形式をサポート（例: scenario1, scenario43, training_01, gray_zone_01）
         
         Args:
             scenario_id: 検証するシナリオID
@@ -165,12 +166,22 @@ class SecurityUtils:
         Returns:
             有効ならTrue
         """
-        if not scenario_id:
+        if not scenario_id or not isinstance(scenario_id, str):
             return False
         
-        # 許可されたパターン（英数字とアンダースコア）
-        allowed_pattern = r'^scenario\d+$'
-        return bool(re.match(allowed_pattern, scenario_id))
+        # 複数の形式をサポート:
+        # 1. scenarioN形式: scenario1, scenario43 など
+        # 2. prefix_NN形式: training_01, gray_zone_01 など
+        allowed_patterns = [
+            r'^scenario\d+$',  # scenario1, scenario43 など
+            r'^[a-z]+(?:_[a-z]+)*_\d{2}$'  # training_01, gray_zone_01 など
+        ]
+        
+        for pattern in allowed_patterns:
+            if re.match(pattern, scenario_id):
+                return True
+        
+        return False
     
     @staticmethod
     def hash_user_id(user_id: str, salt: str = None) -> str:
@@ -414,3 +425,85 @@ class CSRFToken:
 
 # グローバルインスタンス
 rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
+
+
+class CSPNonce:
+    """Content Security Policy (CSP) Nonce管理クラス"""
+    
+    # CSPフェーズ定数
+    PHASE_REPORT_ONLY = 1  # レポートのみ
+    PHASE_MIXED = 2        # 混合モード
+    PHASE_STRICT = 3       # 厳格モード
+    
+    @staticmethod
+    def generate() -> str:
+        """
+        CSP用のランダムなnonceを生成
+        
+        Returns:
+            str: Base64エンコードされた16バイトのランダム文字列
+        """
+        import base64
+        import secrets
+        return base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
+    
+    @staticmethod
+    def create_csp_header(
+        nonce: str,
+        phase: int = 1,
+        report_only: bool = True
+    ) -> str:
+        """
+        CSPヘッダー文字列を生成
+        
+        Args:
+            nonce: CSP nonce値
+            phase: CSPフェーズ (1=レポートのみ, 2=混合, 3=厳格)
+            report_only: Report-Onlyモードかどうか
+        
+        Returns:
+            str: CSPヘッダー文字列
+        """
+        base_policy = f"default-src 'self'; script-src 'self' 'nonce-{nonce}'"
+        
+        if phase == CSPNonce.PHASE_STRICT:
+            base_policy += " 'strict-dynamic'"
+        elif phase == CSPNonce.PHASE_MIXED:
+            base_policy += " 'unsafe-inline'"
+        
+        base_policy += f"; style-src 'self' 'nonce-{nonce}' 'unsafe-inline'"
+        base_policy += "; img-src 'self' data: https:; font-src 'self' data:"
+        base_policy += "; connect-src 'self'; frame-ancestors 'none'"
+        base_policy += "; base-uri 'self'; form-action 'self'"
+        
+        return base_policy
+    
+    @staticmethod
+    def inject_nonce_to_html(html_content: str, nonce: str) -> str:
+        """
+        HTMLコンテンツ内のscriptタグとstyleタグにnonceを注入
+        
+        Args:
+            html_content: HTMLコンテンツ
+            nonce: 注入するnonce値
+        
+        Returns:
+            str: nonce属性が追加されたHTMLコンテンツ
+        """
+        import re
+        
+        # <script> タグにnonce属性を追加
+        html_content = re.sub(
+            r'<script(?![^>]*nonce=)([^>]*)>',
+            f'<script nonce="{nonce}"\\1>',
+            html_content
+        )
+        
+        # <style> タグにnonce属性を追加
+        html_content = re.sub(
+            r'<style(?![^>]*nonce=)([^>]*)>',
+            f'<style nonce="{nonce}"\\1>',
+            html_content
+        )
+        
+        return html_content
