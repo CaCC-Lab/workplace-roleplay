@@ -13,10 +13,14 @@ venv.bak/
 # 環境変数ファイル
 .env
 
-# VSCode関連
+# IDE/エディタ関連
 .vscode/
+.idea/
 .cursorrules
 .windsurfrules
+.cursor/rules/
+.cursor/commands/
+.claude/
 
 # Flask関連
 flask_session/
@@ -24,8 +28,11 @@ instance/
 *.sqlite
 *.db
 
-# その他
+# ログファイル
 *.log
+logs/
+
+# その他
 *.sqlite3
 .DS_Store
 Thumbs.db
@@ -41,5 +48,18 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# Node.js
+node_modules/
+package-lock.json
+
+# バックアップファイル
+*_backup.py
+*_old.py
+*.bak
+
 # セキュリティ関連
-cookies.txt 
+cookies.txt
+
+# ローカルスクリプト（必要に応じてコミット）
+# bin/
+# scripts/
