@@ -393,3 +393,236 @@ class TestBusinessMetrics:
         if hasattr(metrics, "get_summary"):
             summary = metrics.get_summary()
             assert isinstance(summary, dict)
+
+
+class TestBusinessMetricsExtended:
+    """BusinessMetricsクラスの拡張テスト"""
+
+    def test_新規メトリクス作成(self):
+        """存在しないメトリクスのインクリメント"""
+        from utils.performance import BusinessMetrics
+
+        metrics = BusinessMetrics()
+
+        # 新規メトリクスをインクリメント
+        metrics.increment("new_metric_test_123")
+
+        assert metrics.get_counter("new_metric_test_123") == 1
+
+    def test_存在しないカウンター取得(self):
+        """存在しないカウンターの取得"""
+        from utils.performance import BusinessMetrics
+
+        metrics = BusinessMetrics()
+
+        # 存在しないカウンターは0を返す
+        result = metrics.get_counter("nonexistent_counter_xyz")
+
+        assert result == 0
+
+    def test_全カウンター取得(self):
+        """全カウンターの取得"""
+        from utils.performance import BusinessMetrics
+
+        metrics = BusinessMetrics()
+
+        counters = metrics.get_all_counters()
+
+        assert isinstance(counters, dict)
+        # コピーが返されることを確認
+        counters["test_modification"] = 999
+        assert "test_modification" not in metrics.counters
+
+    def test_リセット(self):
+        """メトリクスのリセット"""
+        from utils.performance import BusinessMetrics
+
+        metrics = BusinessMetrics()
+        metrics.increment("chat_sessions", 5)
+
+        metrics.reset()
+
+        assert metrics.get_counter("chat_sessions") == 0
+
+
+class TestPerformanceMetricsSingleton:
+    """PerformanceMetricsシングルトンのテスト"""
+
+    def test_二重初期化防止(self):
+        """二重初期化の防止"""
+        from utils.performance import PerformanceMetrics
+
+        # 既存のインスタンスを取得
+        metrics1 = PerformanceMetrics()
+        metrics2 = PerformanceMetrics()
+
+        # 同じインスタンス
+        assert metrics1 is metrics2
+
+
+class TestCachedDecoratorExtended:
+    """cachedデコレータの拡張テスト"""
+
+    def test_カスタムキー関数(self):
+        """カスタムキー関数を使用したキャッシュ"""
+        from utils.performance import cached
+
+        call_count = 0
+
+        @cached(maxsize=10, key_func=lambda x, y: f"{x}_{y}")
+        def func(x, y):
+            nonlocal call_count
+            call_count += 1
+            return x + y
+
+        # 初回呼び出し
+        result1 = func(1, 2)
+        assert result1 == 3
+        assert call_count == 1
+
+        # キャッシュヒット
+        result2 = func(1, 2)
+        assert result2 == 3
+        assert call_count == 1  # 呼び出し回数は増えない
+
+    def test_キャッシュクリア(self):
+        """キャッシュクリアのテスト"""
+        from utils.performance import cached
+
+        @cached(maxsize=10)
+        def func(x):
+            return x * 2
+
+        func(5)
+
+        # キャッシュクリア
+        func.cache_clear()
+
+        stats = func.cache_stats()
+        assert stats["size"] == 0
+
+    def test_キャッシュ統計(self):
+        """キャッシュ統計のテスト"""
+        from utils.performance import cached
+
+        @cached(maxsize=10)
+        def func(x):
+            return x * 2
+
+        func(1)
+        func(1)  # ヒット
+        func(2)
+        func(3)
+
+        stats = func.cache_stats()
+
+        assert "hits" in stats
+        assert "misses" in stats
+
+
+class TestSessionSizeOptimizerExtended:
+    """SessionSizeOptimizerの拡張テスト"""
+
+    def test_シリアライズ不可能なデータのサイズ推定(self):
+        """シリアライズ不可能なデータのサイズ推定"""
+        from utils.performance import SessionSizeOptimizer
+
+        # シリアライズ不可能なオブジェクト
+        class NonSerializable:
+            pass
+
+        size = SessionSizeOptimizer.estimate_size(NonSerializable())
+
+        # エラーにならず0を返す
+        assert size == 0
+
+    def test_セッションクリーンアップ_履歴あり(self):
+        """履歴ありセッションのクリーンアップ"""
+        from utils.performance import SessionSizeOptimizer
+
+        session = {
+            "chat_history": [{"human": f"test{i}", "ai": f"response{i}"} for i in range(150)],
+            "scenario_history": {
+                "scenario1": [{"human": f"s{i}", "ai": f"r{i}"} for i in range(150)]
+            },
+            "other_data": "keep this",
+        }
+
+        cleaned = SessionSizeOptimizer.cleanup_session(session)
+
+        # 履歴が最適化される
+        assert len(cleaned["chat_history"]) <= SessionSizeOptimizer.MAX_HISTORY_ENTRIES
+        assert len(cleaned["scenario_history"]["scenario1"]) <= SessionSizeOptimizer.MAX_HISTORY_ENTRIES
+        # その他のデータは保持
+        assert cleaned["other_data"] == "keep this"
+
+    def test_履歴最適化_カスタム最大件数(self):
+        """カスタム最大件数での履歴最適化"""
+        from utils.performance import SessionSizeOptimizer
+
+        history = list(range(50))
+
+        optimized = SessionSizeOptimizer.optimize_history(history, max_entries=10)
+
+        assert len(optimized) == 10
+        # 最新のエントリが保持される
+        assert optimized == list(range(40, 50))
+
+    def test_履歴最適化_最大件数以下(self):
+        """最大件数以下の履歴は変更なし"""
+        from utils.performance import SessionSizeOptimizer
+
+        history = list(range(50))
+
+        optimized = SessionSizeOptimizer.optimize_history(history, max_entries=100)
+
+        assert optimized == history
+
+
+class TestLRUCacheExtended:
+    """LRUCacheの拡張テスト"""
+
+    def test_TTLなしでのキャッシュ(self):
+        """TTLなしでのキャッシュ動作"""
+        from utils.performance import LRUCache
+
+        cache = LRUCache(maxsize=10, ttl_seconds=None)
+        cache.set("key", "value")
+
+        # TTLなしなので期限切れにならない
+        assert cache.get("key") == "value"
+
+    def test_ヒット率計算_ゼロ除算防止(self):
+        """ヒット率計算のゼロ除算防止"""
+        from utils.performance import LRUCache
+
+        cache = LRUCache(maxsize=10)
+
+        # アクセスなしで統計取得
+        stats = cache.stats()
+
+        # ゼロ除算にならない
+        assert stats["hit_ratio"] == 0
+
+
+class TestBusinessMetricsSummary:
+    """BusinessMetrics.get_summaryのテスト"""
+
+    def test_サマリー取得(self):
+        """サマリーの取得"""
+        from utils.performance import BusinessMetrics
+
+        metrics = BusinessMetrics()
+        metrics.reset()
+
+        # データを追加
+        metrics.increment("chat_sessions", 10)
+        metrics.increment("scenario_sessions", 5)
+        metrics.increment("scenario_completions", 3)
+
+        summary = metrics.get_summary()
+
+        assert summary["total_sessions"] == 15
+        assert "completion_rate" in summary
+        assert "error_rate" in summary
+        assert "uptime_seconds" in summary
