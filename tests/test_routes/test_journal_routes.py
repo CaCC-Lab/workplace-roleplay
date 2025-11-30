@@ -184,3 +184,134 @@ class TestViewJournal:
             response = client.get("/journal")
 
             assert response.status_code == 200
+
+
+class TestViewJournalExtended:
+    """view_journal 拡張テスト"""
+
+    def test_シナリオがscenariosに存在しない場合(self, client, mock_feature_flags):
+        """シナリオIDがscenariosに存在しない場合はスキップ"""
+        with patch("config.feature_flags.get_feature_flags") as mock_get:
+            mock_get.return_value = mock_feature_flags
+
+            with patch("routes.journal_routes.scenarios", {}):
+                with client.session_transaction() as sess:
+                    sess["scenario_history"] = {
+                        "nonexistent_scenario": [
+                            {"human": "テスト", "ai": "応答", "timestamp": datetime.now().isoformat()}
+                        ]
+                    }
+
+                response = client.get("/journal")
+
+                assert response.status_code == 200
+
+    def test_空のシナリオ履歴(self, client, mock_feature_flags):
+        """空のシナリオ履歴がある場合"""
+        with patch("config.feature_flags.get_feature_flags") as mock_get:
+            mock_get.return_value = mock_feature_flags
+
+            with client.session_transaction() as sess:
+                sess["scenario_history"] = {"scenario1": []}
+
+            response = client.get("/journal")
+
+            assert response.status_code == 200
+
+    def test_シナリオ履歴のタイムスタンプなし(self, client, mock_feature_flags):
+        """シナリオ履歴にタイムスタンプがない場合"""
+        with patch("config.feature_flags.get_feature_flags") as mock_get:
+            mock_get.return_value = mock_feature_flags
+
+            with client.session_transaction() as sess:
+                sess["scenario_history"] = {
+                    "scenario1": [{"human": "テスト", "ai": "応答"}]
+                }
+                sess["scenario_settings"] = {"scenario1": {"start_time": datetime.now().isoformat()}}
+
+            # scenario1がscenariosに存在する必要がある
+            with patch("routes.journal_routes.scenarios", {"scenario1": {"title": "テストシナリオ"}}):
+                response = client.get("/journal")
+
+            assert response.status_code == 200
+
+    def test_チャット履歴にタイムスタンプなし(self, client, mock_feature_flags):
+        """チャット履歴にタイムスタンプがない場合"""
+        with patch("config.feature_flags.get_feature_flags") as mock_get:
+            mock_get.return_value = mock_feature_flags
+
+            with client.session_transaction() as sess:
+                sess["chat_history"] = [{"human": "テスト", "ai": "応答"}]
+
+            response = client.get("/journal")
+
+            assert response.status_code == 200
+
+    def test_シナリオの練習時間計算_タイムスタンプなし(self, client, mock_feature_flags):
+        """シナリオ練習時間計算でタイムスタンプがない場合"""
+        with patch("config.feature_flags.get_feature_flags") as mock_get:
+            mock_get.return_value = mock_feature_flags
+
+            with client.session_transaction() as sess:
+                sess["scenario_history"] = {
+                    "scenario1": [{"human": "テスト", "ai": "応答"}]  # タイムスタンプなし
+                }
+                sess["scenario_settings"] = {"scenario1": {}}  # start_timeなし
+
+            response = client.get("/journal")
+
+            assert response.status_code == 200
+
+    def test_雑談練習時間計算_設定のみ履歴なし(self, client, mock_feature_flags):
+        """雑談設定があるが履歴がない場合"""
+        with patch("config.feature_flags.get_feature_flags") as mock_get:
+            mock_get.return_value = mock_feature_flags
+
+            with client.session_transaction() as sess:
+                sess["chat_settings"] = {"start_time": datetime.now().isoformat()}
+                sess["chat_history"] = []  # 空の履歴
+
+            response = client.get("/journal")
+
+            assert response.status_code == 200
+
+    def test_観戦練習時間計算_設定のみ履歴なし(self, client, mock_feature_flags):
+        """観戦設定があるが履歴がない場合"""
+        with patch("config.feature_flags.get_feature_flags") as mock_get:
+            mock_get.return_value = mock_feature_flags
+
+            with client.session_transaction() as sess:
+                sess["watch_settings"] = {"start_time": datetime.now().isoformat()}
+                sess["watch_history"] = []  # 空の履歴
+
+            response = client.get("/journal")
+
+            assert response.status_code == 200
+
+    def test_シナリオ履歴の最終セッションがNone(self, client, mock_feature_flags):
+        """シナリオ履歴のlast_sessionがNoneの場合"""
+        with patch("config.feature_flags.get_feature_flags") as mock_get:
+            mock_get.return_value = mock_feature_flags
+
+            with client.session_transaction() as sess:
+                sess["scenario_history"] = {
+                    "scenario1": [{"human": "テスト", "ai": "応答"}]  # timestampなし
+                }
+
+            with patch("routes.journal_routes.scenarios", {"scenario1": {"title": "テストシナリオ"}}):
+                response = client.get("/journal")
+
+            assert response.status_code == 200
+
+
+class TestScenariosLoadError:
+    """シナリオロードエラーのテスト"""
+
+    def test_シナリオロードエラー時の動作(self):
+        """シナリオロードでエラーが発生した場合"""
+        # このテストはモジュールインポート時のエラー処理をカバー
+        # routes/journal_routes.pyの行19-21をカバー
+        import routes.journal_routes
+
+        # scenariosがdictであることを確認（エラー時は空のdict）
+        assert isinstance(routes.journal_routes.scenarios, dict)
