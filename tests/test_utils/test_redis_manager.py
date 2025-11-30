@@ -375,3 +375,245 @@ class TestHasFallback:
             manager = RedisSessionManager(fallback_enabled=True)
 
             assert manager.has_fallback() is True
+
+
+class TestRedisOperationsExtended:
+    """Redis操作の拡張テスト"""
+
+    def test_get_Redis例外時のエラー処理(self):
+        """get操作時のRedis例外処理"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_client.get.side_effect = redis_module.RedisError("Redis error")
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager(fallback_enabled=True)
+
+            # フォールバックに切り替わる
+            result = manager.get("test_key")
+            assert result is None
+
+    def test_set_非dict非str値(self):
+        """非dict/非str値のset操作"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_client.set.return_value = True
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager()
+            result = manager.set("test_key", 12345)
+
+            assert result is True
+
+    def test_set_list値(self):
+        """list値のset操作"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_client.set.return_value = True
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager()
+            result = manager.set("test_key", [1, 2, 3])
+
+            assert result is True
+
+    def test_set_Redis例外時のエラー処理(self):
+        """set操作時のRedis例外処理"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_client.set.side_effect = redis_module.RedisError("Redis error")
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager(fallback_enabled=True)
+
+            # フォールバックに切り替わる
+            result = manager.set("test_key", "value")
+            assert result is True
+
+    def test_delete_Redis例外時のエラー処理(self):
+        """delete操作時のRedis例外処理"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_client.delete.side_effect = redis_module.RedisError("Redis error")
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager(fallback_enabled=True)
+            manager._fallback_storage["test_key"] = "value"
+
+            # フォールバックに切り替わる
+            result = manager.delete("test_key")
+            assert result is True
+
+    def test_exists_Redis例外時のfalse返却(self):
+        """exists操作時のRedis例外処理"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_client.exists.side_effect = redis_module.RedisError("Redis error")
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager(fallback_enabled=True)
+
+            # フォールバックに切り替わる
+            result = manager.exists("test_key")
+            # フォールバックストレージには存在しないのでFalse
+            assert result is False
+
+    def test_clear_pattern_空パターン(self):
+        """clear_patternで該当なしの場合"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_client.keys.return_value = []
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager()
+            result = manager.clear_pattern("nonexistent:*")
+
+            assert result == 0
+
+    def test_clear_pattern_Redis例外時(self):
+        """clear_pattern操作時のRedis例外処理"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_client.keys.side_effect = redis_module.RedisError("Redis error")
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager(fallback_enabled=True)
+
+            # フォールバックに切り替わる
+            result = manager.clear_pattern("session:*")
+            assert result == 0
+
+
+class TestFormatConnectionError:
+    """_format_connection_errorメソッドのテスト"""
+
+    def test_エラーメッセージフォーマット(self):
+        """エラーメッセージのフォーマット確認"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.side_effect = redis_module.ConnectionError("Connection refused")
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager(fallback_enabled=True)
+
+            # _format_connection_errorを直接テスト
+            error_msg = manager._format_connection_error("test error")
+
+            assert "Redisサーバーに接続できません" in error_msg
+            assert "test error" in error_msg
+            assert "対処法" in error_msg
+
+
+class TestLogRedisError:
+    """_log_redis_errorメソッドのテスト"""
+
+    def test_エラーログ出力(self):
+        """エラーログの出力確認"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager
+
+            manager = RedisSessionManager()
+
+            with patch("utils.redis_manager.logger") as mock_logger:
+                manager._log_redis_error("テスト操作", "詳細エラー")
+
+                mock_logger.error.assert_called_once()
+                call_args = mock_logger.error.call_args[0][0]
+                assert "テスト操作" in call_args
+                assert "詳細エラー" in call_args
+
+
+class TestWithFallbackDecorator:
+    """_with_fallbackデコレータのテスト"""
+
+    def test_フォールバック無効時の例外(self):
+        """フォールバック無効で接続なしの場合に例外"""
+        import redis as redis_module
+
+        with patch.object(redis_module, "Redis") as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_redis.return_value = mock_client
+
+            from utils.redis_manager import RedisSessionManager, RedisConnectionError
+
+            manager = RedisSessionManager(fallback_enabled=False)
+            manager._is_connected = False
+
+            with pytest.raises(RedisConnectionError):
+                manager.get("test_key")
+
+
+class TestSessionConfigExtended:
+    """SessionConfigの拡張テスト"""
+
+    def test_デフォルト環境設定(self):
+        """デフォルト環境の設定取得"""
+        from utils.redis_manager import SessionConfig
+
+        with patch.dict("os.environ", {"FLASK_ENV": "staging"}):
+            config = SessionConfig.get_redis_config()
+
+            assert config["SESSION_TYPE"] == "redis"
+
+    def test_セキュアクッキー警告(self):
+        """開発環境でセキュアクッキーが有効な場合の警告"""
+        from utils.redis_manager import SessionConfig
+
+        with patch.dict("os.environ", {"FLASK_ENV": "development"}):
+            config = {"SESSION_TYPE": "redis", "SESSION_USE_SIGNER": True, "SESSION_KEY_PREFIX": "test:", "SESSION_COOKIE_SECURE": True}
+
+            with patch("utils.redis_manager.logger") as mock_logger:
+                SessionConfig.validate_config(config)
+
+                mock_logger.warning.assert_called_once()

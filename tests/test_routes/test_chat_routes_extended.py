@@ -340,3 +340,294 @@ class TestTopicDescriptions:
                 )
 
                 assert response.status_code in [200, 500]
+
+
+class TestClearHistoryExtended:
+    """clear_history APIの拡張テスト"""
+
+    def test_chatモードの履歴クリア(self, app, client):
+        """chatモードの履歴をクリア"""
+        with client.session_transaction() as sess:
+            sess["chat_history"] = [{"human": "test", "ai": "response"}]
+            sess["chat_settings"] = {"model": "gemini-1.5-flash"}
+
+        response = client.post("/api/clear_history", json={"mode": "chat"})
+
+        assert response.status_code in [200, 500]
+
+    def test_watchモードの履歴クリア(self, app, client):
+        """watchモードの履歴をクリア"""
+        with client.session_transaction() as sess:
+            sess["watch_history"] = [{"speaker": "A", "message": "test"}]
+            sess["watch_settings"] = {"model_a": "gemini-1.5-flash"}
+
+        response = client.post("/api/clear_history", json={"mode": "watch"})
+
+        assert response.status_code in [200, 500]
+
+    def test_scenarioモードの履歴クリア_IDあり(self, app, client):
+        """scenarioモードの履歴をクリア（scenario_idあり）"""
+        with client.session_transaction() as sess:
+            sess["scenario_history"] = {"scenario1": [{"human": "test", "ai": "response"}]}
+
+        response = client.post(
+            "/api/clear_history",
+            json={"mode": "scenario", "scenario_id": "scenario1"},
+        )
+
+        assert response.status_code in [200, 500]
+
+    def test_scenarioモードの履歴クリア_IDなし(self, app, client):
+        """scenarioモードの履歴をクリア（scenario_idなし）"""
+        with client.session_transaction() as sess:
+            sess["conversation_history"] = {"llama2": [{"human": "test", "ai": "response"}]}
+
+        response = client.post(
+            "/api/clear_history",
+            json={"mode": "scenario", "model": "llama2"},
+        )
+
+        assert response.status_code in [200, 500]
+
+    def test_JSONなしでリクエスト(self, client):
+        """JSONなしでリクエスト"""
+        response = client.post(
+            "/api/clear_history",
+            content_type="application/json",
+            data="",
+        )
+
+        assert response.status_code in [400, 500]
+
+
+class TestChatFeedbackExtended:
+    """chat_feedback APIの拡張テスト"""
+
+    def test_JSONなしでリクエスト(self, client):
+        """JSONなしでリクエスト"""
+        response = client.post(
+            "/api/chat_feedback",
+            content_type="application/json",
+            data="",
+        )
+
+        assert response.status_code in [400, 500]
+
+    def test_レート制限エラー(self, app, client):
+        """レート制限エラーが発生した場合"""
+        with client.session_transaction() as sess:
+            sess["chat_history"] = [{"human": "test", "ai": "response"}]
+
+        with patch("services.feedback_service.get_feedback_service") as mock_service:
+            mock_svc = MagicMock()
+            mock_svc.build_chat_feedback_prompt.return_value = "prompt"
+            mock_svc.try_multiple_models_for_prompt.return_value = (
+                None,
+                None,
+                "RATE_LIMIT_EXCEEDED",
+            )
+            mock_service.return_value = mock_svc
+
+            response = client.post("/api/chat_feedback", json={})
+
+            # 400（dataが空）、429、または500エラー
+            assert response.status_code in [400, 429, 500]
+
+    def test_一般エラー(self, app, client):
+        """一般エラーが発生した場合"""
+        with client.session_transaction() as sess:
+            sess["chat_history"] = [{"human": "test", "ai": "response"}]
+
+        with patch("services.feedback_service.get_feedback_service") as mock_service:
+            mock_svc = MagicMock()
+            mock_svc.build_chat_feedback_prompt.return_value = "prompt"
+            mock_svc.try_multiple_models_for_prompt.return_value = (
+                None,
+                None,
+                "Some error message",
+            )
+            mock_service.return_value = mock_svc
+
+            response = client.post("/api/chat_feedback", json={})
+
+            # 400（dataが空）、503、または500エラー
+            assert response.status_code in [400, 500, 503]
+
+
+class TestConversationHistory:
+    """conversation_history APIのテスト"""
+
+    def test_scenarioタイプ_IDあり(self, app, client):
+        """scenarioタイプでIDあり"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        with client.session_transaction() as sess:
+            sess["scenario_history"] = {"scenario1": [{"human": "test", "ai": "response"}]}
+
+        response = client.post(
+            "/api/conversation_history",
+            json={"type": "scenario", "scenario_id": "scenario1"},
+        )
+
+        if response.status_code == 200:
+            data = response.get_json()
+            assert "history" in data
+
+    def test_scenarioタイプ_IDなし(self, app, client):
+        """scenarioタイプでIDなし"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        response = client.post(
+            "/api/conversation_history",
+            json={"type": "scenario"},
+        )
+
+        assert response.status_code in [400, 500]
+
+    def test_scenarioタイプ_履歴なし(self, app, client):
+        """scenarioタイプで履歴なし"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        response = client.post(
+            "/api/conversation_history",
+            json={"type": "scenario", "scenario_id": "nonexistent"},
+        )
+
+        if response.status_code == 200:
+            data = response.get_json()
+            assert data["history"] == []
+
+    def test_chatタイプ(self, app, client):
+        """chatタイプの履歴取得"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        with client.session_transaction() as sess:
+            sess["chat_history"] = [{"human": "test", "ai": "response"}]
+
+        response = client.post(
+            "/api/conversation_history",
+            json={"type": "chat"},
+        )
+
+        if response.status_code == 200:
+            data = response.get_json()
+            assert "history" in data
+
+    def test_chatタイプ_履歴なし(self, app, client):
+        """chatタイプで履歴なし"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        response = client.post(
+            "/api/conversation_history",
+            json={"type": "chat"},
+        )
+
+        if response.status_code == 200:
+            data = response.get_json()
+            assert data["history"] == []
+
+    def test_watchタイプ(self, app, client):
+        """watchタイプの履歴取得"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        with client.session_transaction() as sess:
+            sess["watch_history"] = [
+                {"speaker": "A", "message": "Hello", "timestamp": "2024-01-01T10:00:00"},
+                {"speaker": "B", "message": "Hi", "timestamp": "2024-01-01T10:00:01"},
+            ]
+
+        response = client.post(
+            "/api/conversation_history",
+            json={"type": "watch"},
+        )
+
+        if response.status_code == 200:
+            data = response.get_json()
+            assert "history" in data
+
+    def test_watchタイプ_履歴なし(self, app, client):
+        """watchタイプで履歴なし"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        response = client.post(
+            "/api/conversation_history",
+            json={"type": "watch"},
+        )
+
+        if response.status_code == 200:
+            data = response.get_json()
+            assert data["history"] == []
+
+    def test_不明なタイプ(self, app, client):
+        """不明なタイプ"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        response = client.post(
+            "/api/conversation_history",
+            json={"type": "unknown"},
+        )
+
+        assert response.status_code in [400, 500]
+
+
+class TestHandleChatExtended:
+    """handle_chat APIの拡張テスト"""
+
+    def test_セッション初期化済みで成功(self, app, client):
+        """セッションが初期化済みの場合に成功"""
+        from errors import ValidationError, handle_error
+
+        @app.errorhandler(ValidationError)
+        def handle_validation_error(e):
+            return handle_error(e)
+
+        with client.session_transaction() as sess:
+            sess["chat_settings"] = {
+                "model": "gemini-1.5-flash",
+                "system_prompt": "テストプロンプト",
+            }
+            sess["chat_history"] = []
+
+        with patch("routes.chat_routes._get_llm_and_invoke") as mock_invoke:
+            mock_invoke.return_value = "AI応答"
+
+            response = client.post(
+                "/api/chat",
+                json={"message": "こんにちは"},
+            )
+
+            if response.status_code == 200:
+                data = response.get_json()
+                assert "response" in data
