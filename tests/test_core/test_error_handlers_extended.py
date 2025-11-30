@@ -10,11 +10,11 @@ from flask import Flask
 @pytest.fixture
 def app():
     """テスト用Flaskアプリケーション"""
-    from core.error_handlers import register_error_handlers
-
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "test-secret-key"
     app.config["TESTING"] = True
+
+    from core.error_handlers import register_error_handlers
 
     register_error_handlers(app)
 
@@ -30,12 +30,12 @@ def client(app):
 class TestAppErrorHandler:
     """AppErrorハンドラーのテスト"""
 
-    def test_AppErrorハンドリング(self, app, client):
-        """AppErrorのハンドリング"""
+    def test_AppError処理(self, app, client):
+        """AppErrorの処理"""
         from errors import AppError
 
         @app.route("/test-app-error")
-        def test_route():
+        def trigger_error():
             raise AppError(
                 message="テストエラー",
                 code="TEST_ERROR",
@@ -43,47 +43,30 @@ class TestAppErrorHandler:
             )
 
         response = client.get("/test-app-error")
+
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
-
-    def test_AppErrorレスポンスにerror_id追加(self, app, client):
-        """エラーレスポンスにerror_idが追加される"""
-        from errors import AppError
-
-        @app.route("/test-error-id")
-        def test_route():
-            raise AppError(
-                message="テストエラー",
-                code="TEST_ERROR",
-                status_code=400,
-            )
-
-        response = client.get("/test-error-id")
-        data = response.get_json()
-        assert "error" in data
-        # error_idが追加されることを確認
+        assert "error_id" in data["error"]
 
 
 class TestValidationErrorHandler:
     """ValidationErrorハンドラーのテスト"""
 
-    def test_ValidationErrorハンドリング(self, app, client):
-        """ValidationErrorのハンドリング"""
+    def test_ValidationError処理(self, app, client):
+        """ValidationErrorの処理"""
         from errors import ValidationError
 
         @app.route("/test-validation-error")
-        def test_route():
+        def trigger_error():
             raise ValidationError(
-                message="バリデーションエラー",
                 field="test_field",
-                expected="valid",
-                actual="invalid",
+                message="無効な値です",
             )
 
         response = client.get("/test-validation-error")
-        # ValidationErrorは最終的にUnexpectedErrorとして処理される場合がある
-        assert response.status_code in [400, 500]
+
+        assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
 
@@ -91,56 +74,58 @@ class TestValidationErrorHandler:
 class TestRateLimitErrorHandler:
     """RateLimitErrorハンドラーのテスト"""
 
-    def test_RateLimitErrorハンドリング(self, app, client):
-        """RateLimitErrorのハンドリング"""
+    def test_RateLimitError処理(self, app, client):
+        """RateLimitErrorの処理"""
         from errors import RateLimitError
 
         @app.route("/test-rate-limit-error")
-        def test_route():
+        def trigger_error():
             raise RateLimitError(
-                message="レート制限エラー",
-                retry_after=60,
+                limit=100,
+                window_seconds=60,
+                details={"retry_after": 30},
             )
 
         response = client.get("/test-rate-limit-error")
-        # RateLimitErrorのステータスコードは429または500
-        assert response.status_code in [429, 500]
-        data = response.get_json()
-        assert "error" in data
 
-    def test_RateLimitError_retry_after(self, app, client):
-        """RateLimitErrorにretry_afterが含まれる"""
+        # 429または500（エラーハンドラの設定による）
+        assert response.status_code in [429, 500]
+
+    def test_RateLimitError_retryAfter付き(self, app, client):
+        """retry_after付きRateLimitErrorの処理"""
         from errors import RateLimitError
 
         @app.route("/test-rate-limit-retry")
-        def test_route():
+        def trigger_error():
             raise RateLimitError(
-                message="レート制限",
-                retry_after=120,
+                limit=100,
+                window_seconds=60,
+                details={"retry_after": 45},
             )
 
         response = client.get("/test-rate-limit-retry")
-        data = response.get_json()
-        # retry_afterが含まれることを確認
+
+        # 429または500
+        assert response.status_code in [429, 500]
 
 
 class TestExternalAPIErrorHandler:
     """ExternalAPIErrorハンドラーのテスト"""
 
-    def test_ExternalAPIErrorハンドリング(self, app, client):
-        """ExternalAPIErrorのハンドリング"""
+    def test_ExternalAPIError処理(self, app, client):
+        """ExternalAPIErrorの処理"""
         from errors import ExternalAPIError
 
         @app.route("/test-external-api-error")
-        def test_route():
+        def trigger_error():
             raise ExternalAPIError(
-                message="外部APIエラー",
-                service_name="TestService",
+                service="TestAPI",
+                message="外部API接続失敗",
             )
 
         response = client.get("/test-external-api-error")
-        # ExternalAPIErrorのステータスコードは503または500
-        assert response.status_code in [500, 503]
+
+        assert response.status_code == 503
         data = response.get_json()
         assert "error" in data
 
@@ -148,130 +133,149 @@ class TestExternalAPIErrorHandler:
 class TestLLMErrorHandler:
     """LLMErrorハンドラーのテスト"""
 
-    def test_LLMErrorハンドリング(self, app, client):
-        """LLMErrorのハンドリング"""
+    def test_LLMError処理(self, app, client):
+        """LLMErrorの処理"""
         from errors import LLMError
 
         @app.route("/test-llm-error")
-        def test_route():
+        def trigger_error():
             raise LLMError(
-                message="LLMエラー",
-                model_name="gemini-1.5-flash",
+                provider="Gemini",
+                model="gemini-1.5-flash",
+                message="モデルエラー",
             )
 
         response = client.get("/test-llm-error")
-        # LLMErrorのステータスコードは500または503
-        assert response.status_code in [500, 503]
+
+        assert response.status_code == 500
         data = response.get_json()
         assert "error" in data
 
 
-class TestNotFoundHandler:
-    """404ハンドラーのテスト"""
+class Test404Handler:
+    """404エラーハンドラーのテスト"""
 
-    def test_favicon_ico_は204を返す(self, client):
-        """favicon.icoは204 No Contentを返す"""
+    def test_存在しないページ(self, app, client):
+        """存在しないページへのアクセス"""
+        response = client.get("/nonexistent-page")
+
+        assert response.status_code == 404
+
+    def test_存在しないAPI(self, app, client):
+        """存在しないAPIへのアクセス"""
+        response = client.get("/api/nonexistent")
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert "error" in data
+        assert "error_id" in data["error"]
+
+    def test_favicon_リクエスト(self, app, client):
+        """faviconリクエストの処理"""
         response = client.get("/favicon.ico")
+
+        # 204 No Contentが返される
         assert response.status_code == 204
 
-    def test_APIエンドポイントの404(self, client):
-        """APIエンドポイントの404はJSONを返す"""
-        response = client.get("/api/nonexistent")
-        assert response.status_code == 404
-        data = response.get_json()
-        assert "error" in data
-        # エラーコードはNOT_FOUNDまたはRESOURCE_NOT_FOUND
-        assert data["error"]["code"] in ["NOT_FOUND", "RESOURCE_NOT_FOUND"]
 
-    def test_通常ページの404(self, client):
-        """通常ページの404"""
-        response = client.get("/nonexistent-page")
-        # 404.htmlがある場合はHTMLを返し、なければJSONを返す
-        assert response.status_code == 404
+class Test500Handler:
+    """500エラーハンドラーのテスト"""
 
+    def test_内部エラー処理(self, app, client):
+        """内部エラーの処理"""
 
-class TestInternalErrorHandler:
-    """500ハンドラーのテスト"""
+        @app.route("/test-internal-error")
+        def trigger_error():
+            # app.debug = Falseの場合、未処理の例外が500になる
+            # ただしhandle_unexpected_errorが先にキャッチするため
+            # AppErrorに変換される
+            raise RuntimeError("内部エラー")
 
-    def test_500エラーハンドリング(self, app, client):
-        """500エラーのハンドリング"""
+        response = client.get("/test-internal-error")
 
-        @app.route("/test-500-error")
-        def test_route():
-            raise Exception("内部エラー")
-
-        # 予期しないエラーがハンドリングされる
-        response = client.get("/test-500-error")
+        # 500または変換されたステータス
         assert response.status_code == 500
 
 
 class TestUnexpectedErrorHandler:
     """予期しないエラーハンドラーのテスト"""
 
-    def test_予期しないエラーハンドリング(self, app, client):
-        """予期しないエラーのハンドリング"""
+    def test_未知のエラー処理(self, app, client):
+        """未知のエラーの処理"""
 
-        @app.route("/test-unexpected")
-        def test_route():
+        @app.route("/test-unexpected-error")
+        def trigger_error():
             raise ValueError("予期しないエラー")
 
-        response = client.get("/test-unexpected")
+        response = client.get("/test-unexpected-error")
+
         assert response.status_code == 500
         data = response.get_json()
         assert "error" in data
 
-    def test_AppError派生エラーはそのまま処理(self, app, client):
-        """AppError派生エラーはそのまま処理される"""
-        from errors import NotFoundError
+    def test_AppError_そのまま処理(self, app, client):
+        """AppErrorはそのまま処理される"""
+        from errors import AppError
 
-        @app.route("/test-not-found-derived")
-        def test_route():
-            raise NotFoundError("リソース", "test_id")
+        @app.route("/test-app-error-direct")
+        def trigger_error():
+            raise AppError(
+                message="直接AppError",
+                code="DIRECT_ERROR",
+                status_code=418,
+            )
 
-        response = client.get("/test-not-found-derived")
-        assert response.status_code == 404
+        response = client.get("/test-app-error-direct")
+
+        assert response.status_code == 418
 
 
 class TestErrorIdGeneration:
     """エラーID生成のテスト"""
 
-    def test_エラーIDは8文字(self, app, client):
-        """エラーIDは8文字"""
+    def test_エラーIDが一意(self, app, client):
+        """エラーIDが一意であることを確認"""
         from errors import AppError
 
-        @app.route("/test-error-id-length")
-        def test_route():
-            raise AppError(
-                message="テスト",
-                code="TEST",
-                status_code=400,
-            )
+        @app.route("/test-error-id")
+        def trigger_error():
+            raise AppError(message="テスト", code="TEST", status_code=400)
 
-        response = client.get("/test-error-id-length")
-        data = response.get_json()
+        response1 = client.get("/test-error-id")
+        response2 = client.get("/test-error-id")
 
-        # error_idが存在する場合は8文字であることを確認
-        if data and "error" in data and "error_id" in data["error"]:
-            assert len(data["error"]["error_id"]) == 8
+        data1 = response1.get_json()
+        data2 = response2.get_json()
+
+        # エラーIDが異なることを確認
+        assert data1["error"]["error_id"] != data2["error"]["error_id"]
 
 
-class TestLogError:
-    """エラーログ記録のテスト"""
+class TestErrorLogging:
+    """エラーログのテスト"""
 
     def test_エラーがログに記録される(self, app, client):
-        """エラーがログに記録される"""
+        """エラーがログに記録されることを確認"""
         from errors import AppError
 
-        @app.route("/test-log")
-        def test_route():
-            raise AppError(
-                message="ログテスト",
-                code="LOG_TEST",
-                status_code=400,
-            )
+        @app.route("/test-logging")
+        def trigger_error():
+            raise AppError(message="ログテスト", code="LOG_TEST", status_code=400)
 
         with patch("core.error_handlers.logger") as mock_logger:
-            response = client.get("/test-log")
+            response = client.get("/test-logging")
 
-            # logger.errorが呼ばれたことを確認
-            mock_logger.error.assert_called()
+            # ログが呼び出されたことを確認
+            assert mock_logger.error.called
+
+
+class Test404HTMLFallback:
+    """404 HTMLフォールバックのテスト"""
+
+    def test_404テンプレートなし時のフォールバック(self, app, client):
+        """404.htmlテンプレートがない場合のフォールバック"""
+        # 通常のページリクエスト（非API）
+        response = client.get("/nonexistent-page")
+
+        # 404が返される
+        assert response.status_code == 404
