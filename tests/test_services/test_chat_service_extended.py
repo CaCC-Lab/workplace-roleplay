@@ -298,3 +298,276 @@ class TestGenerateScenarioFeedback:
 
             # 履歴なしのメッセージが返される
             assert result is not None
+
+
+class TestGetRecommendedVoice:
+    """get_recommended_voice メソッドのテスト"""
+
+    def test_感情ありで音声取得(self):
+        """感情指定ありで音声を取得"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+        mock_session.get_current_voice.return_value = "default_voice"
+
+        from services.chat_service import ChatService
+        from utils.constants import EMOTION_VOICE_MAPPING
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        # EMOTION_VOICE_MAPPINGに存在する感情をテスト
+        if EMOTION_VOICE_MAPPING:
+            emotion = list(EMOTION_VOICE_MAPPING.keys())[0]
+            expected_voice = EMOTION_VOICE_MAPPING[emotion]
+
+            result = service.get_recommended_voice(emotion)
+
+            assert result == expected_voice
+
+    def test_感情なしで音声取得(self):
+        """感情指定なしで音声を取得"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+        mock_session.get_current_voice.return_value = "default_voice"
+
+        from services.chat_service import ChatService
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        result = service.get_recommended_voice(None)
+
+        assert result == "default_voice"
+
+    def test_不明な感情で音声取得(self):
+        """不明な感情で音声を取得"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+        mock_session.get_current_voice.return_value = "default_voice"
+
+        from services.chat_service import ChatService
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        result = service.get_recommended_voice("unknown_emotion")
+
+        assert result == "default_voice"
+
+
+class TestValidateMessage:
+    """validate_message メソッドのテスト"""
+
+    def test_空メッセージ(self):
+        """空のメッセージ"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+
+        from services.chat_service import ChatService
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        is_valid, error = service.validate_message("")
+
+        assert is_valid is False
+        assert error is not None
+
+    def test_長すぎるメッセージ(self):
+        """長すぎるメッセージ"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+
+        from services.chat_service import ChatService
+        from utils.constants import MAX_MESSAGE_LENGTH
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        long_message = "a" * (MAX_MESSAGE_LENGTH + 1)
+        is_valid, error = service.validate_message(long_message)
+
+        assert is_valid is False
+        assert "文字以内" in error
+
+    def test_不適切な表現を含むメッセージ(self):
+        """不適切な表現を含むメッセージ"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+
+        from services.chat_service import ChatService
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        # 不適切な単語を含むメッセージ
+        is_valid, error = service.validate_message("ばかなことを言うな")
+
+        assert is_valid is False
+        assert "不適切" in error
+
+    def test_正常なメッセージ(self):
+        """正常なメッセージ"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+
+        from services.chat_service import ChatService
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        is_valid, error = service.validate_message("こんにちは、今日はいい天気ですね")
+
+        assert is_valid is True
+        assert error is None
+
+
+class TestGenerateChatFeedbackExtended:
+    """generate_chat_feedback メソッドの拡張テスト"""
+
+    @pytest.mark.asyncio
+    async def test_履歴ありでフィードバック生成(self):
+        """履歴ありでフィードバック生成"""
+        mock_llm = MagicMock()
+        mock_llm.invoke_sync.return_value = "良いコミュニケーションでした！"
+
+        mock_session = MagicMock()
+        mock_session.get_chat_history.return_value = [
+            {"human": "こんにちは", "ai": "こんにちは！"}
+        ]
+        mock_session.get_current_model.return_value = "gemini-1.5-flash"
+
+        from services.chat_service import ChatService
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        result = await service.generate_chat_feedback()
+
+        assert result == "良いコミュニケーションでした！"
+
+    @pytest.mark.asyncio
+    async def test_フィードバック文字数制限(self):
+        """フィードバックの文字数制限"""
+        mock_llm = MagicMock()
+        # MAX_FEEDBACK_LENGTH以上の長いフィードバック
+        mock_llm.invoke_sync.return_value = "a" * 5000
+
+        mock_session = MagicMock()
+        mock_session.get_chat_history.return_value = [
+            {"human": "こんにちは", "ai": "こんにちは！"}
+        ]
+        mock_session.get_current_model.return_value = "gemini-1.5-flash"
+
+        from services.chat_service import ChatService
+        from utils.constants import MAX_FEEDBACK_LENGTH
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        result = await service.generate_chat_feedback()
+
+        # 文字数制限を超えた場合は切り捨て
+        assert len(result) <= MAX_FEEDBACK_LENGTH
+
+
+class TestGenerateScenarioFeedbackExtended:
+    """generate_scenario_feedback メソッドの拡張テスト"""
+
+    @pytest.mark.asyncio
+    async def test_履歴ありでフィードバック生成(self):
+        """履歴ありでフィードバック生成"""
+        mock_llm = MagicMock()
+        mock_llm.invoke_sync.return_value = "良い対応でした！"
+
+        mock_session = MagicMock()
+        mock_session.get_scenario_history.return_value = [
+            {"human": "報告します", "ai": "はい、どうぞ"}
+        ]
+        mock_session.get_current_model.return_value = "gemini-1.5-flash"
+
+        mock_scenario = {
+            "title": "報告シナリオ",
+            "situation": "上司への報告",
+            "your_role": "部下",
+            "character": {"name": "佐藤部長"},
+            "feedback_points": ["明確さ", "簡潔さ"],
+        }
+
+        with patch("services.chat_service.get_scenario_by_id") as mock_get:
+            mock_get.return_value = mock_scenario
+
+            from services.chat_service import ChatService
+
+            service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+            result = await service.generate_scenario_feedback("scenario1")
+
+            assert result == "良い対応でした！"
+            # 学習記録が追加されることを確認
+            mock_session.add_learning_record.assert_called_once()
+
+
+class TestContinueWatchConversation:
+    """continue_watch_conversation メソッドのテスト"""
+
+    @pytest.mark.asyncio
+    async def test_Model2の番(self):
+        """Model2の番"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+        mock_session.get_watch_models.return_value = {
+            "model1": "gemini-1.5-flash",
+            "model2": "gemini-1.5-pro",
+        }
+        mock_session.get_watch_topic.return_value = "天気"
+        mock_session.get_watch_history.return_value = [
+            {
+                "model1": {"name": "model1", "message": "今日はいい天気ですね"},
+                "model2": {"name": "model2", "message": ""},
+            }
+        ]
+
+        async def mock_stream(*args, **kwargs):
+            yield "そうですね、本当に！"
+
+        mock_llm.stream_chat_response = mock_stream
+
+        from services.chat_service import ChatService
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        result = []
+        async for chunk in service.continue_watch_conversation():
+            result.append(chunk)
+
+        import json
+
+        data = json.loads("".join(result))
+        assert data["speaker"] == "model2"
+
+    @pytest.mark.asyncio
+    async def test_Model1の番(self):
+        """Model1の番"""
+        mock_llm = MagicMock()
+        mock_session = MagicMock()
+        mock_session.get_watch_models.return_value = {
+            "model1": "gemini-1.5-flash",
+            "model2": "gemini-1.5-pro",
+        }
+        mock_session.get_watch_topic.return_value = "天気"
+        mock_session.get_watch_history.return_value = [
+            {
+                "model1": {"name": "model1", "message": "今日はいい天気ですね"},
+                "model2": {"name": "model2", "message": "そうですね！"},
+            }
+        ]
+
+        async def mock_stream(*args, **kwargs):
+            yield "明日も晴れるといいですね"
+
+        mock_llm.stream_chat_response = mock_stream
+
+        from services.chat_service import ChatService
+
+        service = ChatService(llm_service=mock_llm, session_service=mock_session)
+
+        result = []
+        async for chunk in service.continue_watch_conversation():
+            result.append(chunk)
+
+        import json
+
+        data = json.loads("".join(result))
+        assert data["speaker"] == "model1"
