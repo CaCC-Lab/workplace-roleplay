@@ -279,3 +279,166 @@ class Test404HTMLFallback:
 
         # 404が返される
         assert response.status_code == 404
+
+    def test_404テンプレートあり時の処理(self, app, client):
+        """404.htmlテンプレートがある場合の処理"""
+        with patch("core.error_handlers.render_template") as mock_render:
+            mock_render.return_value = "<html>404</html>"
+
+            response = client.get("/another-nonexistent-page")
+
+            # 404が返される
+            assert response.status_code == 404
+
+
+class TestLLMErrorHandlerExtended:
+    """LLMErrorハンドラーの拡張テスト"""
+
+    def test_LLMError_詳細情報付き(self, app, client):
+        """詳細情報付きLLMErrorの処理"""
+        from errors import LLMError
+
+        @app.route("/test-llm-error-details")
+        def trigger_error():
+            raise LLMError(
+                message="レート制限に達しました",
+                model_name="gemini-1.5-pro",
+                error_type="rate_limit",
+            )
+
+        response = client.get("/test-llm-error-details")
+
+        # LLMErrorはAppErrorを継承しており、ステータスコードは設定により異なる
+        assert response.status_code in [500, 503]
+        data = response.get_json()
+        assert "error" in data
+        assert "error_id" in data["error"]
+
+
+class TestRateLimitErrorHandlerExtended:
+    """RateLimitErrorハンドラーの拡張テスト"""
+
+    def test_RateLimitError_詳細なしの場合(self, app, client):
+        """詳細情報なしのRateLimitError"""
+        from errors import RateLimitError
+
+        @app.route("/test-rate-limit-no-details")
+        def trigger_error():
+            raise RateLimitError(
+                limit=50,
+                window_seconds=30,
+            )
+
+        response = client.get("/test-rate-limit-no-details")
+
+        # ステータスコードを確認
+        assert response.status_code in [429, 500]
+
+
+class TestValidationErrorHandlerExtended:
+    """ValidationErrorハンドラーの拡張テスト"""
+
+    def test_ValidationError_複数フィールド(self, app, client):
+        """複数フィールドのValidationError"""
+        from errors import ValidationError
+
+        @app.route("/test-validation-multiple")
+        def trigger_error():
+            raise ValidationError(
+                field="email",
+                message="メールアドレスの形式が無効です",
+                details={"format": "invalid"},
+            )
+
+        response = client.get("/test-validation-multiple")
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+
+class TestExternalAPIErrorHandlerExtended:
+    """ExternalAPIErrorハンドラーの拡張テスト"""
+
+    def test_ExternalAPIError_詳細情報付き(self, app, client):
+        """詳細情報付きExternalAPIError"""
+        from errors import ExternalAPIError
+
+        @app.route("/test-external-api-details")
+        def trigger_error():
+            raise ExternalAPIError(
+                service="GoogleAPI",
+                message="タイムアウトしました",
+                original_error="Connection timeout after 30s",
+            )
+
+        response = client.get("/test-external-api-details")
+
+        assert response.status_code == 503
+        data = response.get_json()
+        assert "error" in data
+
+
+class TestAppErrorHandlerExtended:
+    """AppErrorハンドラーの拡張テスト"""
+
+    def test_AppError_カスタムステータスコード(self, app, client):
+        """カスタムステータスコードのAppError"""
+        from errors import AppError
+
+        @app.route("/test-app-error-custom")
+        def trigger_error():
+            raise AppError(
+                message="カスタムエラー",
+                code="CUSTOM_ERROR",
+                status_code=422,
+                details={"field": "test"},
+            )
+
+        response = client.get("/test-app-error-custom")
+
+        assert response.status_code == 422
+        data = response.get_json()
+        assert data["error"]["error_id"] is not None
+
+
+class Test500ErrorHandlerExtended:
+    """500エラーハンドラーの拡張テスト"""
+
+    def test_500エラー_直接トリガー(self, app, client):
+        """500エラーを直接トリガー"""
+
+        @app.route("/test-500-direct")
+        def trigger_error():
+            # 0での除算でエラーを発生
+            return str(1 / 0)
+
+        response = client.get("/test-500-direct")
+
+        assert response.status_code == 500
+
+
+class TestHandleErrorResponse:
+    """handle_error関数のレスポンステスト"""
+
+    def test_handle_error_レスポンス形式(self, app, client):
+        """handle_errorのレスポンス形式を確認"""
+        from errors import AppError
+
+        @app.route("/test-response-format")
+        def trigger_error():
+            raise AppError(
+                message="フォーマットテスト",
+                code="FORMAT_TEST",
+                status_code=400,
+            )
+
+        response = client.get("/test-response-format")
+
+        data = response.get_json()
+
+        # レスポンス形式を確認
+        assert "error" in data
+        assert "message" in data["error"]
+        assert "code" in data["error"]
+        assert "error_id" in data["error"]

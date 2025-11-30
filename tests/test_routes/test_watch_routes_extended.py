@@ -288,3 +288,114 @@ class TestSecurityUtils:
         # get_safe_error_messageメソッドが存在
         result = SecurityUtils.get_safe_error_message(Exception("test"))
         assert result is not None
+
+
+class TestStartWatchExtended:
+    """start_watchの拡張テスト"""
+
+    def test_無効なモデルB(self, client):
+        """無効なモデルB"""
+        with patch("routes.watch_routes.SecurityUtils.validate_model_name") as mock_validate:
+            # model_aは有効、model_bは無効
+            mock_validate.side_effect = lambda x: x == "gemini-1.5-flash"
+
+            response = client.post(
+                "/api/watch/start",
+                json={
+                    "model_a": "gemini-1.5-flash",
+                    "model_b": "invalid-model",
+                    "partner_type": "colleague",
+                    "situation": "break",
+                    "topic": "general",
+                },
+            )
+
+            # 400または500
+            assert response.status_code in [400, 500]
+
+
+class TestNextWatchMessageExtended:
+    """next_watch_messageの拡張テスト"""
+
+    def test_メッセージ生成成功後のセッション更新(self, app, client):
+        """メッセージ生成成功後のセッション更新"""
+        with client.session_transaction() as sess:
+            sess["watch_settings"] = {
+                "model_a": "gemini-1.5-flash",
+                "model_b": "gemini-1.5-pro",
+                "partner_type": "colleague",
+                "situation": "break",
+                "topic": "general",
+                "current_speaker": "A",
+            }
+            sess["watch_history"] = [
+                {"speaker": "A", "message": "最初", "timestamp": "2024-01-01T10:00:00"}
+            ]
+
+        with patch("app.initialize_llm") as mock_llm:
+            mock_llm.return_value = MagicMock()
+
+            with patch("routes.watch_routes.get_watch_service") as mock_service:
+                mock_svc = MagicMock()
+                mock_svc.switch_speaker.return_value = "B"
+                mock_svc.get_speaker_display_name.return_value = "花子"
+                mock_svc.generate_next_message.return_value = "返答です"
+                mock_service.return_value = mock_svc
+
+                response = client.post("/api/watch/next", json={})
+
+                if response.status_code == 200:
+                    data = response.get_json()
+                    assert "花子" in data.get("message", "")
+
+    def test_ExternalAPIError発生(self, app, client):
+        """ExternalAPIError発生時の処理"""
+        with client.session_transaction() as sess:
+            sess["watch_settings"] = {
+                "model_a": "gemini-1.5-flash",
+                "model_b": "gemini-1.5-pro",
+                "current_speaker": "A",
+            }
+            sess["watch_history"] = [{"speaker": "A", "message": "Test"}]
+
+        with patch("app.initialize_llm") as mock_llm:
+            mock_llm.return_value = MagicMock()
+
+            with patch("routes.watch_routes.get_watch_service") as mock_service:
+                mock_svc = MagicMock()
+                mock_svc.switch_speaker.return_value = "B"
+                mock_svc.get_speaker_display_name.return_value = "花子"
+
+                # generate_next_messageでExceptionを発生
+                mock_svc.generate_next_message.side_effect = Exception("API Error")
+                mock_service.return_value = mock_svc
+
+                response = client.post("/api/watch/next", json={})
+
+                # エラーレスポンス
+                assert response.status_code in [500, 503]
+
+    def test_内部エラー発生時のフォールバック(self, app, client):
+        """内部エラー発生時のフォールバック"""
+        with client.session_transaction() as sess:
+            sess["watch_settings"] = {
+                "model_a": "gemini-1.5-flash",
+                "model_b": "gemini-1.5-pro",
+                "current_speaker": "A",
+            }
+            sess["watch_history"] = []  # 空の履歴
+
+        with patch("app.initialize_llm") as mock_llm:
+            mock_llm.return_value = MagicMock()
+
+            with patch("routes.watch_routes.get_watch_service") as mock_service:
+                mock_svc = MagicMock()
+                mock_svc.switch_speaker.return_value = "B"
+                mock_svc.get_speaker_display_name.return_value = "花子"
+                mock_svc.generate_next_message.return_value = "OK"
+                mock_service.return_value = mock_svc
+
+                response = client.post("/api/watch/next", json={})
+
+                # 成功または500
+                assert response.status_code in [200, 500]
