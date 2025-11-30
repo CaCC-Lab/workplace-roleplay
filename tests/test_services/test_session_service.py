@@ -319,3 +319,175 @@ class TestSessionService:
         # 値の削除
         self.service.delete_session_value("custom_key")
         assert "custom_key" not in self.mock_session
+
+
+class TestSessionServiceExtended:
+    """SessionServiceの拡張テスト"""
+    
+    def setup_method(self):
+        """各テストメソッドの前に実行"""
+        self.mock_session = {}
+        self.patcher = patch('services.session_service.session', self.mock_session)
+        self.patcher.start()
+        self.service = SessionService()
+    
+    def teardown_method(self):
+        """各テストメソッドの後に実行"""
+        self.patcher.stop()
+    
+    def test_initialize_session_with_existing_model(self):
+        """既存のモデル設定がある場合のセッション初期化"""
+        self.mock_session[SessionKeys.CURRENT_MODEL] = "gemini-1.5-pro"
+        
+        with patch('services.session_service.initialize_session_history'):
+            self.service.initialize_session()
+        
+        # 既存の設定は保持される
+        assert self.mock_session[SessionKeys.CURRENT_MODEL] == "gemini-1.5-pro"
+    
+    def test_initialize_session_with_existing_voice(self):
+        """既存の音声設定がある場合のセッション初期化"""
+        self.mock_session[SessionKeys.CURRENT_VOICE] = "nova"
+        
+        with patch('services.session_service.initialize_session_history'):
+            self.service.initialize_session()
+        
+        # 既存の設定は保持される
+        assert self.mock_session[SessionKeys.CURRENT_VOICE] == "nova"
+    
+    def test_get_scenario_history_empty(self):
+        """シナリオ履歴が空の場合"""
+        history = self.service.get_scenario_history("nonexistent")
+        assert history == []
+    
+    def test_get_scenario_history_no_key(self):
+        """シナリオ履歴キーがない場合"""
+        history = self.service.get_scenario_history("scenario1")
+        assert history == []
+    
+    def test_get_scenario_history_with_data(self):
+        """シナリオ履歴がある場合"""
+        self.mock_session[SessionKeys.SCENARIO_HISTORY] = {
+            "scenario1": [{"human": "test", "ai": "response"}]
+        }
+        
+        history = self.service.get_scenario_history("scenario1")
+        assert len(history) == 1
+        assert history[0]["human"] == "test"
+    
+    def test_clear_scenario_history_all(self):
+        """全シナリオ履歴をクリア"""
+        self.mock_session[SessionKeys.SCENARIO_HISTORY] = {
+            'scenario-001': [{'human': 'test1'}],
+            'scenario-002': [{'human': 'test2'}]
+        }
+        
+        with patch('services.session_service.clear_session_history') as mock_clear:
+            self.service.clear_scenario_history()  # IDなしで呼び出し
+            mock_clear.assert_called_once_with(SessionKeys.SCENARIO_HISTORY)
+    
+    def test_clear_scenario_history_nonexistent(self):
+        """存在しないシナリオの履歴をクリア"""
+        self.mock_session[SessionKeys.SCENARIO_HISTORY] = {
+            'scenario-001': [{'human': 'test1'}]
+        }
+        
+        # 存在しないシナリオIDでクリア
+        self.service.clear_scenario_history('nonexistent')
+        
+        # 既存のシナリオ履歴には影響なし
+        assert len(self.mock_session[SessionKeys.SCENARIO_HISTORY]['scenario-001']) == 1
+    
+    def test_get_watch_history(self):
+        """観戦モード履歴の取得"""
+        self.mock_session[SessionKeys.WATCH_HISTORY] = [
+            {'model1': {'name': 'A', 'message': 'Hello'}}
+        ]
+        
+        history = self.service.get_watch_history()
+        assert len(history) == 1
+    
+    def test_get_watch_history_empty(self):
+        """観戦モード履歴が空の場合"""
+        history = self.service.get_watch_history()
+        assert history == []
+    
+    @patch('services.session_service.clear_session_history')
+    def test_clear_watch_history(self, mock_clear):
+        """観戦モード履歴のクリア"""
+        self.service.clear_watch_history()
+        mock_clear.assert_called_once_with(SessionKeys.WATCH_HISTORY)
+    
+    def test_get_learning_history(self):
+        """学習履歴の取得"""
+        self.mock_session[SessionKeys.LEARNING_HISTORY] = [
+            {'activity_type': 'chat'},
+            {'activity_type': 'scenario'},
+            {'activity_type': 'watch'}
+        ]
+        
+        history = self.service.get_learning_history(limit=2)
+        assert len(history) == 2
+    
+    def test_get_learning_history_empty(self):
+        """学習履歴が空の場合"""
+        history = self.service.get_learning_history()
+        assert history == []
+    
+    def test_set_watch_topic_clear(self):
+        """観戦モードトピックのクリア（キーが存在する場合）"""
+        self.mock_session["watch_topic"] = "existing topic"
+        
+        self.service.set_watch_topic(None)
+        
+        assert "watch_topic" not in self.mock_session
+    
+    def test_set_current_scenario_id_clear(self):
+        """現在のシナリオIDのクリア（キーが存在する場合）"""
+        self.mock_session["current_scenario_id"] = "scenario1"
+        
+        self.service.set_current_scenario_id(None)
+        
+        assert "current_scenario_id" not in self.mock_session
+    
+    def test_delete_session_value_nonexistent(self):
+        """存在しないキーの削除"""
+        # エラーが発生しないことを確認
+        self.service.delete_session_value("nonexistent_key")
+        
+        assert "nonexistent_key" not in self.mock_session
+    
+    def test_add_learning_record_minimal(self):
+        """最小限の学習記録追加"""
+        self.mock_session['user_id'] = "test-user"
+        self.mock_session['conversation_id'] = "test-conv"
+        
+        self.service.add_learning_record(activity_type="chat")
+        
+        records = self.mock_session[SessionKeys.LEARNING_HISTORY]
+        assert len(records) == 1
+        assert records[0]['activity_type'] == "chat"
+        assert 'scenario_id' not in records[0]
+        assert 'feedback' not in records[0]
+        assert 'duration_seconds' not in records[0]
+    
+    def test_get_learning_stats_empty(self):
+        """学習統計が空の場合"""
+        stats = self.service.get_learning_stats()
+        
+        assert stats['total_sessions'] == 0
+        assert stats['chat_sessions'] == 0
+        assert stats['scenario_sessions'] == 0
+        assert stats['watch_sessions'] == 0
+        assert stats['scenarios_completed'] == 0
+    
+    def test_get_learning_stats_no_duration(self):
+        """duration_secondsがない学習記録の統計"""
+        self.mock_session[SessionKeys.LEARNING_HISTORY] = [
+            {'activity_type': 'chat'},  # duration_secondsなし
+            {'activity_type': 'scenario', 'scenario_id': 's1'},
+        ]
+        
+        stats = self.service.get_learning_stats()
+        
+        assert stats['total_duration_seconds'] == 0

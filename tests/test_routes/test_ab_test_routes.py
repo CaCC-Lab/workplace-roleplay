@@ -149,3 +149,73 @@ class TestWatchStartV2:
         assert response.status_code == 501
         data = response.get_json()
         assert "Coming soon" in data["message"]
+
+
+class TestChatV2Extended:
+    """chat_v2エンドポイントの拡張テスト"""
+
+    def test_例外発生時のエラーハンドリング(self, app, client):
+        """例外発生時のエラーハンドリング"""
+        with patch("routes.ab_test_routes.CSRFProtection.require_csrf") as mock_csrf:
+            mock_csrf.return_value = lambda f: f
+
+            with patch("routes.ab_test_routes.rate_limiter.rate_limit") as mock_rate:
+                mock_rate.return_value = lambda f: f
+
+                with patch("routes.ab_test_routes.get_services") as mock_services:
+                    mock_services.side_effect = Exception("Service error")
+
+                    response = client.post(
+                        "/api/v2/chat",
+                        json={"message": "テスト", "model": "gemini-1.5-flash"},
+                    )
+
+                    # エラーハンドリング
+                    assert response.status_code in [403, 429, 500]
+
+
+class TestChatCompareExtended:
+    """chat_compareエンドポイントの拡張テスト"""
+
+    def test_例外発生時のエラーハンドリング(self, app, client):
+        """例外発生時のエラーハンドリング"""
+        with patch("routes.ab_test_routes.CSRFProtection.require_csrf") as mock_csrf:
+            mock_csrf.return_value = lambda f: f
+
+            with patch("routes.ab_test_routes.get_services") as mock_services:
+                mock_services.side_effect = Exception("Service error")
+
+                response = client.post(
+                    "/api/v2/chat/compare",
+                    json={"message": "テスト"},
+                )
+
+                assert response.status_code in [403, 500]
+
+
+
+class TestGetServicesExtended:
+    """get_services関数の拡張テスト"""
+
+    def test_シングルトンパターン(self):
+        """サービスがシングルトンとして動作"""
+        import routes.ab_test_routes
+
+        # グローバル変数をリセット
+        routes.ab_test_routes._chat_service = None
+        routes.ab_test_routes._session_service = None
+        routes.ab_test_routes._llm_service = None
+
+        with patch("routes.ab_test_routes.LLMService") as mock_llm:
+            with patch("routes.ab_test_routes.SessionService") as mock_session:
+                with patch("routes.ab_test_routes.ChatService") as mock_chat:
+                    from routes.ab_test_routes import get_services
+
+                    # 1回目の呼び出し
+                    chat1, session1, llm1 = get_services()
+
+                    # 2回目の呼び出し（キャッシュされているはず）
+                    chat2, session2, llm2 = get_services()
+
+                    # LLMServiceは1回しか呼ばれない
+                    assert mock_llm.call_count == 1
