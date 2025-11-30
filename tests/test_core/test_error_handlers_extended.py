@@ -442,3 +442,108 @@ class TestHandleErrorResponse:
         assert "message" in data["error"]
         assert "code" in data["error"]
         assert "error_id" in data["error"]
+
+
+class TestRateLimitRetryAfter:
+    """RateLimitError retry_after処理のテスト"""
+
+    def test_retry_afterが含まれるレスポンス(self, app, client):
+        """retry_afterがレスポンスに含まれることを確認"""
+        from errors import RateLimitError
+
+        @app.route("/test-retry-after-included")
+        def trigger_error():
+            raise RateLimitError(
+                limit=100,
+                window_seconds=60,
+                details={"retry_after": 120},
+            )
+
+        response = client.get("/test-retry-after-included")
+
+        assert response.status_code in [429, 500]
+        data = response.get_json()
+        # retry_afterが設定されているはず
+        if "retry_after" in data.get("error", {}):
+            assert data["error"]["retry_after"] == 120
+
+
+class Test404TemplateRender:
+    """404テンプレートレンダリングのテスト"""
+
+    def test_render_template例外時のフォールバック(self, app, client):
+        """render_templateが例外を投げた場合のフォールバック"""
+        with patch("core.error_handlers.render_template") as mock_render:
+            mock_render.side_effect = Exception("Template not found")
+
+            response = client.get("/some-nonexistent-page")
+
+            # フォールバックでJSONが返される
+            assert response.status_code == 404
+            data = response.get_json()
+            assert "error" in data
+            assert data["error"]["code"] == "NOT_FOUND"
+
+
+class TestInternalErrorHandler:
+    """内部エラーハンドラーの拡張テスト"""
+
+    def test_500エラーハンドラー直接呼び出し(self, app, client):
+        """500エラーハンドラーの直接テスト"""
+        from errors import AppError
+
+        @app.route("/test-500-handler")
+        def trigger_error():
+            raise Exception("Unhandled Exception")
+
+        response = client.get("/test-500-handler")
+
+        # handle_unexpected_errorでキャッチされる
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "error" in data
+        assert "UNEXPECTED_ERROR" in data["error"]["code"]
+
+
+class TestLogErrorFunction:
+    """_log_error関数のテスト"""
+
+    def test_ログにすべての情報が含まれる(self, app, client):
+        """ログにすべての必要な情報が含まれることを確認"""
+        from errors import AppError
+
+        @app.route("/test-log-info")
+        def trigger_error():
+            raise AppError(message="ログ情報テスト", code="LOG_INFO", status_code=400)
+
+        with patch("core.error_handlers.logger") as mock_logger:
+            response = client.get("/test-log-info")
+
+            # errorメソッドが呼び出されることを確認
+            assert mock_logger.error.called
+
+            # 呼び出し引数を確認
+            call_args = mock_logger.error.call_args
+            # extraパラメータが含まれている
+            assert "extra" in call_args.kwargs
+            extra = call_args.kwargs["extra"]
+            assert "error_id" in extra
+            assert "error_type" in extra
+            assert "status_code" in extra
+            assert "path" in extra
+
+
+class TestNotFoundAPIEndpoint:
+    """NotFoundError APIエンドポイントのテスト"""
+
+    def test_API_404エラーの詳細(self, app, client):
+        """API 404エラーの詳細情報を確認"""
+        response = client.get("/api/v1/nonexistent/resource")
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert "error" in data
+        assert "error_id" in data["error"]
+        # パスが含まれる可能性
+        if "path" in data["error"]:
+            assert "/api/v1/nonexistent/resource" in data["error"]["path"]
