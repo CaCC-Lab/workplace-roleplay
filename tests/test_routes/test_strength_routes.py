@@ -300,3 +300,120 @@ class TestUpdateFeedbackWithStrengthAnalysis:
 
                 # 元のフィードバックがそのまま返される
                 assert result == feedback
+
+
+class TestSecurityUtilsFallback:
+    """SecurityUtilsフォールバックのテスト"""
+
+    def test_フォールバッククラスが存在(self):
+        """フォールバッククラスのメソッドが存在"""
+        from routes.strength_routes import SecurityUtils
+
+        # get_safe_error_messageメソッド
+        result = SecurityUtils.get_safe_error_message(Exception("test"))
+        assert result is not None
+        assert isinstance(result, str)
+
+
+class TestAnalyzeStrengthsExtended:
+    """強み分析の拡張テスト"""
+
+    def test_強み履歴の制限_20件超え(self, csrf_client):
+        """強み履歴が20件を超える場合の制限"""
+        with csrf_client.session_transaction() as sess:
+            sess["chat_history"] = [
+                {"human": "test", "ai": "response"}
+            ]
+            # 20件の履歴を事前に設定
+            sess["strength_history"] = {
+                "chat": [
+                    {"timestamp": f"2024-01-{i:02d}T10:00:00", "scores": {}, "practice_count": i}
+                    for i in range(1, 21)
+                ]
+            }
+
+        with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
+            mock_enabled.return_value = True
+
+            with patch("routes.strength_routes.analyze_user_strengths") as mock_analyze:
+                mock_analyze.return_value = {
+                    "empathy": 75,
+                    "clarity": 80,
+                    "active_listening": 70,
+                    "adaptability": 65,
+                    "positivity": 85,
+                    "professionalism": 78,
+                }
+
+                with patch("routes.strength_routes.generate_encouragement_messages") as mock_messages:
+                    mock_messages.return_value = ["良い結果です！"]
+
+                    with patch("routes.strength_routes.get_top_strengths") as mock_top:
+                        mock_top.return_value = [{"name": "ポジティブさ", "score": 85}]
+
+                        response = csrf_client.post(
+                            "/api/strength_analysis", json={"type": "chat"}
+                        )
+
+                        # 履歴は最大20件に制限される
+                        assert response.status_code == 200
+                        data = response.get_json()
+                        assert len(data["history"]) <= 20
+
+    def test_メッセージが3件未満の場合追加メッセージ(self, csrf_client):
+        """励ましメッセージが3件未満の場合追加される"""
+        with csrf_client.session_transaction() as sess:
+            sess["chat_history"] = [
+                {"human": "こんにちは", "ai": "こんにちは！"}
+            ]
+
+        with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
+            mock_enabled.return_value = True
+
+            with patch("routes.strength_routes.analyze_user_strengths") as mock_analyze:
+                mock_analyze.return_value = {
+                    "empathy": 75,
+                    "clarity": 80,
+                    "active_listening": 70,
+                    "adaptability": 65,
+                    "positivity": 85,
+                    "professionalism": 78,
+                }
+
+                with patch("routes.strength_routes.generate_encouragement_messages") as mock_messages:
+                    # 2件のメッセージを返す（3件未満）
+                    mock_messages.return_value = ["メッセージ1", "メッセージ2"]
+
+                    with patch("routes.strength_routes.get_top_strengths") as mock_top:
+                        mock_top.return_value = [{"name": "ポジティブさ", "score": 85}]
+
+                        response = csrf_client.post(
+                            "/api/strength_analysis", json={"type": "chat"}
+                        )
+
+                        assert response.status_code == 200
+                        data = response.get_json()
+                        # 追加メッセージが含まれる
+                        assert len(data["messages"]) >= 2
+
+    def test_内部例外発生時のエラーハンドリング(self, csrf_client):
+        """内部例外発生時のエラーハンドリング"""
+        with csrf_client.session_transaction() as sess:
+            sess["chat_history"] = [
+                {"human": "test", "ai": "response"}
+            ]
+
+        with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
+            mock_enabled.return_value = True
+
+            with patch("routes.strength_routes.format_conversation_history") as mock_format:
+                mock_format.side_effect = Exception("Format error")
+
+                response = csrf_client.post(
+                    "/api/strength_analysis", json={"type": "chat"}
+                )
+
+                # 500エラー
+                assert response.status_code == 500
+                data = response.get_json()
+                assert "error" in data

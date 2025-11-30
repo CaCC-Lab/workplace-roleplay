@@ -399,3 +399,90 @@ class TestNextWatchMessageExtended:
 
                 # 成功または500
                 assert response.status_code in [200, 500]
+
+
+class TestSecurityUtilsFallbackWatch:
+    """SecurityUtilsフォールバッククラスのテスト"""
+
+    def test_sanitize_input(self):
+        """sanitize_inputメソッド"""
+        from routes.watch_routes import SecurityUtils
+        result = SecurityUtils.sanitize_input("<script>alert('xss')</script>")
+        assert result is not None
+
+    def test_validate_model_name(self):
+        """validate_model_nameメソッド"""
+        from routes.watch_routes import SecurityUtils
+        result = SecurityUtils.validate_model_name("test-model")
+        assert result is not None
+
+    def test_get_safe_error_message(self):
+        """get_safe_error_messageメソッド"""
+        from routes.watch_routes import SecurityUtils
+        result = SecurityUtils.get_safe_error_message(Exception("test error"))
+        assert result is not None
+
+
+class TestStartWatchMoreExtended:
+    """start_watchのさらなる拡張テスト"""
+
+    def test_外部例外発生時のエラーハンドリング(self, client):
+        """外部例外発生時のエラーハンドリング"""
+        with patch("routes.watch_routes.SecurityUtils.validate_model_name") as mock_validate:
+            mock_validate.return_value = True
+
+            with patch("routes.watch_routes.SecurityUtils.sanitize_input") as mock_sanitize:
+                mock_sanitize.side_effect = lambda x: x
+
+                with patch("routes.watch_routes.clear_session_history"):
+                    with patch("app.initialize_llm") as mock_llm:
+                        mock_llm.return_value = MagicMock()
+
+                        with patch("routes.watch_routes.get_watch_service") as mock_service:
+                            mock_svc = MagicMock()
+                            mock_svc.generate_initial_message.side_effect = Exception("Service error")
+                            mock_service.return_value = mock_svc
+
+                            response = client.post(
+                                "/api/watch/start",
+                                json={
+                                    "model_a": "gemini-1.5-flash",
+                                    "model_b": "gemini-1.5-pro",
+                                    "partner_type": "colleague",
+                                    "situation": "break",
+                                    "topic": "general",
+                                },
+                            )
+
+                            # ExternalAPIErrorが発生
+                            assert response.status_code in [500, 503]
+
+
+class TestNextWatchMessageLLMError:
+    """next_watch_messageのLLMエラー処理テスト"""
+
+    def test_LLM初期化後のエラー(self, app, client):
+        """LLM初期化後にエラーが発生した場合"""
+        with client.session_transaction() as sess:
+            sess["watch_settings"] = {
+                "model_a": "gemini-1.5-flash",
+                "model_b": "gemini-1.5-pro",
+                "current_speaker": "A",
+            }
+            sess["watch_history"] = [{"speaker": "A", "message": "Test"}]
+
+        with patch("app.initialize_llm") as mock_llm:
+            mock_llm.return_value = MagicMock()
+
+            with patch("routes.watch_routes.get_watch_service") as mock_service:
+                mock_svc = MagicMock()
+                mock_svc.switch_speaker.return_value = "B"
+                mock_svc.get_speaker_display_name.return_value = "花子"
+                # ここで例外を発生させる
+                mock_svc.generate_next_message.side_effect = RuntimeError("Unexpected error")
+                mock_service.return_value = mock_svc
+
+                response = client.post("/api/watch/next", json={})
+
+                # ExternalAPIErrorにラップされるか、500エラー
+                assert response.status_code in [500, 503]
