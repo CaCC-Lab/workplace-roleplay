@@ -20,9 +20,7 @@ from utils.helpers import (
 class WatchService:
     """観戦モード関連のビジネスロジックを処理するサービス"""
 
-    def generate_initial_message(
-        self, llm: BaseChatModel, partner_type: str, situation: str, topic: str
-    ) -> str:
+    def generate_initial_message(self, llm: BaseChatModel, partner_type: str, situation: str, topic: str) -> str:
         """
         観戦モードの最初のメッセージを生成
 
@@ -67,9 +65,7 @@ class WatchService:
         response = llm.invoke(messages)
         return extract_content(response)
 
-    def generate_next_message(
-        self, llm: BaseChatModel, history: List[Dict[str, Any]]
-    ) -> str:
+    def generate_next_message(self, llm: BaseChatModel, history: List[Dict[str, Any]]) -> str:
         """
         観戦モードの次のメッセージを生成
 
@@ -105,9 +101,7 @@ class WatchService:
 
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(
-                content="以下の会話履歴に基づいて、次の発言をしてください：\n\n" + "\n".join(formatted_history)
-            ),
+            HumanMessage(content="以下の会話履歴に基づいて、次の発言をしてください：\n\n" + "\n".join(formatted_history)),
         ]
 
         response = llm.invoke(messages)

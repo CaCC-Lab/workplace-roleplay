@@ -83,9 +83,7 @@ class TestCompliantAPIManager:
             manager = CompliantAPIManager()
             # 過去1時間のリクエストで最大数に到達
             current_time = time.time()
-            manager.request_history = [
-                current_time - i * 5 for i in range(manager.max_requests_per_hour)
-            ]
+            manager.request_history = [current_time - i * 5 for i in range(manager.max_requests_per_hour)]
 
             can_request, wait_seconds = manager._can_make_request()
 
@@ -239,9 +237,7 @@ class TestCreateCompliantGeminiClient:
         with patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"}):
             from compliant_api_manager import create_compliant_gemini_client
 
-            with patch(
-                "langchain_google_genai.ChatGoogleGenerativeAI"
-            ) as mock_client:
+            with patch("langchain_google_genai.ChatGoogleGenerativeAI") as mock_client:
                 mock_client.return_value = MagicMock()
 
                 client, manager = create_compliant_gemini_client()
@@ -258,9 +254,7 @@ class TestCreateCompliantGeminiClient:
                 CompliantAPIManager,
             )
 
-            with patch.object(
-                CompliantAPIManager, "get_api_key"
-            ) as mock_get_key:
+            with patch.object(CompliantAPIManager, "get_api_key") as mock_get_key:
                 mock_get_key.side_effect = RateLimitException("Rate limit")
 
                 with pytest.raises(RateLimitException):
@@ -271,9 +265,7 @@ class TestCreateCompliantGeminiClient:
         with patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"}):
             from compliant_api_manager import create_compliant_gemini_client
 
-            with patch(
-                "langchain_google_genai.ChatGoogleGenerativeAI"
-            ) as mock_client:
+            with patch("langchain_google_genai.ChatGoogleGenerativeAI") as mock_client:
                 mock_client.side_effect = Exception("API Error")
 
                 with pytest.raises(Exception):

@@ -159,9 +159,7 @@ class TestRecommendSecretKeyImprovements:
         """大文字がないキーへの改善提案"""
         from config.security_utils import recommend_secret_key_improvements
 
-        recommendations = recommend_secret_key_improvements(
-            "abcdefghijklmnopqrstuvwxyz123456"
-        )
+        recommendations = recommend_secret_key_improvements("abcdefghijklmnopqrstuvwxyz123456")
 
         assert "uppercase" in recommendations
 
@@ -169,9 +167,7 @@ class TestRecommendSecretKeyImprovements:
         """小文字がないキーへの改善提案"""
         from config.security_utils import recommend_secret_key_improvements
 
-        recommendations = recommend_secret_key_improvements(
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456"
-        )
+        recommendations = recommend_secret_key_improvements("ABCDEFGHIJKLMNOPQRSTUVWXYZ123456")
 
         assert "lowercase" in recommendations
 
@@ -180,9 +176,7 @@ class TestRecommendSecretKeyImprovements:
         from config.security_utils import recommend_secret_key_improvements
 
         # 数字がなく、かつ短すぎるキー（32文字未満でdigits推奨が出る）
-        recommendations = recommend_secret_key_improvements(
-            "ABCDefghijklmnopqrstuvwxyz!@#"
-        )
+        recommendations = recommend_secret_key_improvements("ABCDefghijklmnopqrstuvwxyz!@#")
 
         assert "digits" in recommendations or "Increase length" in recommendations
 
@@ -190,9 +184,7 @@ class TestRecommendSecretKeyImprovements:
         """特殊文字がないキーへの改善提案"""
         from config.security_utils import recommend_secret_key_improvements
 
-        recommendations = recommend_secret_key_improvements(
-            "ABCDefghijklmnopqrstuvwxyz123456"
-        )
+        recommendations = recommend_secret_key_improvements("ABCDefghijklmnopqrstuvwxyz123456")
 
         assert "special characters" in recommendations
 

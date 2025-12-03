@@ -149,9 +149,7 @@ class TestLLMService:
                     {"human": "こんにちは", "ai": "こんにちは！"},
                 ]
 
-                messages = service._build_messages(
-                    history, "今日の天気は？", "あなたはアシスタントです"
-                )
+                messages = service._build_messages(history, "今日の天気は？", "あなたはアシスタントです")
 
                 assert len(messages) == 4  # System + Human + AI + Human
 

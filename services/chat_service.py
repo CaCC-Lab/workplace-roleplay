@@ -2,21 +2,19 @@
 チャット機能を管理するサービス
 雑談、シナリオ、観戦モードのビジネスロジックを担当
 """
-import asyncio
 import json
 import os
 
 # プロジェクトルートからインポート
 import sys
-from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+from typing import AsyncGenerator, Optional, Tuple
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.llm_service import LLMService
 from services.session_service import SessionService
 
-from scenarios import get_all_scenarios, get_scenario_by_id
+from scenarios import get_scenario_by_id
 from utils.constants import (
     EMOTION_VOICE_MAPPING,
     MAX_FEEDBACK_LENGTH,
@@ -42,9 +40,7 @@ class ChatService:
         self.llm_service = llm_service or LLMService()
         self.session_service = session_service or SessionService()
 
-    async def process_chat_message(
-        self, message: str, model_name: Optional[str] = None
-    ) -> AsyncGenerator[str, None]:
+    async def process_chat_message(self, message: str, model_name: Optional[str] = None) -> AsyncGenerator[str, None]:
         """
         雑談モードでメッセージを処理
 
@@ -237,13 +233,9 @@ class ChatService:
         conversation_history = []
         for entry in history:
             if entry["model1"]["message"]:
-                conversation_history.append(
-                    {"human": "model1", "ai": entry["model1"]["message"]}
-                )
+                conversation_history.append({"human": "model1", "ai": entry["model1"]["message"]})
             if entry["model2"]["message"]:
-                conversation_history.append(
-                    {"human": "model2", "ai": entry["model2"]["message"]}
-                )
+                conversation_history.append({"human": "model2", "ai": entry["model2"]["message"]})
 
         # システムプロンプト
         base_prompt = f"""あなたは職場の同僚です。
@@ -310,16 +302,10 @@ class ChatService:
             return "まだ会話がありません。雑談を始めてみましょう！"
 
         # 最新のメッセージを分析
-        recent_history = (
-            chat_history[-max_messages:]
-            if len(chat_history) > max_messages
-            else chat_history
-        )
+        recent_history = chat_history[-max_messages:] if len(chat_history) > max_messages else chat_history
 
         # 会話内容を整形
-        conversation_text = "\n".join(
-            [f"あなた: {entry['human']}\n相手: {entry['ai']}" for entry in recent_history]
-        )
+        conversation_text = "\n".join([f"あなた: {entry['human']}\n相手: {entry['ai']}" for entry in recent_history])
 
         # フィードバックを生成
         feedback_prompt = f"""以下の職場での雑談を分析して、ユーザーのコミュニケーションスキルに関する建設的なフィードバックを提供してください。
@@ -349,9 +335,7 @@ class ChatService:
 
         return feedback
 
-    async def generate_scenario_feedback(
-        self, scenario_id: str, max_messages: int = 10
-    ) -> str:
+    async def generate_scenario_feedback(self, scenario_id: str, max_messages: int = 10) -> str:
         """
         シナリオ練習のフィードバックを生成
 
@@ -373,24 +357,15 @@ class ChatService:
             return "まだ会話がありません。シナリオを始めてみましょう！"
 
         # 最新のメッセージを分析
-        recent_history = (
-            scenario_history[-max_messages:]
-            if len(scenario_history) > max_messages
-            else scenario_history
-        )
+        recent_history = scenario_history[-max_messages:] if len(scenario_history) > max_messages else scenario_history
 
         # 会話内容を整形
         conversation_text = "\n".join(
-            [
-                f"あなた: {entry['human']}\n{scenario['character']['name']}: {entry['ai']}"
-                for entry in recent_history
-            ]
+            [f"あなた: {entry['human']}\n{scenario['character']['name']}: {entry['ai']}" for entry in recent_history]
         )
 
         # フィードバックポイントを含める
-        feedback_points = "\n".join(
-            [f"- {point}" for point in scenario.get("feedback_points", [])]
-        )
+        feedback_points = "\n".join([f"- {point}" for point in scenario.get("feedback_points", [])])
 
         # フィードバックを生成
         feedback_prompt = f"""以下のロールプレイシナリオでの会話を分析して、ユーザーのコミュニケーションスキルに関する建設的なフィードバックを提供してください。

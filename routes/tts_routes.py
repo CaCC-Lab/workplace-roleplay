@@ -100,22 +100,22 @@ TTS機能のフル実装（停止中）
 def text_to_speech_full():
     if request.method == "HEAD":
         return "", 200
-    
+
     data = request.get_json()
     if data is None:
         return jsonify({"error": "Invalid JSON"}), 400
-    
+
     text = data.get("text", "")
     if not text:
         return jsonify({"error": "テキストが必要です"}), 400
-    
+
     voice_name = data.get("voice", "kore")
     voice_style = data.get("style", None)
     emotion = data.get("emotion", None)
-    
+
     # Gemini TTS APIを使用した音声生成ロジック
     # ... (停止中)
-    
+
     return jsonify({
         "audio": audio_content,
         "format": "wav",

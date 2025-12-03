@@ -5,13 +5,13 @@ import os
 from flask import Blueprint, send_from_directory, jsonify
 from flasgger import Swagger
 
-docs_bp = Blueprint('docs', __name__)
+docs_bp = Blueprint("docs", __name__)
 
 
 def init_swagger(app):
     """
     Swagger UIを初期化
-    
+
     Args:
         app: Flaskアプリケーションインスタンス
     """
@@ -27,9 +27,9 @@ def init_swagger(app):
         ],
         "static_url_path": "/flasgger_static",
         "swagger_ui": True,
-        "specs_route": "/api/docs/"
+        "specs_route": "/api/docs/",
     }
-    
+
     swagger_template = {
         "info": {
             "title": "職場コミュニケーション練習アプリ API",
@@ -46,16 +46,14 @@ AIを活用したロールプレイシナリオを通じて職場でのコミュ
 このAPIはセッションベースの認証を使用します。CSRFトークンが必要なエンドポイントがあります。
             """,
             "version": "2.0.0",
-            "contact": {
-                "name": "API Support"
-            }
+            "contact": {"name": "API Support"},
         },
         "securityDefinitions": {
             "csrfToken": {
                 "type": "apiKey",
                 "in": "header",
                 "name": "X-CSRF-Token",
-                "description": "CSRFトークン（/api/csrf-tokenから取得）"
+                "description": "CSRFトークン（/api/csrf-tokenから取得）",
             }
         },
         "tags": [
@@ -66,14 +64,14 @@ AIを活用したロールプレイシナリオを通じて職場でのコミュ
             {"name": "model", "description": "モデル管理API"},
             {"name": "session", "description": "セッション管理API"},
             {"name": "strength", "description": "強み分析API"},
-        ]
+        ],
     }
-    
+
     swagger = Swagger(app, config=swagger_config, template=swagger_template)
     return swagger
 
 
-@docs_bp.route('/api/docs/openapi.yaml')
+@docs_bp.route("/api/docs/openapi.yaml")
 def get_openapi_yaml():
     """
     OpenAPI仕様書（YAML形式）を返す
@@ -88,11 +86,11 @@ def get_openapi_yaml():
             schema:
               type: string
     """
-    docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'docs', 'api')
-    return send_from_directory(docs_dir, 'openapi.yaml', mimetype='text/yaml')
+    docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "api")
+    return send_from_directory(docs_dir, "openapi.yaml", mimetype="text/yaml")
 
 
-@docs_bp.route('/api/docs/info')
+@docs_bp.route("/api/docs/info")
 def get_api_info():
     """
     API情報を取得
@@ -114,13 +112,15 @@ def get_api_info():
                 description:
                   type: string
     """
-    return jsonify({
-        "name": "職場コミュニケーション練習アプリ API",
-        "version": "2.0.0",
-        "description": "AIを活用したロールプレイシナリオを通じて職場でのコミュニケーションスキルを練習するためのAPI",
-        "endpoints": {
-            "swagger_ui": "/api/docs/",
-            "openapi_yaml": "/api/docs/openapi.yaml",
-            "openapi_json": "/api/docs/apispec.json"
+    return jsonify(
+        {
+            "name": "職場コミュニケーション練習アプリ API",
+            "version": "2.0.0",
+            "description": "AIを活用したロールプレイシナリオを通じて職場でのコミュニケーションスキルを練習するためのAPI",
+            "endpoints": {
+                "swagger_ui": "/api/docs/",
+                "openapi_yaml": "/api/docs/openapi.yaml",
+                "openapi_json": "/api/docs/apispec.json",
+            },
         }
-    })
+    )

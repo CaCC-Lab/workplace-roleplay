@@ -2,12 +2,10 @@
 LLM（Large Language Model）関連のサービス
 Gemini APIとの連携を管理
 """
-import asyncio
 import os
 
 # プロジェクトルートからインポート
 import sys
-from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
 import google.generativeai as genai
@@ -67,9 +65,7 @@ class LLMService:
         except Exception as e:
             print(f"Warning: Failed to initialize Gemini API: {e}")
 
-    def create_gemini_llm(
-        self, model_name: str = "gemini-1.5-flash"
-    ) -> ChatGoogleGenerativeAI:
+    def create_gemini_llm(self, model_name: str = "gemini-1.5-flash") -> ChatGoogleGenerativeAI:
         """
         LangChainのGemini Chat modelインスタンス生成
         廃止されたモデルを自動的に代替モデルに置き換える
@@ -85,9 +81,7 @@ class LLMService:
             if model_name in self.DEPRECATED_MODELS:
                 original_model = model_name
                 model_name = self.DEPRECATED_MODELS[model_name]
-                print(
-                    f"Model '{original_model}' is deprecated. Using '{model_name}' instead."
-                )
+                print(f"Model '{original_model}' is deprecated. Using '{model_name}' instead.")
 
             # APIキーマネージャーからキーを取得
             current_api_key = self.api_key_manager.get_api_key()

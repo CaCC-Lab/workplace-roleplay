@@ -6,11 +6,10 @@ Handles model listing and feature flags API endpoints.
 import secrets
 
 from config.feature_flags import (
-    FeatureFlags,
     get_feature_flags,
     is_model_selection_enabled,
 )
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, session
 
 from config import get_cached_config
 from errors import with_error_handling
@@ -45,9 +44,7 @@ def get_all_available_models():
 
         model_dicts = []
         for model_id in gemini_models:
-            model_dicts.append(
-                {"id": model_id, "name": model_id.split("/")[-1], "provider": "gemini"}
-            )
+            model_dicts.append({"id": model_id, "name": model_id.split("/")[-1], "provider": "gemini"})
 
         return {"models": model_dicts, "categories": {"gemini": model_dicts}}
     except Exception as e:
@@ -75,9 +72,7 @@ def api_models():
     if not is_model_selection_enabled():
         return jsonify(
             {
-                "models": [
-                    {"name": config.DEFAULT_MODEL, "display_name": "Default Model"}
-                ],
+                "models": [{"name": config.DEFAULT_MODEL, "display_name": "Default Model"}],
                 "feature_disabled": True,
                 "message": "モデル選択機能は現在無効化されています。",
             }

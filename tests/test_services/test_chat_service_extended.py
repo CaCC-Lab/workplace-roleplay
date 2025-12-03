@@ -118,9 +118,7 @@ class TestProcessScenarioMessage:
             service = ChatService(llm_service=mock_llm, session_service=mock_session)
 
             result = []
-            async for chunk in service.process_scenario_message(
-                "nonexistent", "テスト"
-            ):
+            async for chunk in service.process_scenario_message("nonexistent", "テスト"):
                 result.append(chunk)
 
             assert "見つかりません" in "".join(result)
@@ -174,9 +172,7 @@ class TestProcessScenarioMessage:
             service = ChatService(llm_service=mock_llm, session_service=mock_session)
 
             result = []
-            async for chunk in service.process_scenario_message(
-                "test", "報告します"
-            ):
+            async for chunk in service.process_scenario_message("test", "報告します"):
                 result.append(chunk)
 
             assert "わかりました" in "".join(result)
@@ -425,9 +421,7 @@ class TestGenerateChatFeedbackExtended:
         mock_llm.invoke_sync.return_value = "良いコミュニケーションでした！"
 
         mock_session = MagicMock()
-        mock_session.get_chat_history.return_value = [
-            {"human": "こんにちは", "ai": "こんにちは！"}
-        ]
+        mock_session.get_chat_history.return_value = [{"human": "こんにちは", "ai": "こんにちは！"}]
         mock_session.get_current_model.return_value = "gemini-1.5-flash"
 
         from services.chat_service import ChatService
@@ -446,9 +440,7 @@ class TestGenerateChatFeedbackExtended:
         mock_llm.invoke_sync.return_value = "a" * 5000
 
         mock_session = MagicMock()
-        mock_session.get_chat_history.return_value = [
-            {"human": "こんにちは", "ai": "こんにちは！"}
-        ]
+        mock_session.get_chat_history.return_value = [{"human": "こんにちは", "ai": "こんにちは！"}]
         mock_session.get_current_model.return_value = "gemini-1.5-flash"
 
         from services.chat_service import ChatService
@@ -472,9 +464,7 @@ class TestGenerateScenarioFeedbackExtended:
         mock_llm.invoke_sync.return_value = "良い対応でした！"
 
         mock_session = MagicMock()
-        mock_session.get_scenario_history.return_value = [
-            {"human": "報告します", "ai": "はい、どうぞ"}
-        ]
+        mock_session.get_scenario_history.return_value = [{"human": "報告します", "ai": "はい、どうぞ"}]
         mock_session.get_current_model.return_value = "gemini-1.5-flash"
 
         mock_scenario = {

@@ -22,9 +22,7 @@ class TestGenerateCharacterImage:
 
     def test_シナリオIDなしでエラー(self, csrf_client):
         """シナリオIDがない場合エラーを返す"""
-        response = csrf_client.post(
-            "/api/generate_character_image", json={"emotion": "happy"}
-        )
+        response = csrf_client.post("/api/generate_character_image", json={"emotion": "happy"})
 
         assert response.status_code == 400
         data = response.get_json()
@@ -68,9 +66,7 @@ class TestGenerateCharacterImage:
             "emotion": "neutral",
         }
 
-        with patch(
-            "routes.image_routes.image_cache", {"scenario1_neutral": cached_data}
-        ):
+        with patch("routes.image_routes.image_cache", {"scenario1_neutral": cached_data}):
             response = csrf_client.post(
                 "/api/generate_character_image",
                 json={"scenario_id": "scenario1", "emotion": "neutral"},
@@ -89,9 +85,7 @@ class TestGenerateCharacterImage:
             "emotion": "friendly",
         }
 
-        with patch(
-            "routes.image_routes.image_cache", {"scenario7_friendly": cached_data}
-        ):
+        with patch("routes.image_routes.image_cache", {"scenario7_friendly": cached_data}):
             response = csrf_client.post(
                 "/api/generate_character_image",
                 json={"scenario_id": "scenario7", "emotion": "friendly"},
@@ -110,9 +104,7 @@ class TestGenerateCharacterImage:
                 "emotion": emotion,
             }
 
-            with patch(
-                "routes.image_routes.image_cache", {f"scenario1_{emotion}": cached_data}
-            ):
+            with patch("routes.image_routes.image_cache", {f"scenario1_{emotion}": cached_data}):
                 response = csrf_client.post(
                     "/api/generate_character_image",
                     json={"scenario_id": "scenario1", "emotion": emotion},
@@ -129,9 +121,7 @@ class TestGenerateCharacterImage:
             "emotion": "neutral",
         }
 
-        with patch(
-            "routes.image_routes.image_cache", {"gray_zone_01_neutral": cached_data}
-        ):
+        with patch("routes.image_routes.image_cache", {"gray_zone_01_neutral": cached_data}):
             response = csrf_client.post(
                 "/api/generate_character_image",
                 json={"scenario_id": "gray_zone_01", "emotion": "neutral"},
@@ -168,9 +158,7 @@ class TestGenerateCharacterImage:
             "emotion": "neutral",
         }
 
-        with patch(
-            "routes.image_routes.image_cache", {"scenario99_neutral": cached_data}
-        ):
+        with patch("routes.image_routes.image_cache", {"scenario99_neutral": cached_data}):
             # scenario99は存在しないのでエラーになる
             response = csrf_client.post(
                 "/api/generate_character_image",

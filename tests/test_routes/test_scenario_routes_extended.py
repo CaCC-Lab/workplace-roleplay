@@ -83,9 +83,7 @@ class TestScenarioChat:
 
     def test_JSONなしでリクエスト(self, client):
         """JSONなしでリクエスト"""
-        response = client.post(
-            "/api/scenario_chat", content_type="application/json", data=""
-        )
+        response = client.post("/api/scenario_chat", content_type="application/json", data="")
 
         assert response.status_code in [400, 500]
 
@@ -189,13 +187,11 @@ class TestCategorizedScenarios:
 
     def test_カテゴリ別シナリオ取得(self, client):
         """カテゴリ別シナリオを取得"""
-        with patch(
-            "routes.scenario_routes.get_categorized_scenarios_func"
-        ) as mock_categorize:
-            mock_categorize.return_value = {
-                "business": [{"id": "scenario1", "title": "テスト"}],
-                "harassment": [],
-            }
+        with patch("routes.scenario_routes._get_categorized_scenarios_local") as mock_categorize:
+            mock_categorize.return_value = (
+                {"business": [{"id": "scenario1", "title": "テスト"}]},
+                {},
+            )
 
             response = client.get("/api/categorized_scenarios")
 
@@ -209,22 +205,17 @@ class TestScenarioCategory:
 
     def test_カテゴリ取得(self, client):
         """シナリオのカテゴリを取得"""
-        with patch("routes.scenario_routes.scenarios") as mock_scenarios:
-            mock_scenarios.get.return_value = {
-                "id": "scenario1",
-                "title": "テストシナリオ",
-            }
+        with patch("routes.scenario_routes.get_scenario_service") as mock_service:
+            mock_svc = MagicMock()
+            mock_svc.get_scenario_category_summary.return_value = {"category": "business"}
+            mock_svc.is_harassment_scenario.return_value = False
+            mock_service.return_value = mock_svc
 
-            with patch(
-                "routes.scenario_routes.get_scenario_category_summary"
-            ) as mock_summary:
-                mock_summary.return_value = {"category": "business"}
+            response = client.get("/api/scenario/scenario1/category")
 
-                response = client.get("/api/scenario/scenario1/category")
-
-                if response.status_code == 200:
-                    data = response.get_json()
-                    assert "category" in data or "error" not in data
+            if response.status_code == 200:
+                data = response.get_json()
+                assert "category" in data or "error" not in data
 
 
 class TestGetAssist:
@@ -324,9 +315,7 @@ class TestGetAllAvailableModels:
     def test_モデルリスト取得成功(self, app):
         """モデルリスト取得成功"""
         with patch("routes.scenario_routes._get_all_available_models") as mock_func:
-            mock_func.return_value = {
-                "models": [{"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"}]
-            }
+            mock_func.return_value = {"models": [{"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"}]}
 
             from routes.scenario_routes import _get_all_available_models
 
@@ -560,9 +549,7 @@ class TestScenarioFeedbackExtended:
     def test_レート制限エラー(self, app, client):
         """レート制限エラーが発生した場合"""
         with client.session_transaction() as sess:
-            sess["scenario_history"] = {
-                "scenario1": [{"human": "test", "ai": "response"}]
-            }
+            sess["scenario_history"] = {"scenario1": [{"human": "test", "ai": "response"}]}
 
         with patch("routes.scenario_routes.scenario_service") as mock_service:
             mock_service.get_scenario_by_id.return_value = {

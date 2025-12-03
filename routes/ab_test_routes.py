@@ -2,21 +2,18 @@
 A/Bテスト用の並行エンドポイント
 既存システムに影響を与えずに新サービスをテスト
 """
-import asyncio
-import json
 import time
 from datetime import datetime
-from typing import Any, Dict
 
 from config.feature_flags import get_feature_flags
-from flask import Blueprint, Response, jsonify, request, session
+from flask import Blueprint, Response, jsonify, request
 
 # サービスインポート
 from services.chat_service import ChatService
 from services.llm_service import LLMService
 from services.session_service import SessionService
 
-from utils.security import CSRFProtection, SecurityUtils, rate_limiter
+from utils.security import CSRFProtection, rate_limiter
 
 # Blueprintの作成
 ab_test_bp = Blueprint("ab_test", __name__, url_prefix="/api/v2")
@@ -36,9 +33,7 @@ def get_services():
     if _session_service is None:
         _session_service = SessionService()
     if _chat_service is None:
-        _chat_service = ChatService(
-            llm_service=_llm_service, session_service=_session_service
-        )
+        _chat_service = ChatService(llm_service=_llm_service, session_service=_session_service)
 
     return _chat_service, _session_service, _llm_service
 
@@ -68,9 +63,6 @@ def chat_v2():
         # SSEレスポンスの生成（改善版）
         def generate():
             try:
-                # セキュリティ機能をインポート
-                import threading
-
                 # asyncioの実行を改善（ThreadPoolExecutorを使用）
                 from concurrent.futures import ThreadPoolExecutor
 
@@ -89,23 +81,17 @@ def chat_v2():
 
                         async def process():
                             nonlocal accumulated
-                            async for chunk in chat_service.process_chat_message(
-                                message, model_name
-                            ):
+                            async for chunk in chat_service.process_chat_message(message, model_name):
                                 # XSS対策: HTMLエスケープ
                                 safe_chunk = SecurityUtils.escape_html(chunk)
                                 accumulated += safe_chunk
 
                                 # セキュアなJSON生成
-                                data = SecurityUtils.escape_json(
-                                    {"content": safe_chunk}
-                                )
+                                data = SecurityUtils.escape_json({"content": safe_chunk})
                                 yield f"data: {data}\n\n"
 
                             # 最終データ（セキュア）
-                            final_data = SecurityUtils.escape_json(
-                                {"done": True, "full_content": accumulated}
-                            )
+                            final_data = SecurityUtils.escape_json({"done": True, "full_content": accumulated})
                             yield f"data: {final_data}\n\n"
 
                         # ジェネレータを実行
@@ -243,9 +229,7 @@ def chat_compare():
         # 差分があればログ出力
         if not is_identical:
             print(f"[A/B Test Difference] Message: {message[:50]}...")
-            print(
-                f"  Legacy length: {len(legacy_response)}, New length: {len(new_response)}"
-            )
+            print(f"  Legacy length: {len(legacy_response)}, New length: {len(new_response)}")
             print(f"  Time: Legacy {legacy_time:.2f}s, New {new_time:.2f}s")
 
         return jsonify(comparison_result)
@@ -333,8 +317,6 @@ def watch_start_v2():
     /api/v2/watch/start
     """
     return (
-        jsonify(
-            {"message": "Watch mode v2 endpoint - Coming soon", "service_version": "v2"}
-        ),
+        jsonify({"message": "Watch mode v2 endpoint - Coming soon", "service_version": "v2"}),
         501,
     )  # Not Implemented

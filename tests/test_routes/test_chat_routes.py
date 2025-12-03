@@ -38,17 +38,13 @@ class TestHandleChat:
                 "model": "gemini-1.5-flash",
             }
 
-        response = csrf_client.post(
-            "/api/chat", json={"message": "", "model": "gemini-1.5-flash"}
-        )
+        response = csrf_client.post("/api/chat", json={"message": "", "model": "gemini-1.5-flash"})
 
         assert response.status_code == 400
 
     def test_セッション未初期化でエラーを返す(self, csrf_client):
         """チャットセッションが初期化されていない場合"""
-        response = csrf_client.post(
-            "/api/chat", json={"message": "テスト", "model": "gemini-1.5-flash"}
-        )
+        response = csrf_client.post("/api/chat", json={"message": "テスト", "model": "gemini-1.5-flash"})
 
         assert response.status_code == 400
 
@@ -207,9 +203,7 @@ class TestClearHistory:
     def test_シナリオ履歴をクリアできる(self, csrf_client):
         """シナリオモードの履歴をクリア"""
         with csrf_client.session_transaction() as sess:
-            sess["scenario_history"] = {
-                "scenario_1": [{"human": "test", "ai": "response"}]
-            }
+            sess["scenario_history"] = {"scenario_1": [{"human": "test", "ai": "response"}]}
 
         response = csrf_client.post(
             "/api/clear_history",
@@ -242,14 +236,10 @@ class TestChatFeedback:
                 {"human": "今日は天気がいいですね", "ai": "そうですね、気持ちいい天気ですね。"},
             ]
 
-        with patch(
-            "services.feedback_service.FeedbackService.build_chat_feedback_prompt"
-        ) as mock_build:
+        with patch("services.feedback_service.FeedbackService.build_chat_feedback_prompt") as mock_build:
             mock_build.return_value = "フィードバックプロンプト"
 
-            with patch(
-                "services.feedback_service.FeedbackService.try_multiple_models_for_prompt"
-            ) as mock_try:
+            with patch("services.feedback_service.FeedbackService.try_multiple_models_for_prompt") as mock_try:
                 mock_try.return_value = (
                     "良いコミュニケーションでした！",
                     "gemini-1.5-flash",
@@ -292,14 +282,10 @@ class TestChatFeedback:
         with csrf_client.session_transaction() as sess:
             sess["chat_history"] = [{"human": "test", "ai": "response"}]
 
-        with patch(
-            "services.feedback_service.FeedbackService.build_chat_feedback_prompt"
-        ) as mock_build:
+        with patch("services.feedback_service.FeedbackService.build_chat_feedback_prompt") as mock_build:
             mock_build.return_value = "prompt"
 
-            with patch(
-                "services.feedback_service.FeedbackService.try_multiple_models_for_prompt"
-            ) as mock_try:
+            with patch("services.feedback_service.FeedbackService.try_multiple_models_for_prompt") as mock_try:
                 mock_try.return_value = (None, None, "RATE_LIMIT_EXCEEDED")
 
                 response = csrf_client.post(
@@ -314,14 +300,10 @@ class TestChatFeedback:
         with csrf_client.session_transaction() as sess:
             sess["chat_history"] = [{"human": "test", "ai": "response"}]
 
-        with patch(
-            "services.feedback_service.FeedbackService.build_chat_feedback_prompt"
-        ) as mock_build:
+        with patch("services.feedback_service.FeedbackService.build_chat_feedback_prompt") as mock_build:
             mock_build.return_value = "prompt"
 
-            with patch(
-                "services.feedback_service.FeedbackService.try_multiple_models_for_prompt"
-            ) as mock_try:
+            with patch("services.feedback_service.FeedbackService.try_multiple_models_for_prompt") as mock_try:
                 mock_try.return_value = (None, None, "API Error")
 
                 response = csrf_client.post(
@@ -338,9 +320,7 @@ class TestConversationHistory:
     def test_シナリオ履歴を取得できる(self, csrf_client):
         """シナリオタイプの履歴取得"""
         with csrf_client.session_transaction() as sess:
-            sess["scenario_history"] = {
-                "scenario_1": [{"human": "test", "ai": "response"}]
-            }
+            sess["scenario_history"] = {"scenario_1": [{"human": "test", "ai": "response"}]}
 
         response = csrf_client.post(
             "/api/conversation_history",
@@ -357,9 +337,7 @@ class TestConversationHistory:
         with csrf_client.session_transaction() as sess:
             sess["chat_history"] = [{"human": "hello", "ai": "hi"}]
 
-        response = csrf_client.post(
-            "/api/conversation_history", json={"type": "chat"}
-        )
+        response = csrf_client.post("/api/conversation_history", json={"type": "chat"})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -373,9 +351,7 @@ class TestConversationHistory:
                 {"speaker": "B", "message": "hi", "timestamp": "2024-01-01"},
             ]
 
-        response = csrf_client.post(
-            "/api/conversation_history", json={"type": "watch"}
-        )
+        response = csrf_client.post("/api/conversation_history", json={"type": "watch"})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -383,9 +359,7 @@ class TestConversationHistory:
 
     def test_履歴がない場合空リストを返す(self, csrf_client):
         """履歴がない場合"""
-        response = csrf_client.post(
-            "/api/conversation_history", json={"type": "chat"}
-        )
+        response = csrf_client.post("/api/conversation_history", json={"type": "chat"})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -393,17 +367,13 @@ class TestConversationHistory:
 
     def test_シナリオIDなしでエラーを返す(self, csrf_client):
         """シナリオタイプでIDがない場合"""
-        response = csrf_client.post(
-            "/api/conversation_history", json={"type": "scenario"}
-        )
+        response = csrf_client.post("/api/conversation_history", json={"type": "scenario"})
 
         assert response.status_code == 400
 
     def test_不明な履歴タイプでエラーを返す(self, csrf_client):
         """不明な履歴タイプを指定した場合"""
-        response = csrf_client.post(
-            "/api/conversation_history", json={"type": "unknown"}
-        )
+        response = csrf_client.post("/api/conversation_history", json={"type": "unknown"})
 
         assert response.status_code == 400
 
@@ -420,9 +390,7 @@ class TestConversationHistory:
 
     def test_観戦履歴が存在しない場合空リストを返す(self, csrf_client):
         """観戦履歴が存在しない場合"""
-        response = csrf_client.post(
-            "/api/conversation_history", json={"type": "watch"}
-        )
+        response = csrf_client.post("/api/conversation_history", json={"type": "watch"})
 
         assert response.status_code == 200
         data = response.get_json()

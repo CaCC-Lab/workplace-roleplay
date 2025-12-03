@@ -4,7 +4,7 @@ Handles scenario-related API endpoints.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from config.feature_flags import get_feature_flags
 from flask import (
@@ -25,18 +25,7 @@ from config import get_cached_config
 from errors import (
     NotFoundError,
     ValidationError,
-    secure_error_handler,
     with_error_handling,
-)
-
-# シナリオ関連のインポート
-from scenarios import load_scenarios
-from scenarios.category_manager import (
-    get_categorized_scenarios as get_categorized_scenarios_func,
-)
-from scenarios.category_manager import (
-    get_scenario_category_summary,
-    is_harassment_scenario,
 )
 
 # セキュリティ関連のインポート
@@ -72,7 +61,6 @@ from utils.helpers import (
     add_messages_from_history,
     add_to_session_history,
     clear_session_history,
-    format_conversation_history_for_feedback,
     initialize_session_history,
     set_session_start_time,
 )
@@ -126,9 +114,7 @@ def list_scenarios() -> str:
     model_info = _get_all_available_models()
     available_models = model_info["models"]
 
-    return render_template(
-        "scenarios_list.html", scenarios=scenarios, models=available_models
-    )
+    return render_template("scenarios_list.html", scenarios=scenarios, models=available_models)
 
 
 @scenario_bp.route("/scenario/<scenario_id>")
@@ -194,9 +180,7 @@ def list_harassment_scenarios():
     harassment_consent = session.get("harassment_consent", False)
 
     if not harassment_consent:
-        return render_template(
-            "scenarios/harassment_consent.html", next_url="/scenarios/harassment"
-        )
+        return render_template("scenarios/harassment_consent.html", next_url="/scenarios/harassment")
 
     _, harassment_scenarios = _get_categorized_scenarios_local()
 
@@ -272,9 +256,7 @@ def scenario_chat() -> Response:
             set_session_start_time("scenario", scenario_id)
 
         # システムプロンプトを構築（サービス層を使用）
-        system_prompt = scenario_service.build_system_prompt(
-            scenario_data, is_reverse_role
-        )
+        system_prompt = scenario_service.build_system_prompt(scenario_data, is_reverse_role)
 
         response = ""
 
@@ -284,15 +266,11 @@ def scenario_chat() -> Response:
 
             messages: List[BaseMessage] = []
             messages.append(SystemMessage(content=system_prompt))
-            add_messages_from_history(
-                messages, session["scenario_history"][scenario_id]
-            )
+            add_messages_from_history(messages, session["scenario_history"][scenario_id])
 
             if len(session["scenario_history"][scenario_id]) == 0:
                 # 初期メッセージの取得（サービス層を使用）
-                initial_message = scenario_service.get_initial_message(
-                    scenario_data, is_reverse_role
-                )
+                initial_message = scenario_service.get_initial_message(scenario_data, is_reverse_role)
 
                 if is_reverse_role:
                     if not user_message and initial_message:
@@ -301,9 +279,7 @@ def scenario_chat() -> Response:
                             {"human": "[シナリオ開始]", "ai": initial_message},
                             scenario_id,
                         )
-                        return jsonify(
-                            {"response": SecurityUtils.escape_html(initial_message)}
-                        )
+                        return jsonify({"response": SecurityUtils.escape_html(initial_message)})
                     else:
                         messages.append(HumanMessage(content=user_message))
                 else:
@@ -357,9 +333,7 @@ def clear_scenario_history():
     except Exception as e:
         print(f"Error clearing scenario history: {str(e)}")
         return (
-            jsonify(
-                {"error": f"履歴のクリアに失敗しました: {SecurityUtils.get_safe_error_message(e)}"}
-            ),
+            jsonify({"error": f"履歴のクリアに失敗しました: {SecurityUtils.get_safe_error_message(e)}"}),
             500,
         )
 
@@ -379,10 +353,7 @@ def get_scenario_feedback() -> Response:
         if not scenario_data:
             return jsonify({"error": "無効なシナリオIDです"}), 400
 
-        if (
-            "scenario_history" not in session
-            or scenario_id not in session["scenario_history"]
-        ):
+        if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
             return jsonify({"error": "会話履歴が見つかりません"}), 404
 
         history = session["scenario_history"][scenario_id]
@@ -394,18 +365,14 @@ def get_scenario_feedback() -> Response:
 
         feedback_service = get_feedback_service()
 
-        feedback_prompt = feedback_service.build_scenario_feedback_prompt(
-            history, scenario_data, is_reverse_role
-        )
+        feedback_prompt = feedback_service.build_scenario_feedback_prompt(history, scenario_data, is_reverse_role)
 
         try:
             (
                 feedback_content,
                 used_model,
                 error_msg,
-            ) = feedback_service.try_multiple_models_for_prompt(
-                feedback_prompt, selected_model
-            )
+            ) = feedback_service.try_multiple_models_for_prompt(feedback_prompt, selected_model)
 
             if error_msg is None:
                 response_data = {
@@ -436,9 +403,7 @@ def get_scenario_feedback() -> Response:
                         429,
                     )
                 else:
-                    safe_message = SecurityUtils.get_safe_error_message(
-                        Exception(error_msg)
-                    )
+                    safe_message = SecurityUtils.get_safe_error_message(Exception(error_msg))
                     return (
                         jsonify(
                             {

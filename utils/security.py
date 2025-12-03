@@ -5,7 +5,6 @@ XSS、CSRF、入力検証などのセキュリティ機能を提供
 import hashlib
 import hmac
 import re
-import html
 import json
 import time
 import logging
@@ -17,17 +16,18 @@ import bleach
 # ロガーの設定
 logger = logging.getLogger(__name__)
 
+
 class SecurityUtils:
     """セキュリティユーティリティクラス"""
-    
+
     # XSS対策: 許可するHTMLタグ
-    ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'code', 'pre']
-    ALLOWED_ATTRIBUTES = {'code': ['class']}
-    
+    ALLOWED_TAGS = ["p", "br", "strong", "em", "u", "ol", "ul", "li", "code", "pre"]
+    ALLOWED_ATTRIBUTES = {"code": ["class"]}
+
     # 入力検証: 最大文字数
     MAX_MESSAGE_LENGTH = 10000
     MAX_MODEL_NAME_LENGTH = 50
-    
+
     @staticmethod
     def escape_html(content: str) -> str:
         """
@@ -36,20 +36,17 @@ class SecurityUtils:
         """
         if not content:
             return ""
-        
+
         # bleachを使用してHTMLをサニタイズ（これだけで十分）
         cleaned = bleach.clean(
-            content,
-            tags=SecurityUtils.ALLOWED_TAGS,
-            attributes=SecurityUtils.ALLOWED_ATTRIBUTES,
-            strip=True
+            content, tags=SecurityUtils.ALLOWED_TAGS, attributes=SecurityUtils.ALLOWED_ATTRIBUTES, strip=True
         )
-        
+
         # 二重エスケープを削除（データ破損を防ぐ）
         # cleaned = html.escape(cleaned, quote=True)  # 削除
-        
+
         return cleaned
-    
+
     @staticmethod
     def escape_json(data: Dict[str, Any]) -> str:
         """
@@ -58,40 +55,40 @@ class SecurityUtils:
         """
         # ensure_ascii=Trueで非ASCII文字をエスケープ
         # これによりXSS攻撃を防ぐ
-        return json.dumps(data, ensure_ascii=True, separators=(',', ':'))
-    
+        return json.dumps(data, ensure_ascii=True, separators=(",", ":"))
+
     @staticmethod
     def validate_message(message: str) -> Tuple[bool, Optional[str]]:
         """
         メッセージの検証
-        
+
         Returns:
             (有効かどうか, エラーメッセージ)
         """
         if not message:
             return False, "メッセージが空です"
-        
+
         if len(message) > SecurityUtils.MAX_MESSAGE_LENGTH:
             return False, f"メッセージが長すぎます（最大{SecurityUtils.MAX_MESSAGE_LENGTH}文字）"
-        
+
         # 危険なパターンのチェック
         dangerous_patterns = [
-            r'<script',
-            r'javascript:',
-            r'on\w+\s*=',  # onload=, onclick=など
-            r'data:text/html',
-            r'vbscript:',
-            r'<iframe',
-            r'<embed',
-            r'<object'
+            r"<script",
+            r"javascript:",
+            r"on\w+\s*=",  # onload=, onclick=など
+            r"data:text/html",
+            r"vbscript:",
+            r"<iframe",
+            r"<embed",
+            r"<object",
         ]
-        
+
         for pattern in dangerous_patterns:
             if re.search(pattern, message, re.IGNORECASE):
                 return False, "不正な内容が含まれています"
-        
+
         return True, None
-    
+
     @staticmethod
     def validate_model_name(model_name: str) -> bool:
         """
@@ -99,90 +96,90 @@ class SecurityUtils:
         """
         if not model_name:
             return True  # 空の場合はデフォルトを使用
-        
+
         if len(model_name) > SecurityUtils.MAX_MODEL_NAME_LENGTH:
             return False
-        
+
         # gemini/プレフィックスを除去
-        if model_name.startswith('gemini/'):
+        if model_name.startswith("gemini/"):
             model_name = model_name[7:]  # 'gemini/'の7文字を除去
-        
+
         # 許可されたモデル名のパターン（スラッシュも許可）
-        allowed_pattern = r'^[a-zA-Z0-9\-\./]+$'
+        allowed_pattern = r"^[a-zA-Z0-9\-\./]+$"
         if not re.match(allowed_pattern, model_name):
             return False
-        
+
         # 既知の有効なモデル名リスト（プレフィックスなし）
         valid_models = [
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-flash-002',
-            'gemini-1.5-flash-8b',
-            'gemini-1.5-pro',
-            'gemini-1.5-pro-latest',
-            'gemini-1.5-pro-002',
-            'gemini-1.0-pro',
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-exp',
-            'gemini-2.5-flash',
-            'gemini-2.5-flash-lite',  # 追加！Gemini Web検索で存在確認済み
-            'gemini-2.5-pro'
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash-002",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
+            "gemini-1.5-pro-latest",
+            "gemini-1.5-pro-002",
+            "gemini-1.0-pro",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-exp",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",  # 追加！Gemini Web検索で存在確認済み
+            "gemini-2.5-pro",
         ]
-        
+
         # プレフィックスを除去したモデル名で検証
         return model_name in valid_models
-    
+
     @staticmethod
     def sanitize_input(text: str) -> str:
         """
         入力テキストのサニタイズ
-        
+
         Args:
             text: サニタイズするテキスト
-        
+
         Returns:
             サニタイズされたテキスト
         """
         if not text:
             return ""
-        
+
         # 基本的なサニタイズ（XSS対策はescape_htmlで行う）
         # 改行やタブを正規化
         text = text.strip()
         # 過度な空白を削減
-        text = ' '.join(text.split())
-        
+        text = " ".join(text.split())
+
         return text
-    
+
     @staticmethod
     def validate_scenario_id(scenario_id: str) -> bool:
         """
         シナリオIDの検証
         実際のシナリオID形式をサポート（例: scenario1, scenario43, training_01, gray_zone_01）
-        
+
         Args:
             scenario_id: 検証するシナリオID
-        
+
         Returns:
             有効ならTrue
         """
         if not scenario_id or not isinstance(scenario_id, str):
             return False
-        
+
         # 複数の形式をサポート:
         # 1. scenarioN形式: scenario1, scenario43 など
         # 2. prefix_NN形式: training_01, gray_zone_01 など
         allowed_patterns = [
-            r'^scenario\d+$',  # scenario1, scenario43 など
-            r'^[a-z]+(?:_[a-z]+)*_\d{2}$'  # training_01, gray_zone_01 など
+            r"^scenario\d+$",  # scenario1, scenario43 など
+            r"^[a-z]+(?:_[a-z]+)*_\d{2}$",  # training_01, gray_zone_01 など
         ]
-        
+
         for pattern in allowed_patterns:
             if re.match(pattern, scenario_id):
                 return True
-        
+
         return False
-    
+
     @staticmethod
     def hash_user_id(user_id: str, salt: str = None) -> str:
         """
@@ -192,98 +189,97 @@ class SecurityUtils:
         if not salt:
             # 環境変数から取得（本番環境では必須）
             import os
-            salt = os.getenv('AB_TEST_SALT', 'default-salt-change-in-production')
-        
+
+            salt = os.getenv("AB_TEST_SALT", "default-salt-change-in-production")
+
         # HMAC-SHA256を使用
-        return hmac.new(
-            salt.encode(),
-            user_id.encode(),
-            hashlib.sha256
-        ).hexdigest()
-    
+        return hmac.new(salt.encode(), user_id.encode(), hashlib.sha256).hexdigest()
+
     @staticmethod
     def get_safe_error_message(error: Exception) -> str:
         """
         クライアント向けの安全なエラーメッセージを生成
         内部詳細を隠蔽し、セキュリティリスクを軽減
-        
+
         Args:
             error: 発生した例外オブジェクト
-        
+
         Returns:
             クライアント向けの一般的なエラーメッセージ
         """
         # 詳細なエラー情報はサーバーサイドログに記録
         logger.error(f"Internal error details: {str(error)}", exc_info=True)
-        
+
         # エラータイプに基づいた一般的なメッセージを返す
         error_str = str(error).lower()
-        
+
         # レート制限エラーの場合
         if any(keyword in error_str for keyword in ["rate limit", "quota", "429", "レート制限"]):
             return "システムが混雑しています"
-        
+
         # 認証エラーの場合
         if any(keyword in error_str for keyword in ["authentication", "auth", "api key", "unauthorized"]):
             return "認証エラーが発生しました"
-        
+
         # ネットワークエラーの場合
         if any(keyword in error_str for keyword in ["connection", "network", "timeout", "unreachable"]):
             return "ネットワークエラーが発生しました"
-        
+
         # その他の場合は一般的なメッセージ
         return "システムエラーが発生しました"
 
 
 class CSRFProtection:
     """CSRF保護機能"""
-    
+
     @staticmethod
     def generate_token() -> str:
         """CSRFトークンの生成"""
         import secrets
+
         return secrets.token_hex(32)
-    
+
     @staticmethod
     def validate_token(token: str) -> bool:
         """CSRFトークンの検証"""
         if not token:
             return False
-        
-        expected_token = session.get('csrf_token')
+
+        expected_token = session.get("csrf_token")
         if not expected_token:
             return False
-        
+
         # タイミング攻撃を防ぐため、hmac.compare_digestを使用
         return hmac.compare_digest(token, expected_token)
-    
+
     @staticmethod
     def require_csrf(f):
         """CSRF保護デコレータ"""
+
         @wraps(f)
         def decorated_function(*args, **kwargs):
             # GETリクエストは除外
-            if request.method == 'GET':
+            if request.method == "GET":
                 return f(*args, **kwargs)
-            
+
             # CSRFトークンの検証
-            token = request.headers.get('X-CSRF-Token')
+            token = request.headers.get("X-CSRF-Token")
             if not token:
                 # フォームデータからも取得を試みる
-                token = request.form.get('csrf_token')
-            
+                token = request.form.get("csrf_token")
+
             if not CSRFProtection.validate_token(token):
                 logger.warning(f"CSRF token validation failed for {request.path}")
-                return jsonify({'error': 'CSRF token validation failed'}), 403
-            
+                return jsonify({"error": "CSRF token validation failed"}), 403
+
             return f(*args, **kwargs)
-        
+
         return decorated_function
 
 
 class RateLimiter:
     """レート制限機能"""
-    
+
     def __init__(self, max_requests: int = 100, window_seconds: int = 60):
         """
         Args:
@@ -293,127 +289,125 @@ class RateLimiter:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.requests = {}  # {ip: [(timestamp, count)]}
-    
+
     def is_allowed(self, identifier: str) -> bool:
         """
         リクエストが許可されるかチェック
-        
+
         Args:
             identifier: IPアドレスやユーザーIDなど
         """
         import time
+
         current_time = time.time()
-        
+
         if identifier not in self.requests:
             self.requests[identifier] = []
-        
+
         # 古いエントリを削除
         self.requests[identifier] = [
-            (t, c) for t, c in self.requests[identifier]
-            if current_time - t < self.window_seconds
+            (t, c) for t, c in self.requests[identifier] if current_time - t < self.window_seconds
         ]
-        
+
         # 現在のウィンドウ内のリクエスト数を計算
         total_requests = sum(c for _, c in self.requests[identifier])
-        
+
         if total_requests >= self.max_requests:
             return False
-        
+
         # リクエストを記録
         self.requests[identifier].append((current_time, 1))
         return True
-    
+
     def rate_limit(self, max_requests: int = None, window_seconds: int = None):
         """レート制限デコレータ"""
         if max_requests:
             self.max_requests = max_requests
         if window_seconds:
             self.window_seconds = window_seconds
-        
+
         def decorator(f):
             @wraps(f)
             def decorated_function(*args, **kwargs):
                 # IPアドレスを識別子として使用
                 identifier = request.remote_addr
-                
+
                 if not self.is_allowed(identifier):
-                    return jsonify({
-                        'error': 'Rate limit exceeded',
-                        'retry_after': self.window_seconds
-                    }), 429
-                
+                    return jsonify({"error": "Rate limit exceeded", "retry_after": self.window_seconds}), 429
+
                 return f(*args, **kwargs)
-            
+
             return decorated_function
-        
+
         return decorator
 
 
 class CSRFToken:
     """CSRFトークン管理クラス"""
-    
+
     @staticmethod
     def generate() -> str:
         """新しいCSRFトークンを生成"""
         import secrets
+
         return secrets.token_hex(16)
-    
+
     @staticmethod
     def get_or_create(session_obj) -> str:
         """
         セッションから既存のトークンを取得、なければ生成
-        
+
         Args:
             session_obj: Flaskのセッションオブジェクト
-        
+
         Returns:
             CSRFトークン文字列
         """
-        token = session_obj.get('csrf_token')
+        token = session_obj.get("csrf_token")
         if not token:
             token = CSRFToken.generate()
-            session_obj['csrf_token'] = token
-            session_obj['csrf_token_time'] = time.time()
+            session_obj["csrf_token"] = token
+            session_obj["csrf_token_time"] = time.time()
         return token
-    
+
     @staticmethod
     def validate(token: str, session_obj) -> bool:
         """
         トークンの妥当性を検証
-        
+
         Args:
             token: 検証するトークン
             session_obj: Flaskのセッションオブジェクト
-        
+
         Returns:
             有効ならTrue
         """
         if not token:
             return False
-        
-        expected_token = session_obj.get('csrf_token')
+
+        expected_token = session_obj.get("csrf_token")
         if not expected_token:
             return False
-        
+
         # タイミング攻撃を防ぐため、hmac.compare_digestを使用
         return hmac.compare_digest(token, expected_token)
-    
+
     @staticmethod
     def refresh(session_obj) -> str:
         """
         新しいトークンを生成してセッションを更新
-        
+
         Args:
             session_obj: Flaskのセッションオブジェクト
-        
+
         Returns:
             新しいCSRFトークン
         """
         token = CSRFToken.generate()
-        session_obj['csrf_token'] = token
-        session_obj['csrf_token_time'] = time.time()
+        session_obj["csrf_token"] = token
+        session_obj["csrf_token_time"] = time.time()
         return token
-    
+
     @staticmethod
     def require_csrf(f):
         """
@@ -429,81 +423,70 @@ rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
 
 class CSPNonce:
     """Content Security Policy (CSP) Nonce管理クラス"""
-    
+
     # CSPフェーズ定数
     PHASE_REPORT_ONLY = 1  # レポートのみ
-    PHASE_MIXED = 2        # 混合モード
-    PHASE_STRICT = 3       # 厳格モード
-    
+    PHASE_MIXED = 2  # 混合モード
+    PHASE_STRICT = 3  # 厳格モード
+
     @staticmethod
     def generate() -> str:
         """
         CSP用のランダムなnonceを生成
-        
+
         Returns:
             str: Base64エンコードされた16バイトのランダム文字列
         """
         import base64
         import secrets
-        return base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
-    
+
+        return base64.b64encode(secrets.token_bytes(16)).decode("utf-8")
+
     @staticmethod
-    def create_csp_header(
-        nonce: str,
-        phase: int = 1,
-        report_only: bool = True
-    ) -> str:
+    def create_csp_header(nonce: str, phase: int = 1, report_only: bool = True) -> str:
         """
         CSPヘッダー文字列を生成
-        
+
         Args:
             nonce: CSP nonce値
             phase: CSPフェーズ (1=レポートのみ, 2=混合, 3=厳格)
             report_only: Report-Onlyモードかどうか
-        
+
         Returns:
             str: CSPヘッダー文字列
         """
         base_policy = f"default-src 'self'; script-src 'self' 'nonce-{nonce}'"
-        
+
         if phase == CSPNonce.PHASE_STRICT:
             base_policy += " 'strict-dynamic'"
         elif phase == CSPNonce.PHASE_MIXED:
             base_policy += " 'unsafe-inline'"
-        
+
         base_policy += f"; style-src 'self' 'nonce-{nonce}' 'unsafe-inline'"
         base_policy += "; img-src 'self' data: https:; font-src 'self' data:"
         base_policy += "; connect-src 'self'; frame-ancestors 'none'"
         base_policy += "; base-uri 'self'; form-action 'self'"
-        
+
         return base_policy
-    
+
     @staticmethod
     def inject_nonce_to_html(html_content: str, nonce: str) -> str:
         """
         HTMLコンテンツ内のscriptタグとstyleタグにnonceを注入
-        
+
         Args:
             html_content: HTMLコンテンツ
             nonce: 注入するnonce値
-        
+
         Returns:
             str: nonce属性が追加されたHTMLコンテンツ
         """
         import re
-        
+
         # <script> タグにnonce属性を追加
-        html_content = re.sub(
-            r'<script(?![^>]*nonce=)([^>]*)>',
-            f'<script nonce="{nonce}"\\1>',
-            html_content
-        )
-        
+        html_content = re.sub(r"<script(?![^>]*nonce=)([^>]*)>", f'<script nonce="{nonce}"\\1>', html_content)
+
         # <style> タグにnonce属性を追加
-        html_content = re.sub(
-            r'<style(?![^>]*nonce=)([^>]*)>',
-            f'<style nonce="{nonce}"\\1>',
-            html_content
-        )
-        
+        html_content = re.sub(r"<style(?![^>]*nonce=)([^>]*)>", f'<style nonce="{nonce}"\\1>', html_content)
+
         return html_content

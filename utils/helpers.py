@@ -188,9 +188,7 @@ def initialize_session_history(session_key: str, sub_key: Optional[str] = None) 
     session.modified = True
 
 
-def add_to_session_history(
-    session_key: str, entry: Dict[str, Any], sub_key: Optional[str] = None
-) -> None:
+def add_to_session_history(session_key: str, entry: Dict[str, Any], sub_key: Optional[str] = None) -> None:
     """
     セッション履歴にエントリを追加するヘルパー関数
 
@@ -246,9 +244,7 @@ def set_session_start_time(session_key: str, sub_key: Optional[str] = None) -> N
 
     # セッション設定が存在しない場合は初期化
     if settings_key not in session:
-        session[settings_key] = (
-            {} if sub_key else {"start_time": datetime.now().isoformat()}
-        )
+        session[settings_key] = {} if sub_key else {"start_time": datetime.now().isoformat()}
 
     # サブキーがある場合
     if sub_key:

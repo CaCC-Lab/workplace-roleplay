@@ -2,14 +2,13 @@
 セッション管理サービス
 Flask-Sessionのラッパーとして動作し、セッションデータの管理を担当
 """
-import json
 import os
 
 # プロジェクトルートからインポート
 import sys
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from flask import session
 
@@ -24,7 +23,6 @@ from utils.session_utils import (
     add_to_session_history,
     clear_session_history,
     get_conversation_memory,
-    get_session_duration,
     initialize_session_history,
 )
 
@@ -97,9 +95,7 @@ class SessionService:
         }
         add_to_session_history(self.KEYS.CHAT_HISTORY, entry)
 
-    def get_chat_history(
-        self, format_type: str = HistoryFormat.FULL
-    ) -> List[Dict[str, Any]]:
+    def get_chat_history(self, format_type: str = HistoryFormat.FULL) -> List[Dict[str, Any]]:
         """チャット履歴を取得"""
         # get_conversation_memoryを使用
         return get_conversation_memory("chat", max_messages=50)
@@ -125,9 +121,7 @@ class SessionService:
         }
         add_to_session_history(self.KEYS.SCENARIO_HISTORY, entry, scenario_id)
 
-    def get_scenario_history(
-        self, scenario_id: str, format_type: str = HistoryFormat.FULL
-    ) -> List[Dict[str, Any]]:
+    def get_scenario_history(self, scenario_id: str, format_type: str = HistoryFormat.FULL) -> List[Dict[str, Any]]:
         """特定のシナリオの履歴を取得"""
         if self.KEYS.SCENARIO_HISTORY not in session:
             return []
@@ -173,9 +167,7 @@ class SessionService:
         }
         add_to_session_history(self.KEYS.WATCH_HISTORY, entry)
 
-    def get_watch_history(
-        self, format_type: str = HistoryFormat.FULL
-    ) -> List[Dict[str, Any]]:
+    def get_watch_history(self, format_type: str = HistoryFormat.FULL) -> List[Dict[str, Any]]:
         """観戦モードの履歴を取得"""
         return session.get(self.KEYS.WATCH_HISTORY, [])
 
@@ -236,9 +228,7 @@ class SessionService:
 
         # 最新100件のみ保持
         if len(session[self.KEYS.LEARNING_HISTORY]) > 100:
-            session[self.KEYS.LEARNING_HISTORY] = session[self.KEYS.LEARNING_HISTORY][
-                -100:
-            ]
+            session[self.KEYS.LEARNING_HISTORY] = session[self.KEYS.LEARNING_HISTORY][-100:]
 
     def get_learning_history(self, limit: int = 50) -> List[Dict[str, Any]]:
         """学習履歴を取得"""

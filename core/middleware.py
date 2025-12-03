@@ -62,17 +62,13 @@ def register_middleware(app: Flask):
                 # トークンの検証
                 if not CSRFToken.validate(token, session):
                     # ロギング
-                    logging.getLogger("utils.security").warning(
-                        f"CSRF token validation failed for {request.path}"
-                    )
+                    logging.getLogger("utils.security").warning(f"CSRF token validation failed for {request.path}")
 
                     return (
                         jsonify(
                             {
                                 "error": "CSRF token validation failed",
-                                "code": "CSRF_TOKEN_INVALID"
-                                if token
-                                else "CSRF_TOKEN_MISSING",
+                                "code": "CSRF_TOKEN_INVALID" if token else "CSRF_TOKEN_MISSING",
                             }
                         ),
                         403,
@@ -87,28 +83,23 @@ def register_middleware(app: Flask):
         # 除外対象のエンドポイントはスキップ
         if any(request.path.startswith(ep) for ep in PERF_EXCLUDED_ENDPOINTS):
             return response
-        
+
         try:
             from utils.performance import get_metrics
-            
-            if hasattr(g, 'start_time'):
+
+            if hasattr(g, "start_time"):
                 duration_ms = (time.perf_counter() - g.start_time) * 1000
                 metrics = get_metrics()
-                metrics.record_request(
-                    endpoint=request.path,
-                    duration_ms=duration_ms,
-                    status_code=response.status_code
-                )
-                
+                metrics.record_request(endpoint=request.path, duration_ms=duration_ms, status_code=response.status_code)
+
                 # 遅いリクエストをログ
                 if duration_ms > 1000:  # 1秒以上
                     logging.getLogger("performance").warning(
-                        f"Slow request: {request.method} {request.path} "
-                        f"took {duration_ms:.2f}ms"
+                        f"Slow request: {request.method} {request.path} " f"took {duration_ms:.2f}ms"
                     )
         except ImportError:
             pass
-        
+
         return response
 
 

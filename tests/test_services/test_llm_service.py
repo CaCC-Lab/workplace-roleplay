@@ -264,14 +264,8 @@ class TestBuildMessages:
                 from services.llm_service import LLMService
 
                 service = LLMService()
-                history = [
-                    {"human": "こんにちは", "ai": "こんにちは！"}
-                ]
-                messages = service._build_messages(
-                    history,
-                    "質問があります",
-                    system_prompt="あなたはアシスタントです"
-                )
+                history = [{"human": "こんにちは", "ai": "こんにちは！"}]
+                messages = service._build_messages(history, "質問があります", system_prompt="あなたはアシスタントです")
 
                 # システムメッセージ + 履歴 + 現在のメッセージ
                 assert len(messages) == 4
@@ -286,10 +280,7 @@ class TestBuildMessages:
 
                 service = LLMService()
                 history = []
-                messages = service._build_messages(
-                    history,
-                    "質問があります"
-                )
+                messages = service._build_messages(history, "質問があります")
 
                 # 現在のメッセージのみ
                 assert len(messages) == 1
@@ -389,6 +380,7 @@ class TestStreamChatResponse:
                 mock_api.return_value.get_api_key.return_value = "test-api-key"
 
                 with patch("services.llm_service.ChatGoogleGenerativeAI") as mock_chat:
+
                     async def mock_stream(*args, **kwargs):
                         for chunk in ["Hello", " World"]:
                             yield MagicMock(content=chunk)
@@ -402,11 +394,7 @@ class TestStreamChatResponse:
                     service = LLMService()
 
                     chunks = []
-                    async for chunk in service.stream_chat_response(
-                        "テスト",
-                        [],
-                        "gemini-1.5-flash"
-                    ):
+                    async for chunk in service.stream_chat_response("テスト", [], "gemini-1.5-flash"):
                         chunks.append(chunk)
 
                     assert len(chunks) > 0

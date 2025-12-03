@@ -307,9 +307,7 @@ class TestSessionSizeOptimizer:
         from utils.performance import SessionSizeOptimizer
 
         # 大きなセッションデータ
-        session = {
-            "chat_history": [{"human": f"test{i}", "ai": f"response{i}"} for i in range(200)]
-        }
+        session = {"chat_history": [{"human": f"test{i}", "ai": f"response{i}"} for i in range(200)]}
 
         should_clean = SessionSizeOptimizer.should_cleanup(session)
 
@@ -542,9 +540,7 @@ class TestSessionSizeOptimizerExtended:
 
         session = {
             "chat_history": [{"human": f"test{i}", "ai": f"response{i}"} for i in range(150)],
-            "scenario_history": {
-                "scenario1": [{"human": f"s{i}", "ai": f"r{i}"} for i in range(150)]
-            },
+            "scenario_history": {"scenario1": [{"human": f"s{i}", "ai": f"r{i}"} for i in range(150)]},
             "other_data": "keep this",
         }
 

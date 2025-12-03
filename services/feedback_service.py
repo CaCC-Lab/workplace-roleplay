@@ -20,9 +20,7 @@ from utils.helpers import (
 class FeedbackService:
     """フィードバック生成関連のビジネスロジックを処理するサービス"""
 
-    def build_chat_feedback_prompt(
-        self, history: list, partner_type: str, situation: str
-    ) -> str:
+    def build_chat_feedback_prompt(self, history: list, partner_type: str, situation: str) -> str:
         """
         雑談練習用のフィードバックプロンプトを構築
 
@@ -143,12 +141,8 @@ AIの行動・対応・努力・理解度は一切評価しないこと。
             try:
                 genai.configure(api_key=config.GOOGLE_API_KEY)
                 models = genai.list_models()
-                gemini_models = [
-                    f"gemini/{m.name.split('/')[-1]}"
-                    for m in models
-                    if "gemini" in m.name.lower()
-                ]
-            except:
+                gemini_models = [f"gemini/{m.name.split('/')[-1]}" for m in models if "gemini" in m.name.lower()]
+            except Exception:
                 gemini_models = ["gemini/gemini-1.5-flash", "gemini/gemini-1.5-pro"]
 
             if preferred_model:
@@ -161,13 +155,7 @@ AIの行動・対応・努力・理解度は一切評価しないこと。
                     model_name = normalized_model
                 else:
                     flash_models = [m for m in gemini_models if "flash" in m.lower()]
-                    model_name = (
-                        flash_models[0]
-                        if flash_models
-                        else gemini_models[0]
-                        if gemini_models
-                        else None
-                    )
+                    model_name = flash_models[0] if flash_models else gemini_models[0] if gemini_models else None
             elif gemini_models:
                 flash_models = [m for m in gemini_models if "flash" in m.lower()]
                 model_name = flash_models[0] if flash_models else gemini_models[0]
@@ -189,10 +177,7 @@ AIの行動・対応・努力・理解度は一切評価しないこと。
             error_msg = "RATE_LIMIT_EXCEEDED"
         except Exception as gemini_error:
             error_msg = str(gemini_error)
-            if any(
-                keyword in str(gemini_error).lower()
-                for keyword in ["rate limit", "quota", "429"]
-            ):
+            if any(keyword in str(gemini_error).lower() for keyword in ["rate limit", "quota", "429"]):
                 error_msg = "RATE_LIMIT_EXCEEDED"
 
         return "", None, error_msg or "Gemini model error occurred"

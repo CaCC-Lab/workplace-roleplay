@@ -13,17 +13,16 @@ class MessageValidator:
 
     # 不適切な単語リスト（基本的なもの）
     DEFAULT_INAPPROPRIATE_WORDS = [
-        "死ね", "殺す", "ばか", "あほ",
+        "死ね",
+        "殺す",
+        "ばか",
+        "あほ",
     ]
 
     # メッセージの最小長
     MIN_MESSAGE_LENGTH = 1
 
-    def __init__(
-        self,
-        max_length: int = MAX_MESSAGE_LENGTH,
-        inappropriate_words: Optional[List[str]] = None
-    ):
+    def __init__(self, max_length: int = MAX_MESSAGE_LENGTH, inappropriate_words: Optional[List[str]] = None):
         """
         MessageValidatorの初期化
 
@@ -33,9 +32,7 @@ class MessageValidator:
         """
         self.max_length = max_length
         self.inappropriate_words = (
-            inappropriate_words
-            if inappropriate_words is not None
-            else self.DEFAULT_INAPPROPRIATE_WORDS.copy()
+            inappropriate_words if inappropriate_words is not None else self.DEFAULT_INAPPROPRIATE_WORDS.copy()
         )
 
     def validate(self, message: str) -> Tuple[bool, Optional[str]]:
@@ -81,10 +78,10 @@ class MessageValidator:
         sanitized = message.strip()
 
         # 連続する空白を単一の空白に
-        sanitized = re.sub(r'\s+', ' ', sanitized)
+        sanitized = re.sub(r"\s+", " ", sanitized)
 
         # 制御文字を削除
-        sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', sanitized)
+        sanitized = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", sanitized)
 
         return sanitized
 

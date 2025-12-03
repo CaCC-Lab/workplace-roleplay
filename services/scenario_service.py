@@ -5,7 +5,7 @@ Handles scenario-related business logic.
 
 from typing import Any, Dict, Optional, Tuple
 
-from scenarios import get_all_scenarios, get_scenario_by_id, load_scenarios
+from scenarios import load_scenarios
 from scenarios.category_manager import (
     get_categorized_scenarios as get_categorized_scenarios_func,
 )
@@ -86,9 +86,7 @@ class ScenarioService:
         """
         return get_scenario_category_summary()
 
-    def build_system_prompt(
-        self, scenario_data: Dict[str, Any], is_reverse_role: bool = False
-    ) -> str:
+    def build_system_prompt(self, scenario_data: Dict[str, Any], is_reverse_role: bool = False) -> str:
         """
         シナリオ用のシステムプロンプトを構築
 
@@ -152,9 +150,7 @@ class ScenarioService:
         """
         return scenario_data.get("system_prompt", "")
 
-    def get_initial_message(
-        self, scenario_data: Dict[str, Any], is_reverse_role: bool = False
-    ) -> Optional[str]:
+    def get_initial_message(self, scenario_data: Dict[str, Any], is_reverse_role: bool = False) -> Optional[str]:
         """
         シナリオ開始時の初期メッセージを取得
 
@@ -168,22 +164,16 @@ class ScenarioService:
         if is_reverse_role:
             initial_context = scenario_data.get("initial_context", "")
             if initial_context:
-                return (
-                    f"【状況】\n{initial_context}\n\n（部下があなたの指示を待っています。上司として最初の声かけをしてください）"
-                )
+                return f"【状況】\n{initial_context}\n\n（部下があなたの指示を待っています。上司として最初の声かけをしてください）"
         else:
-            initial_approach = scenario_data.get("character_setting", {}).get(
-                "initial_approach", "自然に"
-            )
+            initial_approach = scenario_data.get("character_setting", {}).get("initial_approach", "自然に")
             return f"""
 最初の声掛けとして、{initial_approach}という設定で話しかけてください。
 感情や表情も自然に含めて表現してください。
 """
         return None
 
-    def get_user_role(
-        self, scenario_data: Dict[str, Any], is_reverse_role: bool = False
-    ) -> str:
+    def get_user_role(self, scenario_data: Dict[str, Any], is_reverse_role: bool = False) -> str:
         """
         ユーザーの役割を取得
 

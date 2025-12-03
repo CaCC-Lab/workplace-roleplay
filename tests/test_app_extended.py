@@ -215,9 +215,7 @@ class TestCreateModelAndGetResponse:
             with patch("app.extract_content") as mock_extract:
                 mock_extract.return_value = "抽出された応答"
 
-                result = create_model_and_get_response(
-                    "gemini-1.5-flash", "プロンプト"
-                )
+                result = create_model_and_get_response("gemini-1.5-flash", "プロンプト")
 
                 assert result == "抽出された応答"
 
@@ -231,9 +229,7 @@ class TestCreateModelAndGetResponse:
             mock_llm.invoke.return_value = mock_response
             mock_init.return_value = mock_llm
 
-            result = create_model_and_get_response(
-                "gemini-1.5-flash", "プロンプト", extract=False
-            )
+            result = create_model_and_get_response("gemini-1.5-flash", "プロンプト", extract=False)
 
             assert result == mock_response
 
@@ -280,9 +276,7 @@ class TestUpdateFeedbackWithStrengthAnalysis:
             }
             mock_get.return_value = mock_service
 
-            result = update_feedback_with_strength_analysis(
-                {"feedback": "test"}, "chat"
-            )
+            result = update_feedback_with_strength_analysis({"feedback": "test"}, "chat")
 
             assert "strength_analysis" in result
 

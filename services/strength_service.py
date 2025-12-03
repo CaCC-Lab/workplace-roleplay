@@ -16,9 +16,7 @@ from utils.helpers import format_conversation_history
 class StrengthService:
     """強み分析関連のビジネスロジックを処理するサービス"""
 
-    def analyze_user_strengths_from_history(
-        self, history: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    def analyze_user_strengths_from_history(self, history: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         会話履歴からユーザーの強みを分析
 
@@ -68,9 +66,7 @@ class StrengthService:
 
         return {"scores": scores, "messages": messages}
 
-    def get_top_strengths(
-        self, scores: Dict[str, int], top_n: int = 3
-    ) -> List[Dict[str, Any]]:
+    def get_top_strengths(self, scores: Dict[str, int], top_n: int = 3) -> List[Dict[str, Any]]:
         """
         トップNの強みを取得
 

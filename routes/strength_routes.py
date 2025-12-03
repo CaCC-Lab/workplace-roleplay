@@ -38,9 +38,7 @@ strength_bp = Blueprint("strength", __name__)
 def strength_analysis_page():
     """強み分析ページを表示"""
     if not is_strength_analysis_enabled():
-        return render_template(
-            "feature_disabled.html", feature_name="強み分析", message="強み分析機能は現在無効化されています。"
-        )
+        return render_template("feature_disabled.html", feature_name="強み分析", message="強み分析機能は現在無効化されています。")
 
     return render_template("strength_analysis.html")
 
@@ -122,16 +120,12 @@ def analyze_strengths():
 
         # 最大20件まで保持
         if len(session["strength_history"][session_type]) > 20:
-            session["strength_history"][session_type] = session["strength_history"][
-                session_type
-            ][-20:]
+            session["strength_history"][session_type] = session["strength_history"][session_type][-20:]
 
         session.modified = True
 
         # 励ましメッセージを生成
-        messages = generate_encouragement_messages(
-            scores, session["strength_history"][session_type][:-1]
-        )
+        messages = generate_encouragement_messages(scores, session["strength_history"][session_type][:-1])
 
         # パーソナライズされたメッセージを追加
         if messages and len(messages) < 3:
@@ -155,16 +149,12 @@ def analyze_strengths():
     except Exception as e:
         print(f"Error in analyze_strengths: {str(e)}")
         return (
-            jsonify(
-                {"error": f"強み分析に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}
-            ),
+            jsonify({"error": f"強み分析に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}),
             500,
         )
 
 
-def update_feedback_with_strength_analysis(
-    feedback_response, session_type, scenario_id=None
-):
+def update_feedback_with_strength_analysis(feedback_response, session_type, scenario_id=None):
     """
     既存のフィードバックレスポンスに強み分析を追加するヘルパー関数
     """

@@ -41,9 +41,7 @@ class TestStrengthService:
             {"human": "今日は良い天気ですね。", "ai": "そうですね、気持ち良いですね。"},
         ]
 
-        with patch(
-            "services.strength_service.analyze_user_strengths"
-        ) as mock_analyze:
+        with patch("services.strength_service.analyze_user_strengths") as mock_analyze:
             mock_analyze.return_value = {
                 "empathy": 80,
                 "clarity": 70,
@@ -52,13 +50,9 @@ class TestStrengthService:
                 "positivity": 85,
                 "professionalism": 70,
             }
-            with patch(
-                "services.strength_service.generate_encouragement_messages"
-            ) as mock_msgs:
+            with patch("services.strength_service.generate_encouragement_messages") as mock_msgs:
                 mock_msgs.return_value = ["素晴らしい対話力です！"]
-                with patch(
-                    "services.strength_service.get_top_strengths"
-                ) as mock_top:
+                with patch("services.strength_service.get_top_strengths") as mock_top:
                     mock_top.return_value = [{"name": "ポジティブさ", "score": 85}]
 
                     result = service.analyze_user_strengths_from_history(history)
@@ -73,9 +67,7 @@ class TestStrengthService:
         service = StrengthService()
         history = [{"human": "テスト", "ai": "応答"}]
 
-        with patch(
-            "services.strength_service.analyze_user_strengths"
-        ) as mock_analyze:
+        with patch("services.strength_service.analyze_user_strengths") as mock_analyze:
             mock_analyze.return_value = {
                 "empathy": 80,
                 "clarity": 70,
@@ -84,13 +76,9 @@ class TestStrengthService:
                 "positivity": 85,
                 "professionalism": 70,
             }
-            with patch(
-                "services.strength_service.generate_encouragement_messages"
-            ) as mock_msgs:
+            with patch("services.strength_service.generate_encouragement_messages") as mock_msgs:
                 mock_msgs.return_value = ["メッセージ1"]  # 1件のみ
-                with patch(
-                    "services.strength_service.get_top_strengths"
-                ) as mock_top:
+                with patch("services.strength_service.get_top_strengths") as mock_top:
                     mock_top.return_value = [{"name": "共感力", "score": 80}]
 
                     result = service.analyze_user_strengths_from_history(history)
@@ -130,9 +118,7 @@ class TestStrengthService:
         service = StrengthService()
         scores = {"empathy": 80, "clarity": 70}
 
-        with patch(
-            "services.strength_service.generate_encouragement_messages"
-        ) as mock_msgs:
+        with patch("services.strength_service.generate_encouragement_messages") as mock_msgs:
             mock_msgs.return_value = ["頑張りました！"]
 
             result = service.generate_encouragement_messages(scores)
@@ -148,9 +134,7 @@ class TestStrengthService:
         scores = {"empathy": 80}
         previous = [{"scores": {"empathy": 70}}]
 
-        with patch(
-            "services.strength_service.generate_encouragement_messages"
-        ) as mock_msgs:
+        with patch("services.strength_service.generate_encouragement_messages") as mock_msgs:
             mock_msgs.return_value = ["成長していますね！"]
 
             result = service.generate_encouragement_messages(scores, previous)
@@ -166,23 +150,15 @@ class TestStrengthService:
         with app.test_request_context():
             from flask import session
 
-            session["chat_history"] = [
-                {"human": "こんにちは", "ai": "こんにちは！"}
-            ]
+            session["chat_history"] = [{"human": "こんにちは", "ai": "こんにちは！"}]
 
-            with patch(
-                "services.strength_service.analyze_user_strengths"
-            ) as mock_analyze:
+            with patch("services.strength_service.analyze_user_strengths") as mock_analyze:
                 mock_analyze.return_value = {"empathy": 80}
-                with patch(
-                    "services.strength_service.get_top_strengths"
-                ) as mock_top:
+                with patch("services.strength_service.get_top_strengths") as mock_top:
                     mock_top.return_value = [{"name": "共感力", "score": 80}]
 
                     feedback = {"feedback": "良い会話でした"}
-                    result = service.update_feedback_with_strength_analysis(
-                        feedback, "chat"
-                    )
+                    result = service.update_feedback_with_strength_analysis(feedback, "chat")
 
                     assert "strength_analysis" in result
 
@@ -195,23 +171,15 @@ class TestStrengthService:
         with app.test_request_context():
             from flask import session
 
-            session["scenario_history"] = {
-                "scenario1": [{"human": "テスト", "ai": "応答"}]
-            }
+            session["scenario_history"] = {"scenario1": [{"human": "テスト", "ai": "応答"}]}
 
-            with patch(
-                "services.strength_service.analyze_user_strengths"
-            ) as mock_analyze:
+            with patch("services.strength_service.analyze_user_strengths") as mock_analyze:
                 mock_analyze.return_value = {"clarity": 75}
-                with patch(
-                    "services.strength_service.get_top_strengths"
-                ) as mock_top:
+                with patch("services.strength_service.get_top_strengths") as mock_top:
                     mock_top.return_value = [{"name": "明確さ", "score": 75}]
 
                     feedback = {"feedback": "シナリオ完了"}
-                    result = service.update_feedback_with_strength_analysis(
-                        feedback, "scenario", "scenario1"
-                    )
+                    result = service.update_feedback_with_strength_analysis(feedback, "scenario", "scenario1")
 
                     assert "strength_analysis" in result
 
@@ -238,15 +206,11 @@ class TestStrengthService:
 
             session["chat_history"] = [{"human": "テスト", "ai": "応答"}]
 
-            with patch(
-                "services.strength_service.analyze_user_strengths"
-            ) as mock_analyze:
+            with patch("services.strength_service.analyze_user_strengths") as mock_analyze:
                 mock_analyze.side_effect = Exception("Analysis error")
 
                 feedback = {"feedback": "テスト"}
-                result = service.update_feedback_with_strength_analysis(
-                    feedback, "chat"
-                )
+                result = service.update_feedback_with_strength_analysis(feedback, "chat")
 
                 # エラーでも元のフィードバックは返される
                 assert result == feedback

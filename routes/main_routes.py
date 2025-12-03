@@ -11,7 +11,7 @@ from config.feature_flags import get_feature_flags
 from flask import Blueprint, Flask, Response, current_app, render_template, send_from_directory
 
 from config import get_cached_config
-from errors import secure_error_handler, with_error_handling
+from errors import secure_error_handler
 
 # Blueprint作成
 main_bp = Blueprint("main", __name__)
@@ -51,9 +51,7 @@ def get_all_available_models() -> Dict[str, Any]:
         # 文字列リストから辞書リストに変換
         model_dicts = []
         for model_id in gemini_models:
-            model_dicts.append(
-                {"id": model_id, "name": model_id.split("/")[-1], "provider": "gemini"}
-            )
+            model_dicts.append({"id": model_id, "name": model_id.split("/")[-1], "provider": "gemini"})
 
         return {"models": model_dicts, "categories": {"gemini": model_dicts}}
     except Exception as e:
@@ -102,7 +100,7 @@ def get_performance_metrics() -> Response:
         description: パフォーマンスメトリクス
     """
     from flask import jsonify
-    
+
     try:
         from utils.performance import (
             get_metrics,
@@ -110,24 +108,29 @@ def get_performance_metrics() -> Response:
             get_prompt_cache,
             get_business_metrics,
         )
-        
+
         # パフォーマンスメトリクス
         perf_metrics = get_metrics().get_metrics()
-        
+
         # ビジネスメトリクス
         business_metrics = get_business_metrics().get_summary()
-        
+
         # キャッシュ統計
         cache_stats = {
             "scenario_cache": get_scenario_cache().stats(),
             "prompt_cache": get_prompt_cache().stats(),
         }
-        
-        return jsonify({
-            "performance": perf_metrics,
-            "business": business_metrics,
-            "caches": cache_stats,
-        }), 200
+
+        return (
+            jsonify(
+                {
+                    "performance": perf_metrics,
+                    "business": business_metrics,
+                    "caches": cache_stats,
+                }
+            ),
+            200,
+        )
     except ImportError:
         return jsonify({"error": "Performance metrics not available"}), 503
 
@@ -140,9 +143,7 @@ def index() -> str:
     available_models = model_info["models"]
 
     # モデル選択機能の有効/無効を制御するフラグ
-    enable_model_selection = (
-        os.getenv("ENABLE_MODEL_SELECTION", "true").lower() == "true"
-    )
+    enable_model_selection = os.getenv("ENABLE_MODEL_SELECTION", "true").lower() == "true"
 
     return render_template(
         "index.html",
@@ -171,7 +172,7 @@ def favicon() -> Response:
             "favicon.ico",
             mimetype="image/vnd.microsoft.icon",
         )
-    except:
+    except Exception:
         # favicon.icoが存在しない場合は204 No Contentを返す
         return "", 204
 

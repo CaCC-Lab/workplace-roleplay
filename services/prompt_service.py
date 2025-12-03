@@ -57,18 +57,14 @@ class PromptService:
             str: プロンプト
         """
         base = cls.WATCH_MODE_BASE_PROMPT.format(topic=topic)
-        
+
         if is_initiator:
             return f"{base}\n\nあなたから話題を始めてください。"
         else:
             return f"{base}\n\n相手の発言に対して自然に返答してください。"
 
     @classmethod
-    def build_chat_feedback_prompt(
-        cls,
-        conversation_text: str,
-        max_length: int = MAX_FEEDBACK_LENGTH
-    ) -> str:
+    def build_chat_feedback_prompt(cls, conversation_text: str, max_length: int = MAX_FEEDBACK_LENGTH) -> str:
         """
         雑談フィードバック用プロンプトを構築
 
@@ -96,10 +92,7 @@ class PromptService:
 
     @classmethod
     def build_scenario_feedback_prompt(
-        cls,
-        scenario: Dict[str, Any],
-        conversation_text: str,
-        max_length: int = MAX_FEEDBACK_LENGTH
+        cls, scenario: Dict[str, Any], conversation_text: str, max_length: int = MAX_FEEDBACK_LENGTH
     ) -> str:
         """
         シナリオフィードバック用プロンプトを構築
@@ -113,9 +106,7 @@ class PromptService:
             str: フィードバックプロンプト
         """
         # フィードバックポイントを整形
-        feedback_points = "\n".join(
-            [f"- {point}" for point in scenario.get("feedback_points", [])]
-        )
+        feedback_points = "\n".join([f"- {point}" for point in scenario.get("feedback_points", [])])
 
         return f"""以下のロールプレイシナリオでの会話を分析して、ユーザーのコミュニケーションスキルに関する建設的なフィードバックを提供してください。
 
@@ -141,11 +132,7 @@ class PromptService:
 フィードバックは具体的で実践的なアドバイスを含め、{max_length}文字以内でまとめてください。"""
 
     @classmethod
-    def format_conversation_for_feedback(
-        cls,
-        history: List[Dict[str, Any]],
-        ai_name: str = "相手"
-    ) -> str:
+    def format_conversation_for_feedback(cls, history: List[Dict[str, Any]], ai_name: str = "相手") -> str:
         """
         フィードバック用に会話履歴をフォーマット
 

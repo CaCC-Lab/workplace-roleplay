@@ -83,9 +83,7 @@ scenarios:
 
                         with patch("builtins.open", create=True) as mock_open:
                             mock_open.return_value.__enter__ = lambda s: s
-                            mock_open.return_value.__exit__ = MagicMock(
-                                return_value=False
-                            )
+                            mock_open.return_value.__exit__ = MagicMock(return_value=False)
                             mock_open.return_value.read.return_value = yaml_content
 
                             # 実際のload_scenariosは複雑なので、
@@ -217,7 +215,7 @@ class TestLoadScenariosExtended:
         import re
 
         def natural_sort_key(scenario_id):
-            match = re.search(r'(\d+)$', scenario_id)
+            match = re.search(r"(\d+)$", scenario_id)
             if match:
                 return int(match.group(1))
             return 0

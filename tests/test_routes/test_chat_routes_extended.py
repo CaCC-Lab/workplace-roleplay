@@ -39,9 +39,7 @@ class TestHandleChat:
         def handle_validation_error(e):
             return handle_error(e)
 
-        response = client.post(
-            "/api/chat", content_type="application/json", data=""
-        )
+        response = client.post("/api/chat", content_type="application/json", data="")
 
         # ValidationErrorが発生
         assert response.status_code in [400, 500]
@@ -69,9 +67,7 @@ class TestHandleChat:
         with patch("routes.chat_routes.SecurityUtils.sanitize_input") as mock_sanitize:
             mock_sanitize.side_effect = lambda x: x
 
-            with patch(
-                "routes.chat_routes.SecurityUtils.validate_model_name"
-            ) as mock_validate:
+            with patch("routes.chat_routes.SecurityUtils.validate_model_name") as mock_validate:
                 mock_validate.return_value = False
 
                 response = client.post(
@@ -92,9 +88,7 @@ class TestHandleChat:
         with patch("routes.chat_routes.SecurityUtils.sanitize_input") as mock_sanitize:
             mock_sanitize.side_effect = lambda x: x
 
-            with patch(
-                "routes.chat_routes.SecurityUtils.validate_model_name"
-            ) as mock_validate:
+            with patch("routes.chat_routes.SecurityUtils.validate_model_name") as mock_validate:
                 mock_validate.return_value = True
 
                 response = client.post(
@@ -111,9 +105,7 @@ class TestStartChat:
 
     def test_JSONなしでリクエスト(self, client):
         """JSONなしでリクエスト"""
-        response = client.post(
-            "/api/start_chat", content_type="application/json", data=""
-        )
+        response = client.post("/api/start_chat", content_type="application/json", data="")
 
         assert response.status_code in [400, 500]
 
@@ -167,9 +159,7 @@ class TestStartChat:
             with patch("errors.handle_llm_specific_error") as mock_handler:
                 from errors import ExternalAPIError
 
-                mock_handler.return_value = ExternalAPIError(
-                    service="Gemini", message="API error"
-                )
+                mock_handler.return_value = ExternalAPIError(service="Gemini", message="API error")
 
                 response = client.post(
                     "/api/start_chat",
@@ -247,9 +237,7 @@ class TestGetLlmAndInvoke:
                 from langchain_core.messages import HumanMessage
 
                 with app.app_context():
-                    result = _get_llm_and_invoke(
-                        "gemini-1.5-flash", [HumanMessage(content="テスト")]
-                    )
+                    result = _get_llm_and_invoke("gemini-1.5-flash", [HumanMessage(content="テスト")])
 
                     assert result == "テスト応答"
 

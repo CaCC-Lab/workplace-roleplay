@@ -51,9 +51,7 @@ class TestViewJournal:
                         }
                     ]
                 }
-                sess["scenario_feedback"] = {
-                    "scenario1": {"score": 80, "comment": "良い対応です"}
-                }
+                sess["scenario_feedback"] = {"scenario1": {"score": 80, "comment": "良い対応です"}}
 
             response = client.get("/journal")
 
@@ -86,11 +84,7 @@ class TestViewJournal:
             end_time = datetime.now().isoformat()
 
             with client.session_transaction() as sess:
-                sess["scenario_history"] = {
-                    "scenario1": [
-                        {"human": "テスト", "ai": "応答", "timestamp": end_time}
-                    ]
-                }
+                sess["scenario_history"] = {"scenario1": [{"human": "テスト", "ai": "応答", "timestamp": end_time}]}
                 sess["scenario_settings"] = {"scenario1": {"start_time": start_time}}
 
             response = client.get("/journal")
@@ -106,9 +100,7 @@ class TestViewJournal:
             end_time = datetime.now().isoformat()
 
             with client.session_transaction() as sess:
-                sess["chat_history"] = [
-                    {"human": "テスト", "ai": "応答", "timestamp": end_time}
-                ]
+                sess["chat_history"] = [{"human": "テスト", "ai": "応答", "timestamp": end_time}]
                 sess["chat_settings"] = {"start_time": start_time}
 
             response = client.get("/journal")
@@ -124,9 +116,7 @@ class TestViewJournal:
             end_time = datetime.now().isoformat()
 
             with client.session_transaction() as sess:
-                sess["watch_history"] = [
-                    {"speaker": "A", "message": "テスト", "timestamp": end_time}
-                ]
+                sess["watch_history"] = [{"speaker": "A", "message": "テスト", "timestamp": end_time}]
                 sess["watch_settings"] = {"start_time": start_time}
 
             response = client.get("/journal")
@@ -142,9 +132,7 @@ class TestViewJournal:
             end_time = datetime.now().isoformat()
 
             with client.session_transaction() as sess:
-                sess["chat_history"] = [
-                    {"human": "テスト", "ai": "応答", "timestamp": end_time}
-                ]
+                sess["chat_history"] = [{"human": "テスト", "ai": "応答", "timestamp": end_time}]
                 sess["chat_settings"] = {"start_time": start_time}
 
             response = client.get("/journal")
@@ -172,14 +160,8 @@ class TestViewJournal:
             newer_time = datetime.now().isoformat()
 
             with client.session_transaction() as sess:
-                sess["scenario_history"] = {
-                    "scenario1": [
-                        {"human": "テスト", "ai": "応答", "timestamp": older_time}
-                    ]
-                }
-                sess["chat_history"] = [
-                    {"human": "テスト", "ai": "応答", "timestamp": newer_time}
-                ]
+                sess["scenario_history"] = {"scenario1": [{"human": "テスト", "ai": "応答", "timestamp": older_time}]}
+                sess["chat_history"] = [{"human": "テスト", "ai": "応答", "timestamp": newer_time}]
 
             response = client.get("/journal")
 
@@ -197,9 +179,7 @@ class TestViewJournalExtended:
             with patch("routes.journal_routes.scenarios", {}):
                 with client.session_transaction() as sess:
                     sess["scenario_history"] = {
-                        "nonexistent_scenario": [
-                            {"human": "テスト", "ai": "応答", "timestamp": datetime.now().isoformat()}
-                        ]
+                        "nonexistent_scenario": [{"human": "テスト", "ai": "応答", "timestamp": datetime.now().isoformat()}]
                     }
 
                 response = client.get("/journal")
@@ -224,9 +204,7 @@ class TestViewJournalExtended:
             mock_get.return_value = mock_feature_flags
 
             with client.session_transaction() as sess:
-                sess["scenario_history"] = {
-                    "scenario1": [{"human": "テスト", "ai": "応答"}]
-                }
+                sess["scenario_history"] = {"scenario1": [{"human": "テスト", "ai": "応答"}]}
                 sess["scenario_settings"] = {"scenario1": {"start_time": datetime.now().isoformat()}}
 
             # scenario1がscenariosに存在する必要がある
@@ -253,9 +231,7 @@ class TestViewJournalExtended:
             mock_get.return_value = mock_feature_flags
 
             with client.session_transaction() as sess:
-                sess["scenario_history"] = {
-                    "scenario1": [{"human": "テスト", "ai": "応答"}]  # タイムスタンプなし
-                }
+                sess["scenario_history"] = {"scenario1": [{"human": "テスト", "ai": "応答"}]}  # タイムスタンプなし
                 sess["scenario_settings"] = {"scenario1": {}}  # start_timeなし
 
             response = client.get("/journal")
@@ -294,9 +270,7 @@ class TestViewJournalExtended:
             mock_get.return_value = mock_feature_flags
 
             with client.session_transaction() as sess:
-                sess["scenario_history"] = {
-                    "scenario1": [{"human": "テスト", "ai": "応答"}]  # timestampなし
-                }
+                sess["scenario_history"] = {"scenario1": [{"human": "テスト", "ai": "応答"}]}  # timestampなし
 
             with patch("routes.journal_routes.scenarios", {"scenario1": {"title": "テストシナリオ"}}):
                 response = client.get("/journal")

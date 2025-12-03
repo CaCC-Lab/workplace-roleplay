@@ -210,17 +210,13 @@ class TestValidateJsonData:
 
     def test_必須フィールド不足(self):
         """必須フィールド不足の検証"""
-        valid, error = validate_json_data(
-            {"key": "value"}, required_fields=["key", "missing"]
-        )
+        valid, error = validate_json_data({"key": "value"}, required_fields=["key", "missing"])
         assert valid is False
         assert "missing" in error
 
     def test_必須フィールド全て存在(self):
         """必須フィールドが全て存在する場合"""
-        valid, error = validate_json_data(
-            {"key1": "value1", "key2": "value2"}, required_fields=["key1", "key2"]
-        )
+        valid, error = validate_json_data({"key1": "value1", "key2": "value2"}, required_fields=["key1", "key2"])
         assert valid is True
         assert error is None
 

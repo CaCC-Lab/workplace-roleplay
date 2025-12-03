@@ -80,9 +80,7 @@ class TestHarassmentConsent:
 
     def test_同意を送信(self, csrf_client):
         """ハラスメント研修への同意"""
-        response = csrf_client.post(
-            "/harassment/consent", json={"consent": True}
-        )
+        response = csrf_client.post("/harassment/consent", json={"consent": True})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -91,9 +89,7 @@ class TestHarassmentConsent:
 
     def test_同意なしで送信(self, csrf_client):
         """同意なしで送信した場合"""
-        response = csrf_client.post(
-            "/harassment/consent", json={"consent": False}
-        )
+        response = csrf_client.post("/harassment/consent", json={"consent": False})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -171,16 +167,12 @@ class TestClearScenarioHistory:
     def test_シナリオ履歴をクリア(self, csrf_client):
         """シナリオ履歴のクリア"""
         with csrf_client.session_transaction() as sess:
-            sess["scenario_history"] = {
-                "test_scenario": [{"human": "test", "ai": "response"}]
-            }
+            sess["scenario_history"] = {"test_scenario": [{"human": "test", "ai": "response"}]}
 
         with patch("routes.scenario_routes.scenario_service") as mock_service:
             mock_service.get_scenario_by_id.return_value = {"id": "test_scenario"}
 
-            response = csrf_client.post(
-                "/api/scenario_clear", json={"scenario_id": "test_scenario"}
-            )
+            response = csrf_client.post("/api/scenario_clear", json={"scenario_id": "test_scenario"})
 
             assert response.status_code == 200
             data = response.get_json()
@@ -197,9 +189,7 @@ class TestClearScenarioHistory:
         with patch("routes.scenario_routes.scenario_service") as mock_service:
             mock_service.get_scenario_by_id.return_value = None
 
-            response = csrf_client.post(
-                "/api/scenario_clear", json={"scenario_id": "invalid_id"}
-            )
+            response = csrf_client.post("/api/scenario_clear", json={"scenario_id": "invalid_id"})
 
             assert response.status_code == 400
 
@@ -224,14 +214,10 @@ class TestScenarioFeedback:
                 "role_type": "normal",
             }
 
-            with patch(
-                "services.feedback_service.FeedbackService.build_scenario_feedback_prompt"
-            ) as mock_build:
+            with patch("services.feedback_service.FeedbackService.build_scenario_feedback_prompt") as mock_build:
                 mock_build.return_value = "フィードバックプロンプト"
 
-                with patch(
-                    "services.feedback_service.FeedbackService.try_multiple_models_for_prompt"
-                ) as mock_try:
+                with patch("services.feedback_service.FeedbackService.try_multiple_models_for_prompt") as mock_try:
                     mock_try.return_value = (
                         "良いコミュニケーションでした！",
                         "gemini-1.5-flash",
@@ -289,9 +275,7 @@ class TestScenarioFeedback:
     def test_レート制限エラーを処理(self, csrf_client):
         """レート制限エラーの処理"""
         with csrf_client.session_transaction() as sess:
-            sess["scenario_history"] = {
-                "test_scenario": [{"human": "test", "ai": "response"}]
-            }
+            sess["scenario_history"] = {"test_scenario": [{"human": "test", "ai": "response"}]}
 
         with patch("routes.scenario_routes.scenario_service") as mock_service:
             mock_service.get_scenario_by_id.return_value = {
@@ -299,14 +283,10 @@ class TestScenarioFeedback:
                 "title": "テストシナリオ",
             }
 
-            with patch(
-                "services.feedback_service.FeedbackService.build_scenario_feedback_prompt"
-            ) as mock_build:
+            with patch("services.feedback_service.FeedbackService.build_scenario_feedback_prompt") as mock_build:
                 mock_build.return_value = "prompt"
 
-                with patch(
-                    "services.feedback_service.FeedbackService.try_multiple_models_for_prompt"
-                ) as mock_try:
+                with patch("services.feedback_service.FeedbackService.try_multiple_models_for_prompt") as mock_try:
                     mock_try.return_value = (None, None, "RATE_LIMIT_EXCEEDED")
 
                     response = csrf_client.post(
@@ -400,9 +380,7 @@ class TestGetAssist:
 
     def test_シナリオIDなしでエラー(self, csrf_client):
         """シナリオIDなしでエラーを返す"""
-        response = csrf_client.post(
-            "/api/get_assist", json={"current_context": "テスト"}
-        )
+        response = csrf_client.post("/api/get_assist", json={"current_context": "テスト"})
 
         assert response.status_code == 400
 

@@ -611,7 +611,12 @@ class TestSessionConfigExtended:
         from utils.redis_manager import SessionConfig
 
         with patch.dict("os.environ", {"FLASK_ENV": "development"}):
-            config = {"SESSION_TYPE": "redis", "SESSION_USE_SIGNER": True, "SESSION_KEY_PREFIX": "test:", "SESSION_COOKIE_SECURE": True}
+            config = {
+                "SESSION_TYPE": "redis",
+                "SESSION_USE_SIGNER": True,
+                "SESSION_KEY_PREFIX": "test:",
+                "SESSION_COOKIE_SECURE": True,
+            }
 
             with patch("utils.redis_manager.logger") as mock_logger:
                 SessionConfig.validate_config(config)

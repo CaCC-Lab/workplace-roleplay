@@ -161,7 +161,7 @@ def register_error_handlers(app: Flask):
         # 通常のページの場合は404ページを表示（フォールバック付き）
         try:
             return render_template("404.html"), 404
-        except:
+        except Exception:
             # 404.htmlが存在しない場合のフォールバック
             return (
                 jsonify(

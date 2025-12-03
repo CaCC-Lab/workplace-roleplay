@@ -110,9 +110,7 @@ class TestClearSessionData:
             sess["scenario_chat_history"] = [{"human": "test", "ai": "response"}]
             sess["watch_history"] = [{"speaker": "A", "message": "test"}]
 
-        response = csrf_client.post(
-            "/api/session/clear", json={"type": "all"}
-        )
+        response = csrf_client.post("/api/session/clear", json={"type": "all"})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -125,9 +123,7 @@ class TestClearSessionData:
             sess["chat_history"] = [{"human": "test", "ai": "response"}]
             sess["scenario_chat_history"] = [{"human": "test", "ai": "response"}]
 
-        response = csrf_client.post(
-            "/api/session/clear", json={"type": "chat"}
-        )
+        response = csrf_client.post("/api/session/clear", json={"type": "chat"})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -146,9 +142,7 @@ class TestClearSessionData:
             sess["scenario_chat_history"] = [{"human": "test", "ai": "response"}]
             sess["current_scenario_id"] = "scenario1"
 
-        response = csrf_client.post(
-            "/api/session/clear", json={"type": "scenario"}
-        )
+        response = csrf_client.post("/api/session/clear", json={"type": "scenario"})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -159,9 +153,7 @@ class TestClearSessionData:
         with csrf_client.session_transaction() as sess:
             sess["watch_history"] = [{"speaker": "A", "message": "test"}]
 
-        response = csrf_client.post(
-            "/api/session/clear", json={"type": "watch"}
-        )
+        response = csrf_client.post("/api/session/clear", json={"type": "watch"})
 
         assert response.status_code == 200
         data = response.get_json()
@@ -169,9 +161,7 @@ class TestClearSessionData:
 
     def test_無効なクリアタイプでエラー(self, csrf_client):
         """無効なクリアタイプでエラー"""
-        response = csrf_client.post(
-            "/api/session/clear", json={"type": "invalid"}
-        )
+        response = csrf_client.post("/api/session/clear", json={"type": "invalid"})
 
         assert response.status_code == 400
         data = response.get_json()

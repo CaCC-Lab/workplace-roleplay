@@ -3,16 +3,14 @@ Watch mode routes for the workplace-roleplay application.
 Handles AI conversation observation functionality.
 """
 
-import re
 from datetime import datetime
 from typing import Any
 
 from config.feature_flags import get_feature_flags
 from flask import Blueprint, jsonify, render_template, request, session
-from langchain_core.messages import HumanMessage, SystemMessage
 
 from config import get_cached_config
-from errors import ExternalAPIError, secure_error_handler, with_error_handling
+from errors import ExternalAPIError, secure_error_handler
 
 # セキュリティ関連のインポート
 try:
@@ -38,10 +36,6 @@ from services.watch_service import get_watch_service
 
 from utils.helpers import (
     clear_session_history,
-    extract_content,
-    get_partner_description,
-    get_situation_description,
-    get_topic_description,
 )
 
 # Blueprint作成
@@ -101,9 +95,7 @@ def start_watch():
 
             watch_service = get_watch_service()
             llm = initialize_llm(model_a)
-            initial_message = watch_service.generate_initial_message(
-                llm, partner_type, situation, topic
-            )
+            initial_message = watch_service.generate_initial_message(llm, partner_type, situation, topic)
 
             session["watch_history"] = [
                 {
@@ -122,9 +114,7 @@ def start_watch():
     except Exception as e:
         print(f"Error in start_watch: {str(e)}")
         return (
-            jsonify(
-                {"error": f"観戦モードの開始に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}
-            ),
+            jsonify({"error": f"観戦モードの開始に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}),
             500,
         )
 
@@ -177,10 +167,6 @@ def next_watch_message() -> Any:
     except Exception as e:
         print(f"Error in next_watch_message: {str(e)}")
         return (
-            jsonify(
-                {
-                    "error": f"次のメッセージ生成に失敗しました: {SecurityUtils.get_safe_error_message(e)}"
-                }
-            ),
+            jsonify({"error": f"次のメッセージ生成に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}),
             500,
         )

@@ -32,9 +32,7 @@ class TestGenerateCharacterImage:
 
     def test_JSONなしでリクエスト(self, client):
         """JSONなしでリクエスト"""
-        response = client.post(
-            "/api/generate_character_image", content_type="application/json", data=""
-        )
+        response = client.post("/api/generate_character_image", content_type="application/json", data="")
 
         # 400または500が返される
         assert response.status_code in [400, 500]
@@ -66,12 +64,8 @@ class TestGenerateCharacterImage:
         # シナリオをモック
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "scenario1"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "厳格な40代男性部長"}
-            }
-            mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                k
-            ] if k == "scenario1" else d
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "厳格な40代男性部長"}}
+            mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "scenario1" else d
 
             # genaiをモック
             with patch.dict(
@@ -90,12 +84,8 @@ class TestGenerateCharacterImage:
         """女性キャラクターの推定"""
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "scenario7"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "女性課長、30代"}
-            }
-            mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                k
-            ] if k == "scenario7" else d
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "女性課長、30代"}}
+            mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "scenario7" else d
 
             with patch.dict(
                 "sys.modules",
@@ -113,12 +103,8 @@ class TestGenerateCharacterImage:
         """20代キャラクターの推定"""
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "test_scenario"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "20代新人"}
-            }
-            mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                k
-            ] if k == "test_scenario" else d
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "20代新人"}}
+            mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "test_scenario" else d
 
             with patch.dict(
                 "sys.modules",
@@ -135,12 +121,8 @@ class TestGenerateCharacterImage:
         """50代キャラクターの推定"""
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "test_senior"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "50代部長"}
-            }
-            mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                k
-            ] if k == "test_senior" else d
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "50代部長"}}
+            mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "test_senior" else d
 
             with patch.dict(
                 "sys.modules",
@@ -167,12 +149,8 @@ class TestGenerateCharacterImage:
         # シナリオをモック
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "scenario1"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "男性部長"}
-            }
-            mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                k
-            ] if k == "scenario1" else d
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "男性部長"}}
+            mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "scenario1" else d
 
             response = client.post(
                 "/api/generate_character_image",
@@ -194,12 +172,8 @@ class TestGenerateCharacterImage:
         for emotion in emotions:
             with patch("routes.image_routes.scenarios") as mock_scenarios:
                 mock_scenarios.__contains__ = lambda self, x: x == "scenario1"
-                mock_scenarios.__getitem__ = lambda self, x: {
-                    "character_setting": {"personality": "男性部長"}
-                }
-                mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                    k
-                ] if k == "scenario1" else d
+                mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "男性部長"}}
+                mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "scenario1" else d
 
                 with patch.dict(
                     "sys.modules",
@@ -216,12 +190,8 @@ class TestGenerateCharacterImage:
         """課長の役職推定"""
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "test_kacho"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "課長"}
-            }
-            mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                k
-            ] if k == "test_kacho" else d
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "課長"}}
+            mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "test_kacho" else d
 
             with patch.dict(
                 "sys.modules",
@@ -238,12 +208,8 @@ class TestGenerateCharacterImage:
         """先輩の役職推定"""
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "test_senpai"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "先輩"}
-            }
-            mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                k
-            ] if k == "test_senpai" else d
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "先輩"}}
+            mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "test_senpai" else d
 
             with patch.dict(
                 "sys.modules",
@@ -260,12 +226,8 @@ class TestGenerateCharacterImage:
         """同僚の役職推定"""
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "test_colleague"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "同僚"}
-            }
-            mock_scenarios.get = lambda k, d=None: mock_scenarios[
-                k
-            ] if k == "test_colleague" else d
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "同僚"}}
+            mock_scenarios.get = lambda k, d=None: mock_scenarios[k] if k == "test_colleague" else d
 
             with patch.dict(
                 "sys.modules",
@@ -312,9 +274,7 @@ class TestImageGenerationSuccess:
             mock_scenarios.__getitem__ = lambda self, x: {
                 "character_setting": {"personality": "男性部長", "situation": "会議"}
             }
-            mock_scenarios.get = lambda k, d=None: (
-                mock_scenarios[k] if k == "scenario1" else d
-            )
+            mock_scenarios.get = lambda k, d=None: (mock_scenarios[k] if k == "scenario1" else d)
 
             # genaiモジュールをモック
             mock_genai = MagicMock()
@@ -363,9 +323,7 @@ class TestImageGenerationSuccess:
             mock_scenarios.__getitem__ = lambda self, x: {
                 "character_setting": {"personality": "男性部長", "situation": "休憩室"}
             }
-            mock_scenarios.get = lambda k, d=None: (
-                mock_scenarios[k] if k == "scenario1" else d
-            )
+            mock_scenarios.get = lambda k, d=None: (mock_scenarios[k] if k == "scenario1" else d)
 
             mock_genai = MagicMock()
             mock_types = MagicMock()
@@ -409,12 +367,8 @@ class TestImageGenerationSuccess:
 
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "scenario1"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "男性部長"}
-            }
-            mock_scenarios.get = lambda k, d=None: (
-                mock_scenarios[k] if k == "scenario1" else d
-            )
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "男性部長"}}
+            mock_scenarios.get = lambda k, d=None: (mock_scenarios[k] if k == "scenario1" else d)
 
             mock_genai = MagicMock()
             mock_types = MagicMock()
@@ -460,12 +414,8 @@ class TestImageGenerationSuccess:
 
         with patch("routes.image_routes.scenarios") as mock_scenarios:
             mock_scenarios.__contains__ = lambda self, x: x == "scenario1"
-            mock_scenarios.__getitem__ = lambda self, x: {
-                "character_setting": {"personality": "男性部長"}
-            }
-            mock_scenarios.get = lambda k, d=None: (
-                mock_scenarios[k] if k == "scenario1" else d
-            )
+            mock_scenarios.__getitem__ = lambda self, x: {"character_setting": {"personality": "男性部長"}}
+            mock_scenarios.get = lambda k, d=None: (mock_scenarios[k] if k == "scenario1" else d)
 
             mock_genai = MagicMock()
             mock_types = MagicMock()
@@ -515,9 +465,7 @@ class TestImageGenerationSuccess:
             mock_scenarios.__getitem__ = lambda self, x: {
                 "character_setting": {"personality": "男性部長", "situation": "ランチ休憩"}
             }
-            mock_scenarios.get = lambda k, d=None: (
-                mock_scenarios[k] if k == "scenario1" else d
-            )
+            mock_scenarios.get = lambda k, d=None: (mock_scenarios[k] if k == "scenario1" else d)
 
             mock_genai = MagicMock()
             mock_types = MagicMock()
@@ -550,9 +498,7 @@ class TestImageGenerationSuccess:
             mock_scenarios.__getitem__ = lambda self, x: {
                 "character_setting": {"personality": "男性部長", "situation": "懇親会"}
             }
-            mock_scenarios.get = lambda k, d=None: (
-                mock_scenarios[k] if k == "scenario1" else d
-            )
+            mock_scenarios.get = lambda k, d=None: (mock_scenarios[k] if k == "scenario1" else d)
 
             mock_genai = MagicMock()
             mock_types = MagicMock()

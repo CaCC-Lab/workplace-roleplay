@@ -57,9 +57,7 @@ def session_health_check():
                     "details": {
                         "redis_connected": False,
                         "fallback_active": False,
-                        "session_dir": current_app.config.get(
-                            "SESSION_FILE_DIR", "./flask_session"
-                        ),
+                        "session_dir": current_app.config.get("SESSION_FILE_DIR", "./flask_session"),
                     },
                 }
             )
@@ -67,11 +65,7 @@ def session_health_check():
     except Exception as e:
         print(f"Error in session_health_check: {str(e)}")
         return (
-            jsonify(
-                {
-                    "error": f"セッションヘルスチェックに失敗しました: {SecurityUtils.get_safe_error_message(e)}"
-                }
-            ),
+            jsonify({"error": f"セッションヘルスチェックに失敗しました: {SecurityUtils.get_safe_error_message(e)}"}),
             500,
         )
 
@@ -100,11 +94,7 @@ def session_info():
     except Exception as e:
         print(f"Error in get_session_info: {str(e)}")
         return (
-            jsonify(
-                {
-                    "error": f"セッション情報取得に失敗しました: {SecurityUtils.get_safe_error_message(e)}"
-                }
-            ),
+            jsonify({"error": f"セッション情報取得に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}),
             500,
         )
 
@@ -132,9 +122,7 @@ def clear_session_data():
         else:
             return jsonify({"error": "無効なクリアタイプです"}), 400
 
-        return jsonify(
-            {"status": "success", "message": message, "cleared_type": clear_type}
-        )
+        return jsonify({"status": "success", "message": message, "cleared_type": clear_type})
 
     except Exception as e:
         return jsonify({"error": f"セッションクリアエラー: {str(e)}"}), 500

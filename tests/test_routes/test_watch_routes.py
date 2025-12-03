@@ -25,9 +25,7 @@ class TestStartWatch:
             mock_llm_instance = MagicMock()
             mock_llm.return_value = mock_llm_instance
 
-            with patch(
-                "services.watch_service.WatchService.generate_initial_message"
-            ) as mock_gen:
+            with patch("services.watch_service.WatchService.generate_initial_message") as mock_gen:
                 mock_gen.return_value = "こんにちは！今日はいい天気ですね。"
 
                 response = csrf_client.post(
@@ -114,9 +112,7 @@ class TestNextWatchMessage:
             mock_llm_instance = MagicMock()
             mock_llm.return_value = mock_llm_instance
 
-            with patch(
-                "services.watch_service.WatchService.generate_next_message"
-            ) as mock_gen:
+            with patch("services.watch_service.WatchService.generate_next_message") as mock_gen:
                 mock_gen.return_value = "こんにちは！良い天気ですね。"
 
                 response = csrf_client.post("/api/watch/next", json={})
@@ -171,17 +167,13 @@ class TestNextWatchMessage:
                 "topic": "general",
                 "current_speaker": "A",
             }
-            sess["watch_history"] = [
-                {"speaker": "A", "message": "テスト", "timestamp": "2024-01-01"}
-            ]
+            sess["watch_history"] = [{"speaker": "A", "message": "テスト", "timestamp": "2024-01-01"}]
 
         with patch("app.initialize_llm") as mock_llm:
             mock_llm_instance = MagicMock()
             mock_llm.return_value = mock_llm_instance
 
-            with patch(
-                "services.watch_service.WatchService.generate_next_message"
-            ) as mock_gen:
+            with patch("services.watch_service.WatchService.generate_next_message") as mock_gen:
                 mock_gen.return_value = "返答です"
 
                 response = csrf_client.post("/api/watch/next", json={})

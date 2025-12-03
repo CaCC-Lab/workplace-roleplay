@@ -193,7 +193,6 @@ class TestChatCompareExtended:
                 assert response.status_code in [403, 500]
 
 
-
 class TestGetServicesExtended:
     """get_services関数の拡張テスト"""
 

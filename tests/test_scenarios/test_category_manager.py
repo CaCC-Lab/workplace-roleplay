@@ -77,9 +77,7 @@ class TestScenarioCategoryManager:
         from scenarios.category_manager import ScenarioCategoryManager
 
         manager = ScenarioCategoryManager()
-        manager.all_scenarios = {
-            "test_scenario": {"category": "harassment"}
-        }
+        manager.all_scenarios = {"test_scenario": {"category": "harassment"}}
 
         assert manager._is_harassment_scenario("test_scenario") is True
 
@@ -95,7 +93,7 @@ class TestScenarioCategoryManager:
         if regular:
             first_id = list(regular.keys())[0]
             summary = manager.get_scenario_summary(first_id)
-            
+
             assert summary is not None
             assert "id" in summary
             assert "category" in summary

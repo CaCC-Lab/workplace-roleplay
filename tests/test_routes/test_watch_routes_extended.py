@@ -49,9 +49,7 @@ class TestStartWatch:
 
     def test_JSONなしでリクエスト(self, client):
         """JSONなしでリクエスト"""
-        response = client.post(
-            "/api/watch/start", content_type="application/json", data=""
-        )
+        response = client.post("/api/watch/start", content_type="application/json", data="")
 
         # 400または500
         assert response.status_code in [400, 500]
@@ -87,12 +85,8 @@ class TestStartWatch:
                     with patch("app.initialize_llm") as mock_llm:
                         mock_llm.return_value = MagicMock()
 
-                        with patch(
-                            "routes.watch_routes.get_watch_service"
-                        ) as mock_service:
-                            mock_service.return_value.generate_initial_message.return_value = (
-                                "こんにちは"
-                            )
+                        with patch("routes.watch_routes.get_watch_service") as mock_service:
+                            mock_service.return_value.generate_initial_message.return_value = "こんにちは"
 
                             response = client.post(
                                 "/api/watch/start",
@@ -156,9 +150,7 @@ class TestNextWatchMessage:
                 "topic": "general",
                 "current_speaker": "A",
             }
-            sess["watch_history"] = [
-                {"speaker": "A", "message": "こんにちは", "timestamp": "2024-01-01T10:00:00"}
-            ]
+            sess["watch_history"] = [{"speaker": "A", "message": "こんにちは", "timestamp": "2024-01-01T10:00:00"}]
 
         with patch("app.initialize_llm") as mock_llm:
             mock_llm.return_value = MagicMock()
@@ -188,9 +180,7 @@ class TestNextWatchMessage:
                 "topic": "general",
                 "current_speaker": "A",
             }
-            sess["watch_history"] = [
-                {"speaker": "A", "message": "こんにちは", "timestamp": "2024-01-01T10:00:00"}
-            ]
+            sess["watch_history"] = [{"speaker": "A", "message": "こんにちは", "timestamp": "2024-01-01T10:00:00"}]
 
         with patch("app.initialize_llm") as mock_llm:
             mock_llm.side_effect = Exception("Rate limit exceeded")
@@ -328,9 +318,7 @@ class TestNextWatchMessageExtended:
                 "topic": "general",
                 "current_speaker": "A",
             }
-            sess["watch_history"] = [
-                {"speaker": "A", "message": "最初", "timestamp": "2024-01-01T10:00:00"}
-            ]
+            sess["watch_history"] = [{"speaker": "A", "message": "最初", "timestamp": "2024-01-01T10:00:00"}]
 
         with patch("app.initialize_llm") as mock_llm:
             mock_llm.return_value = MagicMock()
@@ -407,18 +395,21 @@ class TestSecurityUtilsFallbackWatch:
     def test_sanitize_input(self):
         """sanitize_inputメソッド"""
         from routes.watch_routes import SecurityUtils
+
         result = SecurityUtils.sanitize_input("<script>alert('xss')</script>")
         assert result is not None
 
     def test_validate_model_name(self):
         """validate_model_nameメソッド"""
         from routes.watch_routes import SecurityUtils
+
         result = SecurityUtils.validate_model_name("test-model")
         assert result is not None
 
     def test_get_safe_error_message(self):
         """get_safe_error_messageメソッド"""
         from routes.watch_routes import SecurityUtils
+
         result = SecurityUtils.get_safe_error_message(Exception("test error"))
         assert result is not None
 

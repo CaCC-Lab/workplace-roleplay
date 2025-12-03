@@ -48,9 +48,7 @@ class TestFeedbackService:
             mock_service.get_user_role.return_value = "部下役"
             mock_get.return_value = mock_service
 
-            prompt = service.build_scenario_feedback_prompt(
-                history, scenario_data, is_reverse_role=False
-            )
+            prompt = service.build_scenario_feedback_prompt(history, scenario_data, is_reverse_role=False)
 
             assert "職場コミュニケーション評価" in prompt
 
@@ -69,9 +67,7 @@ class TestFeedbackService:
             mock_service.get_user_role.return_value = "上司役"
             mock_get.return_value = mock_service
 
-            prompt = service.build_scenario_feedback_prompt(
-                history, scenario_data, is_reverse_role=True
-            )
+            prompt = service.build_scenario_feedback_prompt(history, scenario_data, is_reverse_role=True)
 
             assert "パワハラ防止評価" in prompt
 
@@ -90,14 +86,10 @@ class TestFeedbackService:
                     mock_model.name = "models/gemini-1.5-flash"
                     mock_list.return_value = [mock_model]
 
-                    with patch(
-                        "app.create_model_and_get_response"
-                    ) as mock_create:
+                    with patch("app.create_model_and_get_response") as mock_create:
                         mock_create.return_value = "フィードバック内容"
 
-                        content, used_model, error = (
-                            service.try_multiple_models_for_prompt("テストプロンプト")
-                        )
+                        content, used_model, error = service.try_multiple_models_for_prompt("テストプロンプト")
 
                         assert content == "フィードバック内容"
                         assert used_model is not None
@@ -118,15 +110,11 @@ class TestFeedbackService:
                     mock_model.name = "models/gemini-1.5-pro"
                     mock_list.return_value = [mock_model]
 
-                    with patch(
-                        "app.create_model_and_get_response"
-                    ) as mock_create:
+                    with patch("app.create_model_and_get_response") as mock_create:
                         mock_create.return_value = "フィードバック"
 
-                        content, used_model, error = (
-                            service.try_multiple_models_for_prompt(
-                                "テスト", preferred_model="gemini-1.5-pro"
-                            )
+                        content, used_model, error = service.try_multiple_models_for_prompt(
+                            "テスト", preferred_model="gemini-1.5-pro"
                         )
 
                         assert error is None
@@ -146,15 +134,11 @@ class TestFeedbackService:
                     mock_model.name = "models/gemini-1.5-flash"
                     mock_list.return_value = [mock_model]
 
-                    with patch(
-                        "app.create_model_and_get_response"
-                    ) as mock_create:
+                    with patch("app.create_model_and_get_response") as mock_create:
                         mock_create.return_value = "フィードバック"
 
-                        content, used_model, error = (
-                            service.try_multiple_models_for_prompt(
-                                "テスト", preferred_model="nonexistent-model"
-                            )
+                        content, used_model, error = service.try_multiple_models_for_prompt(
+                            "テスト", preferred_model="nonexistent-model"
                         )
 
                         # flashモデルにフォールバック
@@ -173,14 +157,10 @@ class TestFeedbackService:
                 with patch("google.generativeai.list_models") as mock_list:
                     mock_list.side_effect = Exception("API Error")
 
-                    with patch(
-                        "app.create_model_and_get_response"
-                    ) as mock_create:
+                    with patch("app.create_model_and_get_response") as mock_create:
                         mock_create.return_value = "フィードバック"
 
-                        content, used_model, error = (
-                            service.try_multiple_models_for_prompt("テスト")
-                        )
+                        content, used_model, error = service.try_multiple_models_for_prompt("テスト")
 
                         # フォールバックモデルが使用される
 
@@ -197,14 +177,10 @@ class TestFeedbackService:
                 with patch("google.generativeai.list_models") as mock_list:
                     mock_list.return_value = []  # モデルなし
 
-                    with patch(
-                        "app.create_model_and_get_response"
-                    ) as mock_create:
+                    with patch("app.create_model_and_get_response") as mock_create:
                         mock_create.side_effect = Exception("No model")
 
-                        content, used_model, error = (
-                            service.try_multiple_models_for_prompt("テスト")
-                        )
+                        content, used_model, error = service.try_multiple_models_for_prompt("テスト")
 
                         # エラーメッセージが返される
 
@@ -224,14 +200,10 @@ class TestFeedbackService:
                     mock_model.name = "models/gemini-1.5-flash"
                     mock_list.return_value = [mock_model]
 
-                    with patch(
-                        "app.create_model_and_get_response"
-                    ) as mock_create:
+                    with patch("app.create_model_and_get_response") as mock_create:
                         mock_create.side_effect = ResourceExhausted("Rate limited")
 
-                        content, used_model, error = (
-                            service.try_multiple_models_for_prompt("テスト")
-                        )
+                        content, used_model, error = service.try_multiple_models_for_prompt("テスト")
 
                         assert error == "RATE_LIMIT_EXCEEDED"
 
@@ -250,14 +222,10 @@ class TestFeedbackService:
                     mock_model.name = "models/gemini-1.5-flash"
                     mock_list.return_value = [mock_model]
 
-                    with patch(
-                        "app.create_model_and_get_response"
-                    ) as mock_create:
+                    with patch("app.create_model_and_get_response") as mock_create:
                         mock_create.side_effect = Exception("429 rate limit exceeded")
 
-                        content, used_model, error = (
-                            service.try_multiple_models_for_prompt("テスト")
-                        )
+                        content, used_model, error = service.try_multiple_models_for_prompt("テスト")
 
                         assert error == "RATE_LIMIT_EXCEEDED"
 
@@ -267,14 +235,10 @@ class TestFeedbackService:
 
         service = FeedbackService()
 
-        with patch(
-            "routes.strength_routes.update_feedback_with_strength_analysis"
-        ) as mock_strength:
+        with patch("routes.strength_routes.update_feedback_with_strength_analysis") as mock_strength:
             mock_strength.return_value = {"feedback": "test", "strength_analysis": {}}
 
-            result = service.update_feedback_with_strength_analysis(
-                {"feedback": "test"}, "chat"
-            )
+            result = service.update_feedback_with_strength_analysis({"feedback": "test"}, "chat")
 
             assert "feedback" in result
 
@@ -284,14 +248,10 @@ class TestFeedbackService:
 
         service = FeedbackService()
 
-        with patch(
-            "routes.strength_routes.update_feedback_with_strength_analysis"
-        ) as mock_strength:
+        with patch("routes.strength_routes.update_feedback_with_strength_analysis") as mock_strength:
             mock_strength.side_effect = Exception("Error")
 
-            result = service.update_feedback_with_strength_analysis(
-                {"feedback": "test"}, "chat"
-            )
+            result = service.update_feedback_with_strength_analysis({"feedback": "test"}, "chat")
 
             # エラー時は元のフィードバックを返す
             assert result == {"feedback": "test"}

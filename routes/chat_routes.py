@@ -4,9 +4,8 @@ Handles chat API endpoints.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List
 
-from config.feature_flags import get_feature_flags
 from flask import Blueprint, Response, jsonify, request, session
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
@@ -45,13 +44,10 @@ from utils.helpers import (
     add_messages_from_history,
     add_to_session_history,
     clear_session_history,
-    extract_content,
-    format_conversation_history_for_feedback,
     get_partner_description,
     get_situation_description,
     get_topic_description,
     initialize_session_history,
-    set_session_start_time,
 )
 
 # Blueprint作成
@@ -202,9 +198,7 @@ def start_chat() -> Response:
     except Exception as e:
         print(f"Error in start_chat: {str(e)}")
         return (
-            jsonify(
-                {"error": f"雑談開始に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}
-            ),
+            jsonify({"error": f"雑談開始に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}),
             500,
         )
 
@@ -236,10 +230,7 @@ def clear_history() -> Response:
             if scenario_id:
                 clear_session_history("scenario_history", scenario_id)
             else:
-                if (
-                    "conversation_history" in session
-                    and selected_model in session["conversation_history"]
-                ):
+                if "conversation_history" in session and selected_model in session["conversation_history"]:
                     session["conversation_history"][selected_model] = []
                     session.modified = True
 
@@ -276,9 +267,7 @@ def get_chat_feedback() -> Response:
             feedback_content,
             used_model,
             error_msg,
-        ) = feedback_service.try_multiple_models_for_prompt(
-            feedback_prompt, selected_model
-        )
+        ) = feedback_service.try_multiple_models_for_prompt(feedback_prompt, selected_model)
 
         if error_msg is None:
             response_data = {
@@ -291,9 +280,7 @@ def get_chat_feedback() -> Response:
             from services.strength_service import get_strength_service
 
             strength_service = get_strength_service()
-            response_data = strength_service.update_feedback_with_strength_analysis(
-                response_data, "chat"
-            )
+            response_data = strength_service.update_feedback_with_strength_analysis(response_data, "chat")
 
             return jsonify(response_data)
         else:
@@ -310,9 +297,7 @@ def get_chat_feedback() -> Response:
                     429,
                 )
             else:
-                safe_message = SecurityUtils.get_safe_error_message(
-                    Exception(error_msg)
-                )
+                safe_message = SecurityUtils.get_safe_error_message(Exception(error_msg))
                 return (
                     jsonify(
                         {
@@ -347,10 +332,7 @@ def get_conversation_history() -> Response:
         if not scenario_id:
             raise ValidationError("シナリオIDが必要です")
 
-        if (
-            "scenario_history" not in session
-            or scenario_id not in session["scenario_history"]
-        ):
+        if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
             return jsonify({"history": []})
 
         return jsonify({"history": session["scenario_history"][scenario_id]})

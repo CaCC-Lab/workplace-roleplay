@@ -53,19 +53,13 @@ class TestAnalyzeStrengths:
                     "professionalism": 78,
                 }
 
-                with patch(
-                    "routes.strength_routes.generate_encouragement_messages"
-                ) as mock_messages:
+                with patch("routes.strength_routes.generate_encouragement_messages") as mock_messages:
                     mock_messages.return_value = ["素晴らしい結果です！"]
 
                     with patch("routes.strength_routes.get_top_strengths") as mock_top:
-                        mock_top.return_value = [
-                            {"name": "ポジティブさ", "score": 85}
-                        ]
+                        mock_top.return_value = [{"name": "ポジティブさ", "score": 85}]
 
-                        response = csrf_client.post(
-                            "/api/strength_analysis", json={"type": "chat"}
-                        )
+                        response = csrf_client.post("/api/strength_analysis", json={"type": "chat"})
 
                         assert response.status_code == 200
                         data = response.get_json()
@@ -94,9 +88,7 @@ class TestAnalyzeStrengths:
                     "professionalism": 78,
                 }
 
-                with patch(
-                    "routes.strength_routes.generate_encouragement_messages"
-                ) as mock_messages:
+                with patch("routes.strength_routes.generate_encouragement_messages") as mock_messages:
                     mock_messages.return_value = ["素晴らしい！"]
 
                     with patch("routes.strength_routes.get_top_strengths") as mock_top:
@@ -130,9 +122,7 @@ class TestAnalyzeStrengths:
                     "professionalism": 70,
                 }
 
-                with patch(
-                    "routes.strength_routes.generate_encouragement_messages"
-                ) as mock_messages:
+                with patch("routes.strength_routes.generate_encouragement_messages") as mock_messages:
                     mock_messages.return_value = ["良い結果です！"]
 
                     with patch("routes.strength_routes.get_top_strengths") as mock_top:
@@ -150,9 +140,7 @@ class TestAnalyzeStrengths:
         with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
             mock_enabled.return_value = True
 
-            response = csrf_client.post(
-                "/api/strength_analysis", json={"type": "chat"}
-            )
+            response = csrf_client.post("/api/strength_analysis", json={"type": "chat"})
 
             assert response.status_code == 200
             data = response.get_json()
@@ -165,9 +153,7 @@ class TestAnalyzeStrengths:
         with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
             mock_enabled.return_value = False
 
-            response = csrf_client.post(
-                "/api/strength_analysis", json={"type": "chat"}
-            )
+            response = csrf_client.post("/api/strength_analysis", json={"type": "chat"})
 
             assert response.status_code == 403
 
@@ -176,9 +162,7 @@ class TestAnalyzeStrengths:
         with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
             mock_enabled.return_value = True
 
-            response = csrf_client.post(
-                "/api/strength_analysis", json={"type": "scenario"}
-            )
+            response = csrf_client.post("/api/strength_analysis", json={"type": "scenario"})
 
             assert response.status_code == 400
 
@@ -187,9 +171,7 @@ class TestAnalyzeStrengths:
         with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
             mock_enabled.return_value = True
 
-            response = csrf_client.post(
-                "/api/strength_analysis", json={"type": "unknown"}
-            )
+            response = csrf_client.post("/api/strength_analysis", json={"type": "unknown"})
 
             assert response.status_code == 400
 
@@ -218,9 +200,7 @@ class TestUpdateFeedbackWithStrengthAnalysis:
         with app.test_request_context():
             from flask import session
 
-            session["chat_history"] = [
-                {"human": "こんにちは", "ai": "こんにちは！"}
-            ]
+            session["chat_history"] = [{"human": "こんにちは", "ai": "こんにちは！"}]
 
             with patch("routes.strength_routes.analyze_user_strengths") as mock_analyze:
                 mock_analyze.return_value = {
@@ -240,9 +220,7 @@ class TestUpdateFeedbackWithStrengthAnalysis:
                     ]
 
                     feedback = {"feedback": "良いコミュニケーションでした！"}
-                    result = update_feedback_with_strength_analysis(
-                        feedback, "chat"
-                    )
+                    result = update_feedback_with_strength_analysis(feedback, "chat")
 
                     assert "strength_analysis" in result
                     assert "scores" in result["strength_analysis"]
@@ -255,9 +233,7 @@ class TestUpdateFeedbackWithStrengthAnalysis:
         with app.test_request_context():
             from flask import session
 
-            session["scenario_history"] = {
-                "scenario1": [{"human": "test", "ai": "response"}]
-            }
+            session["scenario_history"] = {"scenario1": [{"human": "test", "ai": "response"}]}
 
             with patch("routes.strength_routes.analyze_user_strengths") as mock_analyze:
                 mock_analyze.return_value = {"empathy": 70}
@@ -266,9 +242,7 @@ class TestUpdateFeedbackWithStrengthAnalysis:
                     mock_top.return_value = [{"name": "共感力", "score": 70}]
 
                     feedback = {"feedback": "良い練習でした！"}
-                    result = update_feedback_with_strength_analysis(
-                        feedback, "scenario", "scenario1"
-                    )
+                    result = update_feedback_with_strength_analysis(feedback, "scenario", "scenario1")
 
                     assert "strength_analysis" in result
 
@@ -321,14 +295,11 @@ class TestAnalyzeStrengthsExtended:
     def test_強み履歴の制限_20件超え(self, csrf_client):
         """強み履歴が20件を超える場合の制限"""
         with csrf_client.session_transaction() as sess:
-            sess["chat_history"] = [
-                {"human": "test", "ai": "response"}
-            ]
+            sess["chat_history"] = [{"human": "test", "ai": "response"}]
             # 20件の履歴を事前に設定
             sess["strength_history"] = {
                 "chat": [
-                    {"timestamp": f"2024-01-{i:02d}T10:00:00", "scores": {}, "practice_count": i}
-                    for i in range(1, 21)
+                    {"timestamp": f"2024-01-{i:02d}T10:00:00", "scores": {}, "practice_count": i} for i in range(1, 21)
                 ]
             }
 
@@ -351,9 +322,7 @@ class TestAnalyzeStrengthsExtended:
                     with patch("routes.strength_routes.get_top_strengths") as mock_top:
                         mock_top.return_value = [{"name": "ポジティブさ", "score": 85}]
 
-                        response = csrf_client.post(
-                            "/api/strength_analysis", json={"type": "chat"}
-                        )
+                        response = csrf_client.post("/api/strength_analysis", json={"type": "chat"})
 
                         # 履歴は最大20件に制限される
                         assert response.status_code == 200
@@ -363,9 +332,7 @@ class TestAnalyzeStrengthsExtended:
     def test_メッセージが3件未満の場合追加メッセージ(self, csrf_client):
         """励ましメッセージが3件未満の場合追加される"""
         with csrf_client.session_transaction() as sess:
-            sess["chat_history"] = [
-                {"human": "こんにちは", "ai": "こんにちは！"}
-            ]
+            sess["chat_history"] = [{"human": "こんにちは", "ai": "こんにちは！"}]
 
         with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
             mock_enabled.return_value = True
@@ -387,9 +354,7 @@ class TestAnalyzeStrengthsExtended:
                     with patch("routes.strength_routes.get_top_strengths") as mock_top:
                         mock_top.return_value = [{"name": "ポジティブさ", "score": 85}]
 
-                        response = csrf_client.post(
-                            "/api/strength_analysis", json={"type": "chat"}
-                        )
+                        response = csrf_client.post("/api/strength_analysis", json={"type": "chat"})
 
                         assert response.status_code == 200
                         data = response.get_json()
@@ -399,9 +364,7 @@ class TestAnalyzeStrengthsExtended:
     def test_内部例外発生時のエラーハンドリング(self, csrf_client):
         """内部例外発生時のエラーハンドリング"""
         with csrf_client.session_transaction() as sess:
-            sess["chat_history"] = [
-                {"human": "test", "ai": "response"}
-            ]
+            sess["chat_history"] = [{"human": "test", "ai": "response"}]
 
         with patch("routes.strength_routes.is_strength_analysis_enabled") as mock_enabled:
             mock_enabled.return_value = True
@@ -409,9 +372,7 @@ class TestAnalyzeStrengthsExtended:
             with patch("routes.strength_routes.format_conversation_history") as mock_format:
                 mock_format.side_effect = Exception("Format error")
 
-                response = csrf_client.post(
-                    "/api/strength_analysis", json={"type": "chat"}
-                )
+                response = csrf_client.post("/api/strength_analysis", json={"type": "chat"})
 
                 # 500エラー
                 assert response.status_code == 500

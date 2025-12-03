@@ -68,47 +68,26 @@ def view_journal():
     if "scenario_settings" in session:
         scenario_settings = session["scenario_settings"]
         for scenario_id, settings in scenario_settings.items():
-            if (
-                scenario_id in session.get("scenario_history", {})
-                and session["scenario_history"][scenario_id]
-            ):
-                start_time = datetime.fromisoformat(
-                    settings.get("start_time", datetime.now().isoformat())
-                )
+            if scenario_id in session.get("scenario_history", {}) and session["scenario_history"][scenario_id]:
+                start_time = datetime.fromisoformat(settings.get("start_time", datetime.now().isoformat()))
                 last_msg_time = datetime.fromisoformat(
-                    session["scenario_history"][scenario_id][-1].get(
-                        "timestamp", datetime.now().isoformat()
-                    )
+                    session["scenario_history"][scenario_id][-1].get("timestamp", datetime.now().isoformat())
                 )
                 time_diff = (last_msg_time - start_time).total_seconds() / 60
                 total_minutes += time_diff
 
     # 雑談モードの練習時間計算
-    if (
-        "chat_settings" in session
-        and "chat_history" in session
-        and session["chat_history"]
-    ):
+    if "chat_settings" in session and "chat_history" in session and session["chat_history"]:
         chat_settings = session["chat_settings"]
-        start_time = datetime.fromisoformat(
-            chat_settings.get("start_time", datetime.now().isoformat())
-        )
-        last_msg_time = datetime.fromisoformat(
-            session["chat_history"][-1].get("timestamp", datetime.now().isoformat())
-        )
+        start_time = datetime.fromisoformat(chat_settings.get("start_time", datetime.now().isoformat()))
+        last_msg_time = datetime.fromisoformat(session["chat_history"][-1].get("timestamp", datetime.now().isoformat()))
         time_diff = (last_msg_time - start_time).total_seconds() / 60
         total_minutes += time_diff
 
     # 観戦モードの練習時間計算
-    if (
-        "watch_settings" in session
-        and "watch_history" in session
-        and session["watch_history"]
-    ):
+    if "watch_settings" in session and "watch_history" in session and session["watch_history"]:
         watch_settings = session["watch_settings"]
-        start_time = datetime.fromisoformat(
-            watch_settings.get("start_time", datetime.now().isoformat())
-        )
+        start_time = datetime.fromisoformat(watch_settings.get("start_time", datetime.now().isoformat()))
         last_msg_time = datetime.fromisoformat(
             session["watch_history"][-1].get("timestamp", datetime.now().isoformat())
         )

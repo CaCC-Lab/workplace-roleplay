@@ -18,9 +18,7 @@ class TestTextToSpeech:
 
     def test_POSTリクエストで503または403を返す(self, csrf_client):
         """POSTリクエストの動作確認"""
-        response = csrf_client.post(
-            "/api/tts", json={"text": "こんにちは"}
-        )
+        response = csrf_client.post("/api/tts", json={"text": "こんにちは"})
 
         # 機能が有効なら503（停止中）、無効なら403
         assert response.status_code in [403, 503]
@@ -28,9 +26,7 @@ class TestTextToSpeech:
     def test_TTS機能無効時の動作(self, csrf_client):
         """TTS機能無効時は403を返す"""
         # デフォルトではTTS機能は無効
-        response = csrf_client.post(
-            "/api/tts", json={"text": "テスト"}
-        )
+        response = csrf_client.post("/api/tts", json={"text": "テスト"})
 
         # 403（機能無効）または503（停止中）
         assert response.status_code in [403, 503]
@@ -71,9 +67,7 @@ class TestGetVoiceForEmotion:
         """感情に応じた音声名を取得"""
         from routes.tts_routes import get_voice_for_emotion
 
-        with patch(
-            "services.tts_service.TTSService.get_voice_for_emotion"
-        ) as mock_voice:
+        with patch("services.tts_service.TTSService.get_voice_for_emotion") as mock_voice:
             mock_voice.return_value = "kore"
 
             result = get_voice_for_emotion("happy")
@@ -84,9 +78,7 @@ class TestGetVoiceForEmotion:
         """デフォルト感情での音声取得"""
         from routes.tts_routes import get_voice_for_emotion
 
-        with patch(
-            "services.tts_service.TTSService.get_voice_for_emotion"
-        ) as mock_voice:
+        with patch("services.tts_service.TTSService.get_voice_for_emotion") as mock_voice:
             mock_voice.return_value = "aoede"
 
             result = get_voice_for_emotion("neutral")

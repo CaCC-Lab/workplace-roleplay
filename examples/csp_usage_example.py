@@ -8,17 +8,18 @@ from utils.security import SecurityUtils
 
 # Flaskアプリケーションの初期化
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'demo-secret-key'
+app.config["SECRET_KEY"] = "demo-secret-key"
 
 # CSPミドルウェアの初期化（Phase 1: Report-Onlyモード）
 csp = init_csp(app, phase=CSPNonce.PHASE_REPORT_ONLY)
 
 
-@app.route('/')
+@app.route("/")
 def index():
     """セキュアなHTMLページの例"""
     # テンプレート内でcsp_nonce()関数を使用
-    return render_template_string('''
+    return render_template_string(
+        """
 <!DOCTYPE html>
 <html>
 <head>
@@ -86,13 +87,16 @@ def index():
     </div>
 </body>
 </html>
-    ''', phase=app.config.get('CSP_PHASE', 1))
+    """,
+        phase=app.config.get("CSP_PHASE", 1),
+    )
 
 
-@app.route('/unsafe')
+@app.route("/unsafe")
 def unsafe_page():
     """CSP違反を含むページの例（テスト用）"""
-    return render_template_string('''
+    return render_template_string(
+        """
 <!DOCTYPE html>
 <html>
 <head>
@@ -116,28 +120,30 @@ def unsafe_page():
     <p>このページはCSP違反を含んでいます。ブラウザのコンソールで違反を確認してください。</p>
 </body>
 </html>
-    ''')
+    """
+    )
 
 
-@app.route('/api/data')
+@app.route("/api/data")
 def api_data():
     """API エンドポイントの例"""
     # セキュアなJSONレスポンス
     data = {
-        'message': 'Hello from API',
-        'timestamp': '2024-01-01T00:00:00Z',
-        'user_input': SecurityUtils.sanitize_input('Sample <script>alert("xss")</script> input')
+        "message": "Hello from API",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "user_input": SecurityUtils.sanitize_input('Sample <script>alert("xss")</script> input'),
     }
     return jsonify(data)
 
 
-@app.route('/admin/csp-violations')
+@app.route("/admin/csp-violations")
 def csp_violations():
     """CSP違反レポートページ"""
     # 違反サマリーを取得
     summary = csp.get_violation_summary()
-    
-    return render_template_string('''
+
+    return render_template_string(
+        """
 <!DOCTYPE html>
 <html>
 <head>
@@ -251,20 +257,23 @@ def csp_violations():
     <p><a href="/">Back to main page</a></p>
 </body>
 </html>
-    ''', summary=summary)
+    """,
+        summary=summary,
+    )
 
 
-@app.route('/admin/clear-violations', methods=['POST'])
+@app.route("/admin/clear-violations", methods=["POST"])
 def clear_violations():
     """CSP違反ログをクリア"""
     csp.clear_violations()
-    return jsonify({'status': 'cleared'})
+    return jsonify({"status": "cleared"})
 
 
-@app.route('/admin/csp-config')
+@app.route("/admin/csp-config")
 def csp_config():
     """CSP設定ページ"""
-    return render_template_string('''
+    return render_template_string(
+        """
 <!DOCTYPE html>
 <html>
 <head>
@@ -326,18 +335,18 @@ def csp_config():
     <p><a href="/">Back to main page</a></p>
 </body>
 </html>
-    ''', 
-    current_phase=app.config.get('CSP_PHASE', 1),
-    report_only=app.config.get('CSP_REPORT_ONLY', True),
-    report_uri=app.config.get('CSP_REPORT_URI', '/api/csp-report')
+    """,
+        current_phase=app.config.get("CSP_PHASE", 1),
+        report_only=app.config.get("CSP_REPORT_ONLY", True),
+        report_uri=app.config.get("CSP_REPORT_URI", "/api/csp-report"),
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("CSP Demo Application Starting...")
     print("Visit http://localhost:5000/ for the main page")
     print("Visit http://localhost:5000/unsafe for CSP violation examples")
     print("Visit http://localhost:5000/admin/csp-violations for violation reports")
     print("Visit http://localhost:5000/admin/csp-config for configuration info")
-    
+
     app.run(debug=True, port=5000)

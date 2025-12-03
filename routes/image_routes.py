@@ -137,9 +137,7 @@ def generate_character_image():
             appearance = SCENARIO_APPEARANCES[scenario_id]
         else:
             default_key = f"default_{gender}"
-            appearance = SCENARIO_APPEARANCES.get(
-                default_key, "professional appearance"
-            )
+            appearance = SCENARIO_APPEARANCES.get(default_key, "professional appearance")
 
         # キャッシュキーの生成
         cache_key = f"{scenario_id}_{emotion}"
@@ -190,9 +188,7 @@ def generate_character_image():
             response = client.models.generate_content(
                 model="gemini-2.0-flash-preview-image-generation",
                 contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_modalities=["TEXT", "IMAGE"]
-                ),
+                config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
             )
 
             # レスポンスから画像データを取得
@@ -248,8 +244,6 @@ def generate_character_image():
     except Exception as e:
         print(f"Error in generate_character_image: {str(e)}")
         return (
-            jsonify(
-                {"error": f"画像生成に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}
-            ),
+            jsonify({"error": f"画像生成に失敗しました: {SecurityUtils.get_safe_error_message(e)}"}),
             500,
         )

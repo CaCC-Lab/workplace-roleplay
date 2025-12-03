@@ -6,12 +6,12 @@ from .config import get_config, get_cached_config, Config, DevelopmentConfig, Pr
 from .feature_flags import FeatureFlags, FeatureDisabledException
 
 __all__ = [
-    'get_config',
-    'get_cached_config',
-    'Config',
-    'DevelopmentConfig',
-    'ProductionConfig',
-    'ConfigForTesting',
-    'FeatureFlags',
-    'FeatureDisabledException'
+    "get_config",
+    "get_cached_config",
+    "Config",
+    "DevelopmentConfig",
+    "ProductionConfig",
+    "ConfigForTesting",
+    "FeatureFlags",
+    "FeatureDisabledException",
 ]
