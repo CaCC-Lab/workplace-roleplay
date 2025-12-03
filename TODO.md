@@ -129,10 +129,11 @@
 ## 📌 フェーズ3: UI/UX改善（優先度：中）
 
 ### 3.1 ユーザビリティ向上
-- [ ] **ダークモード対応**
-  - [ ] テーマ切り替え機能
-  - [ ] ユーザー設定の保存
-  - [ ] システム設定との連動
+- [x] **ダークモード対応**（実装済み）
+  - [x] テーマ切り替え機能（theme-toggle.js）
+  - [x] ユーザー設定の保存（localStorage）
+  - [x] システム設定との連動（prefers-color-scheme）
+  - [x] 全主要テンプレートに適用済み
 
 - [ ] **レスポンシブデザイン改善**
   - [ ] モバイル対応の強化
@@ -274,10 +275,12 @@
   - [ ] docker-compose設定
   - [ ] 開発環境の統一
 
-- [ ] **CI/CD パイプライン**
-  - [ ] GitHub Actions設定
-  - [ ] 自動テスト実行
-  - [ ] 自動デプロイ
+- [x] **CI/CD パイプライン**（2025年12月3日実装）
+  - [x] GitHub Actions設定（deploy-production.yml, ci.yml）
+  - [x] 自動テスト実行（flake8, black, mypy, pytest）
+  - [x] 自動デプロイ（Azure VMへのSSHデプロイ）
+  - [x] セキュリティスキャン（Trivy）
+  - [x] SSH鍵のGitHub Secrets設定
 
 - [ ] **監視・ログ管理**
   - [ ] エラー監視（Sentry等）
