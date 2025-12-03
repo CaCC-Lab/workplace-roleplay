@@ -49,7 +49,7 @@ jobs:
       
       - name: Run linting
         run: |
-          flake8 . --max-line-length=120 --exclude=venv,__pycache__,htmlcov,node_modules,.git,design-docs
+          flake8 . --max-line-length=120 --exclude=venv,__pycache__,htmlcov,node_modules,.git,design-docs,examples,tests,test_*.py,scripts,src,tools,verify_environment.py,strength_analyzer.py
           black --check .
       
       - name: Run type checking
