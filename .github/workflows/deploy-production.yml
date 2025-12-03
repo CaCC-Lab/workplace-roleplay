@@ -188,6 +188,7 @@ jobs:
     steps:
       - name: Send deployment notification
         uses: actions/github-script@v6
+        continue-on-error: true
         with:
           script: |
             const status = '${{ needs.deploy.result }}' === 'success' ? '✅' : '❌';
