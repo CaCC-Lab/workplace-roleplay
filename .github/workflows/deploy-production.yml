@@ -104,7 +104,10 @@ jobs:
             --exclude='.env' \
             --exclude='flask_session' \
             --exclude='cookies.txt' \
-            .
+            --exclude='htmlcov' \
+            --exclude='.pytest_cache' \
+            --warning=no-file-changed \
+            . || [[ $? -eq 1 ]]
       
       - name: Deploy to Azure VM
         run: |
