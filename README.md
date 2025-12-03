@@ -113,7 +113,7 @@ FLASK_SECRET_KEY=your_secret_key_here
 SESSION_TYPE=filesystem
 PORT=5000
 
-# 機能フラグ
+# 機能フラグ（詳細は下記参照）
 ENABLE_MODEL_SELECTION=false
 ENABLE_TTS=false
 ENABLE_LEARNING_HISTORY=false
@@ -122,6 +122,40 @@ ENABLE_STRENGTH_ANALYSIS=false
 # デフォルトモデル
 DEFAULT_MODEL=gemini/gemini-2.5-flash-lite
 ```
+
+### 機能フラグの詳細
+
+このアプリケーションは環境変数による機能フラグをサポートしており、特定の機能を有効/無効に切り替えることができます。
+
+| 環境変数 | デフォルト | 説明 |
+|---------|-----------|------|
+| `ENABLE_MODEL_SELECTION` | `false` | AIモデル選択UIの表示。`true`にするとユーザーがGeminiモデルを選択可能 |
+| `ENABLE_TTS` | `false` | 音声読み上げ（Text-to-Speech）機能。`true`にするとAI応答の音声再生が可能 |
+| `ENABLE_LEARNING_HISTORY` | `false` | 学習履歴機能。`true`にすると過去の会話履歴と進捗を表示 |
+| `ENABLE_STRENGTH_ANALYSIS` | `false` | 強み分析機能。`true`にするとコミュニケーションスキルの分析結果を表示 |
+| `DEFAULT_MODEL` | `gemini/gemini-2.5-flash-lite` | デフォルトで使用するAIモデル |
+
+#### 機能フラグの使用例
+
+```bash
+# 全機能を有効化（開発・テスト用）
+ENABLE_MODEL_SELECTION=true
+ENABLE_TTS=true
+ENABLE_LEARNING_HISTORY=true
+ENABLE_STRENGTH_ANALYSIS=true
+
+# 最小構成（本番推奨）
+ENABLE_MODEL_SELECTION=false
+ENABLE_TTS=false
+ENABLE_LEARNING_HISTORY=false
+ENABLE_STRENGTH_ANALYSIS=false
+```
+
+#### 機能フラグの動作
+
+- **UIへの影響**: 機能フラグが`false`の場合、該当する機能のUI要素（ボタン、メニュー等）は非表示になります
+- **APIへの影響**: 無効化された機能のAPIエンドポイントにアクセスすると、403エラーと「この機能は現在無効化されています」というメッセージが返されます
+- **段階的リリース**: 新機能を段階的にリリースする際に活用できます
 
 ### アプリケーションの起動
 
