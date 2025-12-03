@@ -130,7 +130,7 @@ class ScenarioService:
 3. 職場らしさ：敬語と略語を適切に使い分ける
 
 ## 現在の文脈
-{scenario_data.get("description", "説明なし")} 
+{scenario_data.get("description", "説明なし")}
 
 ## 特記事項
 - ユーザーの成長を促す反応を心がける
