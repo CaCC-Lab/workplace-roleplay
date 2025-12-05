@@ -93,7 +93,7 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    window.location.href = data.redirect || '/scenarios/harassment';
+                    window.location.href = data.redirect_url || '/scenarios/harassment';
                 } else {
                     alert('エラーが発生しました。もう一度お試しください。');
                 }
