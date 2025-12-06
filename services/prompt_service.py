@@ -42,7 +42,13 @@ class PromptService:
 
 {scenario.get('instructions', '')}
 
-相手の言動に対して、{character.get('name', '相手')}らしく自然に反応してください。"""
+相手の言動に対して、{character.get('name', '相手')}らしく自然に反応してください。
+
+【重要】出力形式について：
+- セリフのみを出力してください
+- 動作描写やト書き（例：「（うつむきながら）」「*ため息をつく*」「【沈黙】」など）は一切含めないでください
+- 括弧書きの感情表現や状況説明は禁止です
+- 純粋な会話文のみを返してください"""
 
     @classmethod
     def build_watch_mode_prompt(cls, topic: str, is_initiator: bool = False) -> str:
