@@ -29,16 +29,29 @@ def on_scenario_feedback(
     scores: Dict[str, Any],
     scenario_id: str,
     scenario_data: Optional[dict] = None,
+    session_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """シナリオフィードバック完了時のゲーミフィケーションフック。
+
+    session_id を渡すことで同一セッションの二重加算を防止する。
 
     Returns:
         追加レスポンスデータ（newly_unlocked, new_badges, quest_completed 等）
     """
     uid = _get_user_id()
     uds = UserDataService()
-    gs = GamificationService(uds)
 
+    data = uds.get_user_data(uid)
+    rewarded = data.setdefault("_rewarded_sessions", [])
+    reward_key = session_id or f"{scenario_id}_{datetime.now(timezone.utc).isoformat()}"
+    if session_id and session_id in rewarded:
+        return {"already_rewarded": True}
+    rewarded.append(reward_key)
+    if len(rewarded) > 200:
+        rewarded[:] = rewarded[-200:]
+    uds.save_user_data(uid, data)
+
+    gs = GamificationService(uds)
     gains = gs.calculate_xp_from_scores(scores, "normal")
     gains["scores_snapshot"] = scores
     gains["scenario_id"] = scenario_id
@@ -62,11 +75,7 @@ def on_scenario_feedback(
 
     stats = data.setdefault("stats", {})
     stats["total_scenarios_completed"] = int(stats.get("total_scenarios_completed", 0) or 0) + 1
-
-    tried = set()
-    for sid in sc:
-        tried.add(sid)
-    stats["unique_scenarios_tried"] = len(tried)
+    stats["unique_scenarios_tried"] = len(sc)
 
     uds.save_user_data(uid, data)
 
@@ -107,7 +116,7 @@ def on_chat_feedback(scores: Dict[str, Any]) -> Dict[str, Any]:
 
     qs = QuestService(uds)
     qs.get_active_quests(uid)
-    completed_quests = qs.check_quest_completion(uid, {"target_key": "scenarios_today", "delta": 1})
+    completed_quests = qs.check_quest_completion(uid, {"target_key": "chat_today", "delta": 1})
 
     bs = BadgeService(uds)
     new_badges = bs.check_badge_eligibility(uid)

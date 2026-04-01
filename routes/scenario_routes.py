@@ -393,7 +393,10 @@ def get_scenario_feedback() -> Response:
                     from services.gamification_hooks import on_scenario_feedback
 
                     strength_scores = (response_data.get("strength_analysis") or {}).get("scores") or {}
-                    gamification_result = on_scenario_feedback(strength_scores, scenario_id, scenario_data)
+                    sess_id = f"{scenario_id}_{session.get('session_id', '')}"
+                    gamification_result = on_scenario_feedback(
+                        strength_scores, scenario_id, scenario_data, session_id=sess_id,
+                    )
                     if gamification_result:
                         response_data["gamification"] = gamification_result
                 except Exception:
