@@ -36,7 +36,8 @@ def on_scenario_feedback(
     session_id を渡すことで同一セッションの二重加算を防止する。
 
     Returns:
-        追加レスポンスデータ（newly_unlocked, new_badges, quest_completed 等）
+        追加レスポンスデータ。new_badges は award_badge の通知オブジェクト
+        （type, badge_id, title, message）のリスト。
     """
     try:
         from services.gamification_vibelogger import get_gamification_vibe_logger
@@ -95,8 +96,12 @@ def on_scenario_feedback(
 
     bs = BadgeService(uds)
     new_badges = bs.check_badge_eligibility(uid)
+    badge_notifications: List[Dict[str, Any]] = []
     for b in new_badges:
-        bs.award_badge(uid, b["badge_id"])
+        res = bs.award_badge(uid, b["badge_id"])
+        n = res.get("notification")
+        if n:
+            badge_notifications.append(n)
 
     from services.scenario_service import ScenarioService
     us = UnlockService(uds, ScenarioService())
@@ -105,8 +110,8 @@ def on_scenario_feedback(
     result: Dict[str, Any] = {}
     if newly_unlocked:
         result["newly_unlocked_levels"] = newly_unlocked
-    if new_badges:
-        result["new_badges"] = [b["badge_id"] for b in new_badges]
+    if badge_notifications:
+        result["new_badges"] = badge_notifications
     if completed_quests:
         result["quests_completed"] = [q["quest_id"] for q in completed_quests]
     result["xp_gained"] = xp_result.get("xp_history_entry", {}).get("xp_gains", {})
@@ -130,12 +135,16 @@ def on_chat_feedback(scores: Dict[str, Any]) -> Dict[str, Any]:
 
     bs = BadgeService(uds)
     new_badges = bs.check_badge_eligibility(uid)
+    badge_notifications: List[Dict[str, Any]] = []
     for b in new_badges:
-        bs.award_badge(uid, b["badge_id"])
+        res = bs.award_badge(uid, b["badge_id"])
+        n = res.get("notification")
+        if n:
+            badge_notifications.append(n)
 
     result: Dict[str, Any] = {}
-    if new_badges:
-        result["new_badges"] = [b["badge_id"] for b in new_badges]
+    if badge_notifications:
+        result["new_badges"] = badge_notifications
     if completed_quests:
         result["quests_completed"] = [q["quest_id"] for q in completed_quests]
     result["xp_gained"] = xp_result.get("xp_history_entry", {}).get("xp_gains", {})
