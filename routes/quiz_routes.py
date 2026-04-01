@@ -59,15 +59,16 @@ def answer():
 
     uid = _uid()
     uds = UserDataService()
+    if result.get("is_correct"):
+        bonus = result.get("bonus_xp", 0)
+        if bonus > 0:
+            gs = GamificationService(uds)
+            gs.add_xp(uid, {a: bonus // 6 for a in ("empathy", "clarity", "active_listening", "adaptability", "positivity", "professionalism")}, "quiz_bonus")
     data = uds.get_user_data(uid)
     stats = data.setdefault("stats", {})
     stats["total_quizzes_answered"] = int(stats.get("total_quizzes_answered", 0) or 0) + 1
     if result.get("is_correct"):
         stats["total_quizzes_correct"] = int(stats.get("total_quizzes_correct", 0) or 0) + 1
-        bonus = result.get("bonus_xp", 0)
-        if bonus > 0:
-            gs = GamificationService(uds)
-            gs.add_xp(uid, {a: bonus // 6 for a in ("empathy", "clarity", "active_listening", "adaptability", "positivity", "professionalism")}, "quiz_bonus")
     uds.save_user_data(uid, data)
 
     rec = {
