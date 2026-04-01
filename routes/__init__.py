@@ -121,3 +121,21 @@ def register_blueprints(app: Flask):
         print("✅ APIドキュメントルートを登録しました (/api/docs/)")
     except ImportError as e:
         print(f"⚠️ APIドキュメントルートは利用できません: {e}")
+
+    # ゲーミフィケーションルート
+    try:
+        from routes.gamification_routes import gamification_bp
+
+        app.register_blueprint(gamification_bp)
+        print("✅ ゲーミフィケーションルートを登録しました (/api/gamification/*)")
+    except ImportError as e:
+        print(f"⚠️ ゲーミフィケーションルートは利用できません: {e}")
+
+    # 観戦クイズルート
+    try:
+        from routes.quiz_routes import quiz_bp
+
+        app.register_blueprint(quiz_bp)
+        print("✅ 観戦クイズルートを登録しました (/api/quiz/*)")
+    except ImportError as e:
+        print(f"⚠️ 観戦クイズルートは利用できません: {e}")
