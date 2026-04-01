@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, session
 
+from utils.security import RateLimiter
+
 from services.badge_service import BadgeService
 from services.gamification_service import GamificationService
 from services.quest_service import QuestService
@@ -18,12 +20,16 @@ gamification_bp = Blueprint("gamification", __name__, url_prefix="/api/gamificat
 
 _session_svc = SessionService()
 
+# グローバル rate_limiter と競合しないようダッシュボード専用
+_gamification_dashboard_limiter = RateLimiter(max_requests=200, window_seconds=60)
+
 
 def _user_id() -> str:
     return _session_svc.get_user_id()
 
 
 @gamification_bp.route("/dashboard", methods=["GET"])
+@_gamification_dashboard_limiter.rate_limit(max_requests=200, window_seconds=60)
 def dashboard():
     """ダッシュボード（XP、クエスト、バッジ概要）"""
     try:

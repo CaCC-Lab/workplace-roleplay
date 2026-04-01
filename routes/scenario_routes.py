@@ -349,6 +349,9 @@ def get_scenario_feedback() -> Response:
         scenario_id = data.get("scenario_id")
         selected_model = data.get("model")
 
+        if scenario_id is None or (isinstance(scenario_id, str) and not str(scenario_id).strip()):
+            return jsonify({"error": "シナリオIDが必要です"}), 400
+
         scenario_data = scenario_service.get_scenario_by_id(scenario_id)
         if not scenario_data:
             return jsonify({"error": "無効なシナリオIDです"}), 400

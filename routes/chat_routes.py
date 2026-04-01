@@ -83,6 +83,10 @@ def handle_chat() -> Response:
     if not message:
         raise ValidationError("メッセージが空です", field="message")
 
+    ok, msg_err = SecurityUtils.validate_message(message)
+    if not ok:
+        raise ValidationError(msg_err or "メッセージが無効です", field="message")
+
     model_name = data.get("model", DEFAULT_MODEL)
 
     # モデル名の検証

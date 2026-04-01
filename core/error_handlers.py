@@ -177,6 +177,25 @@ def register_error_handlers(app: Flask):
                 404,
             )
 
+    @app.errorhandler(405)
+    def handle_method_not_allowed(error):
+        """405 Method Not Allowed（API は JSON）"""
+        error_id = _generate_error_id()
+        if request.path.startswith("/api/"):
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "message": "Method not allowed",
+                            "code": "METHOD_NOT_ALLOWED",
+                            "error_id": error_id,
+                        }
+                    }
+                ),
+                405,
+            )
+        return error
+
     @app.errorhandler(500)
     def handle_internal_error(error):
         """500エラーのハンドラー"""
