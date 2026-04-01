@@ -33,6 +33,7 @@ except ImportError:
 
 # サービス層のインポート
 from services.watch_service import get_watch_service
+from services.quiz_service import QuizService
 
 from utils.helpers import (
     clear_session_history,
@@ -44,6 +45,20 @@ watch_bp = Blueprint("watch", __name__)
 # 設定の取得
 config = get_cached_config()
 DEFAULT_MODEL = config.DEFAULT_MODEL
+
+
+def _watch_history_to_quiz_context(history: list) -> list:
+    """観戦履歴を QuizService.generate_quiz 用のコンテキストに変換する。"""
+    ctx = []
+    for i, entry in enumerate(history):
+        role = "user" if i % 2 == 0 else "assistant"
+        ctx.append({"role": role, "content": entry.get("message", "")})
+    return ctx
+
+
+def get_watch_quiz_service() -> QuizService:
+    """観戦モード用 QuizService（単体テストで差し替え可能）"""
+    return QuizService()
 
 
 # サービス層を使用するため、関数を削除（watch_serviceに移動済み）
@@ -158,7 +173,14 @@ def next_watch_message() -> Any:
             settings["current_speaker"] = next_speaker
             session.modified = True
 
-            return jsonify({"message": f"{display_name}: {next_message}"})
+            message_count = len(history)
+            payload: dict = {"message": f"{display_name}: {next_message}"}
+            quiz_svc = get_watch_quiz_service()
+            if quiz_svc.should_generate_quiz(message_count):
+                ctx = _watch_history_to_quiz_context(history)
+                payload["quiz"] = quiz_svc.generate_quiz(ctx)
+
+            return jsonify(payload)
 
         except Exception as e:
             print(f"Error generating next message: {str(e)}")
