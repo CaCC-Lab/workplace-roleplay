@@ -396,7 +396,8 @@ def get_scenario_feedback() -> Response:
                     from services.gamification_hooks import on_scenario_feedback
 
                     strength_scores = (response_data.get("strength_analysis") or {}).get("scores") or {}
-                    sess_id = f"{scenario_id}_{session.get('session_id', '')}"
+                    hist_len = len(session.get("scenario_history", {}).get(scenario_id, []))
+                    sess_id = f"{scenario_id}_{session.get('user_id', 'anon')}_{hist_len}"
                     gamification_result = on_scenario_feedback(
                         strength_scores, scenario_id, scenario_data, session_id=sess_id,
                     )

@@ -28,8 +28,6 @@ def generate():
     """クイズ生成"""
     payload = request.get_json(silent=True) or {}
     ctx = payload.get("context") or []
-    if ctx is None:
-        ctx = []
     qz = QuizService().generate_quiz(ctx)
     sess = session.get(_SESSION_KEY) or {"results": []}
     sess["last_quiz"] = qz
@@ -63,7 +61,11 @@ def answer():
         bonus = result.get("bonus_xp", 0)
         if bonus > 0:
             gs = GamificationService(uds)
-            gs.add_xp(uid, {a: bonus // 6 for a in ("empathy", "clarity", "active_listening", "adaptability", "positivity", "professionalism")}, "quiz_bonus")
+            axes = ("empathy", "clarity", "active_listening", "adaptability", "positivity", "professionalism")
+            base = bonus // len(axes)
+            remainder = bonus % len(axes)
+            xp_dist = {a: base + (1 if i < remainder else 0) for i, a in enumerate(axes)}
+            gs.add_xp(uid, xp_dist, "quiz_bonus")
     data = uds.get_user_data(uid)
     stats = data.setdefault("stats", {})
     stats["total_quizzes_answered"] = int(stats.get("total_quizzes_answered", 0) or 0) + 1
