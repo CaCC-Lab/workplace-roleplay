@@ -389,6 +389,16 @@ def get_scenario_feedback() -> Response:
                     response_data, "scenario", scenario_id
                 )
 
+                try:
+                    from services.gamification_hooks import on_scenario_feedback
+
+                    strength_scores = (response_data.get("strength_analysis") or {}).get("scores") or {}
+                    gamification_result = on_scenario_feedback(strength_scores, scenario_id, scenario_data)
+                    if gamification_result:
+                        response_data["gamification"] = gamification_result
+                except Exception:
+                    pass
+
                 return jsonify(response_data)
             else:
                 if error_msg == "RATE_LIMIT_EXCEEDED":
