@@ -74,6 +74,16 @@ class UserDataService:
                 raise ValueError("root must be object")
             return data
         except (json.JSONDecodeError, OSError, ValueError, TypeError):
+            try:
+                from services.gamification_vibelogger import get_gamification_vibe_logger
+
+                get_gamification_vibe_logger().warning(
+                    operation="UserDataService.get_user_data",
+                    message="Corrupt or invalid user JSON; recreating defaults",
+                    context={"user_id": user_id, "path": path},
+                )
+            except Exception:
+                pass
             bak = path + ".bak"
             try:
                 if os.path.isfile(path):

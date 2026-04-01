@@ -38,6 +38,16 @@ def on_scenario_feedback(
     Returns:
         追加レスポンスデータ（newly_unlocked, new_badges, quest_completed 等）
     """
+    try:
+        from services.gamification_vibelogger import get_gamification_vibe_logger
+
+        get_gamification_vibe_logger().info(
+            operation="gamification_hooks.on_scenario_feedback",
+            message="Scenario feedback gamification hook invoked",
+            context={"scenario_id": scenario_id, "session_id": session_id},
+        )
+    except Exception:
+        pass
     uid = _get_user_id()
     uds = UserDataService()
 

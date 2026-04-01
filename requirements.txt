@@ -36,6 +36,7 @@ bleach>=6.0.0
 
 # ========== LOGGING & MONITORING ==========
 python-json-logger>=2.0.0
+vibelogger>=0.1.0
 
 # ========== API DOCUMENTATION ==========
 flasgger>=0.9.7

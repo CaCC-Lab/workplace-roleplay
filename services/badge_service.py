@@ -154,6 +154,16 @@ class BadgeService:
         rec = {"badge_id": badge_id, "earned_at": utc_now_iso()}
         earned.append(rec)
         self._uds.save_user_data(user_id, data)
+        try:
+            from services.gamification_vibelogger import get_gamification_vibe_logger
+
+            get_gamification_vibe_logger().info(
+                operation="BadgeService.award_badge",
+                message="Badge awarded",
+                context={"user_id": user_id, "badge_id": badge_id},
+            )
+        except Exception:
+            pass
         meta = next((b for b in BADGE_DEFINITIONS if b["badge_id"] == badge_id), None)
         title = meta["name"] if meta else badge_id
         return {

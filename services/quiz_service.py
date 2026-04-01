@@ -45,8 +45,27 @@ class QuizService:
                 raw = self._llm.generate_quiz_content(conversation_context)
                 if isinstance(raw, dict) and self._validate_quiz_shape(raw):
                     return raw
-        except Exception:
-            pass
+                try:
+                    from services.gamification_vibelogger import get_gamification_vibe_logger
+
+                    get_gamification_vibe_logger().warning(
+                        operation="QuizService.generate_quiz",
+                        message="LLM quiz response invalid shape; using fallback",
+                        context={"reason": "validation_failed"},
+                    )
+                except Exception:
+                    pass
+        except Exception as exc:
+            try:
+                from services.gamification_vibelogger import get_gamification_vibe_logger
+
+                get_gamification_vibe_logger().warning(
+                    operation="QuizService.generate_quiz",
+                    message="LLM quiz generation failed; using fallback",
+                    context={"error": str(exc)},
+                )
+            except Exception:
+                pass
         return self._fallback_quiz()
 
     def _validate_quiz_shape(self, q: dict) -> bool:

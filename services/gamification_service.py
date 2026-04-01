@@ -63,6 +63,20 @@ class GamificationService:
         hist = data.setdefault("xp_history", [])
         hist.append(entry)
         self._uds.save_user_data(user_id, data)
+        try:
+            from services.gamification_vibelogger import get_gamification_vibe_logger
+
+            get_gamification_vibe_logger().info(
+                operation="GamificationService.add_xp",
+                message="XP added and persisted",
+                context={
+                    "user_id": user_id,
+                    "source": source,
+                    "scenario_id": xp_gains.get("scenario_id"),
+                },
+            )
+        except Exception:
+            pass
         return {"skill_xp": skill, "xp_history_entry": entry}
 
     def get_growth_data(self, user_id: str) -> dict:
