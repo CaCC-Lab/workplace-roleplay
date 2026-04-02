@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/quest_service.py
+# hypothesis_version: 6.141.1
+
+['+00:00', 'Z', 'axes_gained_week', 'bonus_xp', 'completed', 'created_at', 'current_value', 'daily', 'daily_journal', 'daily_scenario', 'daily_watch', 'delta', 'description', 'expires_at', 'id', 'journal_today', 'professionalism', 'quest_id', 'quests', 'quiz_correct_week', 'scenarios_today', 'scenarios_week', 'skill_xp', 'target_key', 'target_value', 'type', 'watch_today', 'weekly', 'weekly_all_axes', 'weekly_quiz', 'weekly_scenarios', 'クイズに5問正解する', 'シナリオを1つ完了する', 'シナリオを3つ完了する', 'ジャーナルに記入する', '全6軸でXPを獲得する', '観戦モードを体験する']

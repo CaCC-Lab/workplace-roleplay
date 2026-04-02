@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/config/feature_flags.py
+# hypothesis_version: 6.141.1
+
+[403, 500, 'FeatureFlags', 'default_model', 'error', 'feature', 'get_default_model', 'get_feature_flags', 'is_tts_enabled', 'learning_history', 'message', 'model_selection', 'require_feature', 'strength_analysis', 'tts', 'この機能は現在無効化されています。']

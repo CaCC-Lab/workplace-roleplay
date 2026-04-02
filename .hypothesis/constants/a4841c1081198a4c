@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/gamification_constants.py
+# hypothesis_version: 6.141.1
+
+['active_listening', 'adaptability', 'clarity', 'empathy', 'positivity', 'professionalism']

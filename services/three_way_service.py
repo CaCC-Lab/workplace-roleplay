@@ -71,7 +71,10 @@ class ThreeWayConversationService:
         Returns:
             {"next_speaker": str, "updated_history": list}
         """
-        h: List[dict] = [dict(x) if isinstance(x, dict) else {"role": "unknown", "content": str(x)} for x in (history or [])]
+        h: List[dict] = [
+            dict(x) if isinstance(x, dict) else {"role": "unknown", "content": str(x)}
+            for x in (history or [])
+        ]
         h.append({"role": "user", "content": message})
         next_s = self.get_next_speaker(h, turn_order)
         return {"next_speaker": next_s, "updated_history": h}

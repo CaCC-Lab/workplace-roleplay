@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/core/error_handlers.py
+# hypothesis_version: 6.141.1
+
+[204, 404, 405, 500, '/api/', '/favicon.ico', '404.html', 'APIエンドポイント', 'METHOD_NOT_ALLOWED', 'Method not allowed', 'NOT_FOUND', 'Page not found', 'UNEXPECTED_ERROR', 'code', 'endpoint', 'error', 'error_id', 'error_message', 'error_type', 'get_json', 'message', 'method', 'path', 'retry_after', 'status_code', 'timestamp', '予期しないエラーが発生しました', '内部エラーが発生しました']

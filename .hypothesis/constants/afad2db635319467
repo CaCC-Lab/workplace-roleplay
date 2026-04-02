@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/utils/constants.py
+# hypothesis_version: 6.141.1
+
+[0.7, 1024, 2000, 3600, 4000, 24000, 'achernar', 'achird', 'algenib', 'algieba', 'alnilam', 'angry', 'aoede', 'autonoe', 'callirrhoe', 'calm', 'charon', 'chat_history', 'confident', 'current_model', 'current_voice', 'despina', 'enceladus', 'erinome', 'excited', 'fenrir', 'friendly', 'full', 'gacrux', 'gemini-1.0-pro', 'gemini-1.5-flash', 'gemini-1.5-pro', 'happy', 'iapetus', 'kore', 'laomedeia', 'latest', 'learning_history', 'leda', 'messages_only', 'orus', 'professional', 'puck', 'pulcherrima', 'rasalgethi', 'sad', 'sadachbia', 'sadaltager', 'scenario_history', 'schedar', 'sulafat', 'tired', 'umbriel', 'vindemiatrix', 'watch_history', 'worried', 'zephyr', 'zubenelgenubi']

@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/badge_service.py
+# hypothesis_version: 6.141.1
+
+['1週間の習慣', '3日連続', 'all_rounder', 'already_earned', 'axes_with_xp', 'badge', 'badge_earned', 'badge_id', 'badges', 'balanced_growth', 'category', 'condition', 'consecutive_days', 'current_value', 'earned', 'earned_at', 'error', 'explorer', 'first_step', 'growth_spurt', 'message', 'metric', 'name', 'notification', 'personal_best', 'personal_best_hit', 'quiz_challenger', 'seven_day_streak', 'skill_xp', 'stats', 'target_value', 'three_day_streak', 'title', 'type', 'unknown badge', 'weekly_growth_20pct', 'はじめの一歩', 'オールラウンダー', 'クイズチャレンジャー', 'バランス成長', '多様性', '急成長', '探検家', '改善度', '継続性', '自己ベスト更新']

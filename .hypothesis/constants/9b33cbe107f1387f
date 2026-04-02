@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/tutorial_service.py
+# hypothesis_version: 6.141.1
+
+[200, '#chat-input', '#chat-mode', '#scenario-feedback', '#scenario-list', '#scenario-role', '#watch-panel', '#watch-start', '-_', '.tutorial_data', '_', 'anonymous', 'answer', 'category', 'chat', 'completed', 'completed_steps', 'description', 'next_step', 'question', 'scenario', 'step', 'target_element', 'title', 'total_steps', 'utf-8', 'w', 'watch', 'シナリオと雑談の違いは何ですか？', 'シナリオを選ぶ', 'データ', 'フィードバックを見る', 'メッセージを送る', 'モード', '会話を観察', '会話履歴は保存されますか？', '役割を確認する', '流れを見ながら学びのポイントを拾います。', '相手役との会話を始めます。', '観戦を開始', '観戦モードでAI同士の会話を開始します。', '雑談モードを開く', '雑談練習画面に移動します。']

@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/utils/redis_manager.py
+# hypothesis_version: 6.141.1
+
+[6379, 'FLASK_ENV', 'Lax', 'REDIS_HOST', 'REDIS_PORT', 'SESSION_DOMAIN', 'SESSION_KEY_PREFIX', 'SESSION_PERMANENT', 'SESSION_TYPE', 'SESSION_USE_SIGNER', 'clear_pattern', 'connected', 'db', 'delete', 'development', 'error', 'exists', 'fallback_active', 'fallback_enabled', 'fallback_items', 'get', 'host', 'info', 'key', 'localhost', 'pattern', 'port', 'production', 'redis', 'set', 'value', 'workplace-roleplay:', 'データ保存', 'データ削除', 'データ取得', 'パターン削除']

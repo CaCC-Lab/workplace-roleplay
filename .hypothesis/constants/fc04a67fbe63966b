@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/errors.py
+# hypothesis_version: 6.141.1
+
+[0.1, 1.2, 400, 401, 403, 404, 429, 500, 503, 504, '401', '429', 'API', 'APIキーが無効です', 'API呼び出しに失敗しました', 'ENV', 'EXTERNAL_API_ERROR', 'Gemini', 'LLM_ERROR', 'OPERATION_TIMEOUT', 'PERMISSION_DENIED', 'RATE_LIMIT_EXCEEDED', 'RESOURCE_NOT_FOUND', 'Unknown', 'User-Agent', 'VALIDATION_ERROR', 'api key', 'code', 'delay_applied', 'details', 'development', 'endpoint', 'error', 'error_code', 'error_details', 'error_message', 'error_type', 'field', 'identifier', 'message', 'method', 'model_name', 'operation', 'original_error', 'quota', 'rate limit', 'resource', 'retry_after', 'service', 'status_code', 'timed out', 'timeout', 'timeout_seconds', 'timestamp', 'traceback', 'type', 'unauthorized', 'user_agent', '権限がありません', '認証が必要です']

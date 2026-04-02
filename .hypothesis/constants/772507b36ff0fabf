@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/moderation_service.py
+# hypothesis_version: 6.141.1
+
+['*', '[\\s、。．,のをはが]+', 'allowed', 'content', 'filtered_text', 'inappropriate_word', 'reason', 'relevant', 'role', 'suggestion', 'user', 'あほ', 'ばか', '元の話題に戻りましょう', '死ね', '殺す']

@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/message_validator.py
+# hypothesis_version: 6.141.1
+
+['[\\x00-\\x1f\\x7f-\\x9f]', '\\s+', 'あほ', 'ばか', 'メッセージを入力してください。', '不適切な表現が含まれています。', '死ね', '殺す']

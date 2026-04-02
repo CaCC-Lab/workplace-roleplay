@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/prompt_service.py
+# hypothesis_version: 6.141.1
+
+['ai', 'assistant', 'character', 'feedback_points', 'human', 'user', '相手']

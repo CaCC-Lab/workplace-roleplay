@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/app.py
+# hypothesis_version: 6.141.1
+
+['%Y年%m月%d日 %H:%M', '/', '/api/scenario_chat', '/chat', '/journal', '/scenarios', '/scenarios/regular', '/strength_analysis', '/watch', 'DEBUG', 'GET', 'POST', 'SESSION_LIFETIME', 'SESSION_TYPE', 'TESTING', 'WTF_CSRF_ENABLED', '__main__', 'chat', 'datetime', 'gemini', 'gemini-1.5-flash', 'index', 'journal.view_journal', 'list_scenarios', 'main.chat_page', 'main.index', 'scenario_chat', 'show_scenario', 'view_journal', 'watch.watch_mode', 'watch_mode', '✅ Gemini API初期化完了', 'なし']

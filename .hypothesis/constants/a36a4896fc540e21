@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/compliant_api_manager.py
+# hypothesis_version: 6.141.1
+
+[0.7, 300, 600, 1000, 3600, '429', 'GOOGLE_API_KEY', 'None', 'api_key_suffix', 'can_make_request', 'consecutive_errors', 'gemini-1.5-flash', 'per_hour', 'per_minute', 'quota exceeded', 'rate limit', 'rate_limits', 'requests_last_hour', 'requests_last_minute', 'too many requests', 'wait_seconds']

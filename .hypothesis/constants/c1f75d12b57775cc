@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/utils/validators.py
+# hypothesis_version: 6.141.1
+
+[4000, '<[^>]+>', 'HTMLタグは使用できません', '[\\x00-\\x1F\\x7F]', '\\s+', '^[a-zA-Z0-9_-]+$', 'algieba', 'aoede', 'callirrhoe', 'charon', 'enceladus', 'fenrir', 'gemini-1.0-pro', 'gemini-1.5-flash', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b', 'gemini-1.5-pro', 'gemini-1.5-pro-002', 'gemini-2.0-flash', 'gemini-2.0-flash-exp', 'gemini-2.5-flash', 'gemini-2.5-pro', 'iapetus', 'kore', 'leda', 'orus', 'puck', 'schedar', 'umbriel', 'zephyr', 'シナリオIDが必要です', 'シナリオIDが無効です', 'シナリオIDは文字列である必要があります', 'データが必要です', 'データは辞書形式である必要があります', 'メッセージが空です', 'メッセージは文字列である必要があります', 'メッセージ内容が必要です', 'モデル名が必要です', 'モデル名は文字列である必要があります', '無効な音声名です', '音声名は文字列である必要があります']

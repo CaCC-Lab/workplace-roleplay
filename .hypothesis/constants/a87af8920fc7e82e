@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/quiz_service.py
+# hypothesis_version: 6.141.1
+
+[0.0, 'accuracy', 'bonus_xp', 'choices', 'correct', 'correct_answer', 'explain_quiz_answer', 'explanation', 'is_correct', 'question', 'total', 'お疲れさまでした。', '解説を取得できませんでした。', '選択肢A', '選択肢B', '選択肢C']

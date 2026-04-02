@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/session_service.py
+# hypothesis_version: 6.141.1
+
+[-100, 100, 'activity_type', 'ai', 'chat', 'chat_history_count', 'chat_sessions', 'conversation_id', 'current_model', 'current_scenario_id', 'current_voice', 'duration_seconds', 'feedback', 'human', 'learning_stats', 'message', 'model1', 'model2', 'name', 'role', 'scenario', 'scenario_id', 'scenario_sessions', 'scenarios_completed', 'timestamp', 'total_sessions', 'user_id', 'watch', 'watch_history_count', 'watch_model1', 'watch_model2', 'watch_sessions', 'watch_topic']

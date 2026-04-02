@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/utils/formatters.py
+# hypothesis_version: 6.141.1
+
+[1024.0, 100, 3600, '%Y年%m月%d日 %H:%M', '...', 'B', 'GB', 'KB', 'MB', 'なし', '不明']

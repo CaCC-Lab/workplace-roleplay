@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/routes/quiz_routes.py
+# hypothesis_version: 6.141.1
+
+[400, '/answer', '/api/quiz', '/generate', '/summary', 'GET', 'POST', 'active_listening', 'adaptability', 'bonus_xp', 'clarity', 'context', 'empathy', 'error', 'is_correct', 'last_quiz', 'positivity', 'professionalism', 'question', 'quiz', 'quiz is required', 'quiz_bonus', 'results', 'stats', 'user_answer']

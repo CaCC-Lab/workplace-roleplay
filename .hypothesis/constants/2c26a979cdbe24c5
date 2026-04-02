@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/services/gamification_hooks.py
+# hypothesis_version: 6.141.1
+
+[-200, 200, '_rewarded_sessions', 'already_rewarded', 'badge_id', 'best_scores', 'chat_completion', 'chat_today', 'count', 'delta', 'difficulty', 'first_completed_at', 'last_completed_at', 'new_badges', 'normal', 'notification', 'quest_id', 'quests_completed', 'scenario_completion', 'scenario_completions', 'scenario_id', 'scenarios_today', 'scores_snapshot', 'session_id', 'stats', 'target_key', 'xp_gained', 'xp_gains', 'xp_history_entry']

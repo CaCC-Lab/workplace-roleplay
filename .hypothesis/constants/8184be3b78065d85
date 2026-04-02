@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/routes/chat_routes.py
+# hypothesis_version: 6.141.1
+
+[400, 404, 429, 500, 503, '/api/chat', '/api/chat_feedback', '/api/clear_history', '/api/start_chat', 'A', 'Gemini', 'Invalid JSON', 'Invalid request', 'POST', 'RATE_LIMIT_EXCEEDED', '[雑談開始]', 'ai', 'attempted_models', 'break', 'chat', 'chat_history', 'chat_settings', 'colleague', 'conversation_history', 'error', 'feedback', 'gamification', 'general', 'history', 'human', 'llama2', 'message', 'mode', 'model', 'model_used', 'partner_type', 'response', 'retry_after', 'scenario', 'scenario_history', 'scenario_id', 'scores', 'situation', 'speaker', 'start_time', 'status', 'strength_analysis', 'success', 'system_prompt', 'timestamp', 'topic', 'type', 'watch', 'watch_history', 'watch_settings', 'シナリオIDが必要です', 'チャットセッションが初期化されていません', 'メッセージが空です', '不明な履歴タイプです', '会話履歴がクリアされました', '会話履歴が見つかりません', '無効なJSONデータです', '無効なモデル名です']

@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/scenarios/category_manager.py
+# hypothesis_version: 6.141.1
+
+['\n=== 通常シナリオ一覧 ===', '__main__', 'category', 'description', 'difficulty', 'harassment', 'id', 'intermediate', 'requires_consent', 'scenario', 'scenario(\\d+)', 'tags', 'title', 'warning_message']

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, session
+from flask import Blueprint, jsonify
 
 from services.session_service import SessionService
 from services.user_data_service import UserDataService

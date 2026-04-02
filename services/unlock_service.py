@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 _DIFFICULTY_MAP = {
     "初級": "beginner", "beginner": "beginner",

@@ -1,0 +1,4 @@
+# file: /home/ryu/projects/workplace-roleplay/routes/journal_routes.py
+# hypothesis_version: 6.141.1
+
+['/journal', 'chat_history', 'chat_settings', 'feedback', 'journal', 'journal.html', 'last_session', 'learning_history', 'scenario_feedback', 'scenario_history', 'scenario_settings', 'sessions_count', 'start_time', 'timestamp', 'title', 'watch_history', 'watch_settings', 'まだ記録がありません', '不明なシナリオ']
