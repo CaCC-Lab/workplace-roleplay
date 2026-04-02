@@ -53,8 +53,15 @@ class CharacterImageService:
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     def _cache_path(self, profile_hash: str, emotion: str) -> Path:
-        safe_e = (emotion or "neutral").replace("/", "_").replace("\\", "_")[:80]
-        return self._cache_dir / f"{profile_hash}_{safe_e}.bin"
+        import re
+        safe_h = re.sub(r"[^a-fA-F0-9]", "", (profile_hash or "")[:64])
+        safe_e = re.sub(r"[^a-zA-Z0-9_-]", "_", (emotion or "neutral"))[:80]
+        if not safe_h:
+            safe_h = "unknown"
+        path = (self._cache_dir / f"{safe_h}_{safe_e}.bin").resolve()
+        if not str(path).startswith(str(self._cache_dir.resolve())):
+            raise ValueError("Invalid cache path")
+        return path
 
     def get_cached_image(self, profile_hash: str, emotion: str) -> Optional[bytes]:
         path = self._cache_path(profile_hash, emotion)

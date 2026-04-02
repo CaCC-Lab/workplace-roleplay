@@ -16,6 +16,8 @@ class ExportService:
     CSV_COLUMNS = ("user_id", "role", "content")
 
     def export_conversations_csv(self, user_id: str, history: list) -> str:
+        if not isinstance(history, list):
+            history = list(history) if hasattr(history, "__iter__") and not isinstance(history, (str, dict)) else []
         buf = io.StringIO()
         writer = csv.writer(buf)
         writer.writerow(list(self.CSV_COLUMNS))
@@ -31,6 +33,8 @@ class ExportService:
         return buf.getvalue()
 
     def export_conversations_json(self, user_id: str, history: list) -> str:
+        if not isinstance(history, list):
+            history = list(history) if hasattr(history, "__iter__") and not isinstance(history, (str, dict)) else []
         payload = {
             "user_id": user_id or "",
             "conversations": list(history or []),
