@@ -109,6 +109,125 @@
 
 ---
 
+## Day 2 (2026-04-02)
+
+### 実施フェーズ（複数機能を連続実行）
+
+#### Feature: 既存ルート→ゲーミフィケーション統合（Task 10.3）
+- [x] Phase 2〜7: feature/gamification-integration
+- [x] Codex レビュー: P1（XP上書き消失）修正、P1（chat target_key修正）、P1（二重加算防止）
+
+#### Feature: vibeloggerログ統合
+- [x] Phase 2〜7: feature/gamification-vibelogger
+- [x] 5サービスにログ追加、テスト5件
+
+#### Feature: 観戦クイズLLM統合
+- [x] Phase 2〜7: feature/watch-quiz-integration
+- [x] watch/nextにクイズ自動出題、テスト3件
+
+#### Feature: バッジ通知API改善
+- [x] Phase 2〜7: feature/badge-notification-api
+- [x] new_badgesをtype/badge_id/title/message含む通知オブジェクトに変更、テスト3件
+
+#### Feature: 入力検証の強化
+- [x] Phase 2〜7: feature/input-validation
+- [x] シナリオID必須検証、レート制限、メッセージ長制限、テスト6件
+
+#### Feature: 会話まとめ・要約
+- [x] Phase 2〜7: feature/conversation-summary
+- [x] SummaryService + テスト5件
+
+#### Feature: コンテンツモデレーション
+- [x] Phase 2〜7: feature/content-moderation
+- [x] ModerationService（NGワード・ループ検出・脱線防止）+ テスト7件
+
+#### Feature: チュートリアル・ヘルプ
+- [x] Phase 2〜7: feature/tutorial-help
+- [x] TutorialService + テスト5件
+
+#### Feature: レスポンシブデザイン
+- [x] Phase 2〜7: feature/responsive-design
+- [x] responsive.css（3ブレークポイント）
+
+#### Feature: リアルタイムフィードバック
+- [x] Phase 2〜7: feature/realtime-feedback
+- [x] RealtimeFeedbackService + テスト7件
+
+#### Feature: 3者会話
+- [x] Phase 2〜7: feature/three-way-conversation
+- [x] ThreeWayConversationService + テスト6件
+
+#### Feature: データエクスポート
+- [x] Phase 2〜7: feature/data-export
+- [x] ExportService（CSV/JSON/レポート）+ テスト6件
+
+#### Feature: 学習分析ダッシュボード
+- [x] Phase 2〜7: feature/analytics-dashboard
+- [x] AnalyticsService + テスト5件
+
+#### Feature: 多言語音声対応
+- [x] Phase 2〜7: feature/multilingual-tts
+- [x] MultilingualTTSService + テスト6件
+
+#### Feature: キャラクター画像一貫性
+- [x] Phase 2〜7: feature/character-image-consistency
+- [x] CharacterImageService + テスト6件
+
+#### Feature: 全ルート接続・フロントエンド統合
+- [x] Phase 2〜7: feature/route-integration
+- [x] 5 Blueprint追加、チャットにモデレーション+リアルタイムFB統合、responsive.css全テンプレート適用、テスト9件
+
+### PR・デプロイ記録
+| PR | タイトル | 状態 |
+|---|---------|------|
+| #36 | ゲーミフィケーション・コア機能強化・UI改善 | MERGED |
+| #37 | データエクスポート・学習分析・多言語TTS・画像一貫性 | MERGED |
+| #38 | 全新規サービスのAPIルート接続・フロントエンド統合 | MERGED |
+
+### PRレビュー指摘対応
+| 出典 | 指摘 | 対応 |
+|------|------|------|
+| Bugbot/Devin/Codex | session_idが存在しないキーを参照 | user_id+scenario_id+hist_lenに変更 |
+| Bugbot/Devin/Codex | bonus // 6 でXP切り捨て | 余り分配で合計値保持 |
+| CodeRabbit | キャッシュパスにパストラバーサルの余地 | sanitize+resolve検証追加 |
+| CodeRabbit | export_serviceのhistory型未検証 | list以外の防御追加 |
+| Bugbot | テンプレートHTML引用符破損 | sed置換ミス修正 |
+
+### デプロイ障害対応
+| 問題 | 原因 | 対応 |
+|------|------|------|
+| Deploy失敗: rm cannot remove | deployment.tar.gz不存在 | rm → rm -f |
+| Deploy失敗: No space left on device | バックアップ蓄積でディスク満杯 | デプロイ前に古いバックアップ削減（3世代） |
+| Deploy失敗: Permission denied | root所有バックアップ | sudo rm -rf に変更 |
+
+### CI修正
+| 問題 | 対応 |
+|------|------|
+| Service Layer Tests失敗（langchain 1.x でlangchain.schema削除） | langchain>=0.1.0,<1.0.0 にバージョン固定 |
+| flake8失敗（未使用import、行長超過） | 11ファイルのimport整理、行分割 |
+| git add -A で不要ファイルコミット | .gitignoreに.hypothesis/user_data/wsl.localhost/追加 |
+
+### 手戻り記録
+| Phase | 手戻り回数 | 原因区分 | 備考 |
+|-------|--------:|--------|------|
+| PR #36 レビュー | 3 | Bugbot/Devin/Codex指摘 | session_id, XP切り捨て, dead code |
+| PR #37 レビュー | 2 | CodeRabbit指摘 | パストラバーサル, 型検証 |
+| PR #38 レビュー | 1 | Bugbot/Devin指摘 | テンプレートHTML破損 |
+| デプロイ | 3 | CI/インフラ | rm, ディスク, Permission |
+| **合計** | **9** | | |
+
+### 良かった点
+- v7.5フロー（PR運用）でBugbot/Devin/CodeRabbit/Codexの4ツール自動レビューが全PR機能
+- 16機能を1日で実装→テスト→レビュー→マージ→デプロイまで完走
+- Codexレビューが実バグ（XP上書き消失、二重加算、target_key誤り）を3件発見
+
+### 改善候補
+- `git add -A` は使わない（.gitignoreの事前整備が不十分だった）
+- sed置換でHTMLを壊した → テンプレート変更はファイル単位のEditで行う
+- デプロイワークフローのクリーンアップは初回デプロイ後にテストすべきだった
+
+---
+
 ## 完走後の振り返り
 
 ### フロー評価
