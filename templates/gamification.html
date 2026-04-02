@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学習ダッシュボード - 職場コミュニケーション練習アプリ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/emergency-ui.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div id="chat-container">
+        <h1><i class="fas fa-chart-pie"></i> 学習ダッシュボード</h1>
+
+        <div class="content-section">
+            <p class="mode-description">スキルXP・クエスト・バッジ・成長推移・分析をまとめて確認できます。</p>
+
+            <div id="dashboard-error" class="error-message" style="display:none;"></div>
+
+            <section class="card-shadow" style="margin-bottom:1.5rem;">
+                <h2><i class="fas fa-bolt"></i> スキルXP</h2>
+                <div id="xp-bars-container"></div>
+            </section>
+
+            <section class="card-shadow" style="margin-bottom:1.5rem;">
+                <h2><i class="fas fa-tasks"></i> クエスト</h2>
+                <div id="quests-daily"></div>
+                <div id="quests-weekly"></div>
+            </section>
+
+            <section class="card-shadow" style="margin-bottom:1.5rem;">
+                <h2><i class="fas fa-medal"></i> バッジ</h2>
+                <div id="badge-grid" class="features-grid"></div>
+            </section>
+
+            <section class="card-shadow" style="margin-bottom:1.5rem;">
+                <h2><i class="fas fa-chart-line"></i> 成長（直近の平均）</h2>
+                <canvas id="growth-chart" height="120" aria-label="成長チャート"></canvas>
+            </section>
+
+            <section class="card-shadow" style="margin-bottom:1.5rem;">
+                <h2><i class="fas fa-chart-bar"></i> 分析</h2>
+                <div id="analytics-practice"></div>
+                <div id="analytics-skills"></div>
+                <div id="analytics-weakness"></div>
+            </section>
+
+            <section class="card-shadow" style="margin-bottom:1.5rem;">
+                <h2><i class="fas fa-download"></i> エクスポート</h2>
+                <p>会話履歴をダウンロードします（現在のセッション内容は空の場合はヘッダのみ）。</p>
+                <div class="action-buttons">
+                    <button type="button" id="btn-export-csv" class="secondary-button"><i class="fas fa-file-csv"></i> CSV</button>
+                    <button type="button" id="btn-export-json" class="secondary-button"><i class="fas fa-file-code"></i> JSON</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <a href="{{ url_for('main.index') }}" class="nav-button">
+            <i class="fas fa-home"></i> トップページに戻る
+        </a>
+        {% if feature_flags.learning_history %}
+        <a href="{{ url_for('journal.view_journal') }}" class="nav-button">
+            <i class="fas fa-book"></i> 学習履歴を見る
+        </a>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/csrf-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/gamification-dashboard.js') }}"></script>
+</body>
+</html>

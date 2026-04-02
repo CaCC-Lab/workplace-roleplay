@@ -184,3 +184,12 @@ def register_blueprints(app: Flask):
         print("✅ 3者会話ルートを登録しました (/api/three-way/*)")
     except ImportError as e:
         print(f"⚠️ 3者会話ルートは利用できません: {e}")
+
+    # ゲーミフィケーション・ダッシュボード画面
+    try:
+        from routes.gamification_page_routes import gamification_page_bp
+
+        app.register_blueprint(gamification_page_bp)
+        print("✅ ゲーミフィケーション画面を登録しました (/gamification)")
+    except ImportError as e:
+        print(f"⚠️ ゲーミフィケーション画面は利用できません: {e}")
