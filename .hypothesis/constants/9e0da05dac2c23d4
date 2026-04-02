@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/core/middleware.py
-# hypothesis_version: 6.141.1
-
-[403, 1000, '/api/chat', '/api/chat_feedback', '/api/clear_history', '/api/scenario_chat', '/api/session/clear', '/api/start_chat', '/api/start_scenario', '/api/start_watch', '/api/watch/next', '/api/watch/start', '/flasgger_static/', '/health', '/static/', 'CSRF_TOKEN_INVALID', 'CSRF_TOKEN_MISSING', 'POST', 'X-CSRF-Token', 'X-CSRFToken', 'code', 'csrf_token', 'error', 'performance', 'start_time', 'utils.security']

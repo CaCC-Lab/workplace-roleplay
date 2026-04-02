@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/routes/strength_routes.py
-# hypothesis_version: 6.141.1
-
-[400, 403, 500, '/strength_analysis', 'Feature disabled', 'Invalid JSON', 'POST', 'active_listening', 'adaptability', 'all', 'chat', 'chat_history', 'clarity', 'empathy', 'error', 'history', 'message', 'messages', 'model_used', 'positivity', 'practice_count', 'professionalism', 'scenario', 'scenario_history', 'scenario_id', 'scores', 'simple_analyzer', 'strength', 'strength_analysis', 'strength_history', 'timestamp', 'top_strengths', 'type', 'シナリオIDが必要です', '強み分析', '強み分析機能は現在無効化されています。']

@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/scenarios/__init__.py
-# hypothesis_version: 6.141.1
-
-['(\\d+)$', '.', '.yaml', '.yml', 'data', 'id', 'r', 'scenarios', 'utf-8']

@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/core/extensions.py
-# hypothesis_version: 6.141.1
-
-['   フォールバック機能が有効です', './flask_session', 'FLASK_ENV', 'Redis接続失敗、フォールバック無効', 'SESSION_FILE_DIR', 'SESSION_REDIS', 'SESSION_TYPE', 'connected', 'filesystem', 'redis']

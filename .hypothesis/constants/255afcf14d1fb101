@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/services/three_way_service.py
-# hypothesis_version: 6.141.1
-
-['A', 'B', 'already_joined', 'content', 'error', 'joined', 'left', 'mode', 'next_speaker', 'role', 'turn_order', 'unknown', 'updated_history', 'user', 'watch', 'watch_history']

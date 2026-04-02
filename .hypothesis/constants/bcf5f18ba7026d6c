@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/routes/main_routes.py
-# hypothesis_version: 6.141.1
-
-[200, 204, 503, '%Y年%m月%d日 %H:%M', '/', '/api/metrics', '/chat', '/favicon.ico', '/health', '2.0.0', 'N/A', 'business', 'caches', 'categories', 'chat.html', 'checks', 'database', 'datetime', 'error', 'favicon.ico', 'gemini', 'gemini-1.5-flash', 'gemini-1.5-pro', 'healthy', 'id', 'index.html', 'llm', 'main', 'models', 'name', 'performance', 'prompt_cache', 'provider', 'ready', 'scenario_cache', 'static', 'status', 'timestamp', 'true', 'version', 'なし']

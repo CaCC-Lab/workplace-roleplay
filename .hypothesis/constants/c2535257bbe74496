@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/routes/model_routes.py
-# hypothesis_version: 6.141.1
-
-[500, 3600, '/', '/api/csrf-token', '/api/feature_flags', '/api/key_status', '/api/models', 'Default Model', 'GET', 'categories', 'csrf_token', 'display_name', 'error', 'expires_in', 'feature_disabled', 'gemini', 'gemini-1.5-flash', 'gemini-1.5-pro', 'id', 'message', 'model', 'models', 'name', 'provider', 'モデル選択機能は現在無効化されています。']

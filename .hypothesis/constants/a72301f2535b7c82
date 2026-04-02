@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/utils/security.py
-# hypothesis_version: 6.141.1
-
-[100, 403, 429, 10000, " 'strict-dynamic'", " 'unsafe-inline'", ',', '429', ':', '<embed', '<iframe', '<object', '<script', 'AB_TEST_SALT', 'GET', 'Rate limit exceeded', 'X-CSRF-Token', '^[a-zA-Z0-9\\-\\./]+$', '^scenario\\d+$', 'api key', 'auth', 'authentication', 'br', 'class', 'code', 'connection', 'csrf_token', 'csrf_token_time', 'data:text/html', 'em', 'error', 'gemini-1.0-pro', 'gemini-1.5-flash', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b', 'gemini-1.5-pro', 'gemini-1.5-pro-002', 'gemini-2.0-flash', 'gemini-2.0-flash-exp', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini/', 'javascript:', 'li', 'network', 'ol', 'on\\w+\\s*=', 'p', 'pre', 'quota', 'rate limit', 'retry_after', 'strong', 'timeout', 'u', 'ul', 'unauthorized', 'unreachable', 'utf-8', 'vbscript:', 'システムが混雑しています', 'システムエラーが発生しました', 'ネットワークエラーが発生しました', 'メッセージが空です', 'レート制限', '不正な内容が含まれています', '認証エラーが発生しました']

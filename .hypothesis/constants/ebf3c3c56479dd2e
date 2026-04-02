@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/routes/ab_test_routes.py
-# hypothesis_version: 6.141.1
-
-[400, 500, 501, 1000, '/api/v2', '/chat', '/chat/compare', '/config', '/health', '/scenario_chat', '/watch/start', 'Cache-Control', 'GET', 'POST', 'X-Accel-Buffering', 'X-Service-Version', 'ab_test', 'chat_service', 'comparison', 'content', 'done', 'error', 'feature_flags', 'full_content', 'healthy', 'identical', 'legacy', 'length', 'length_diff', 'llm_service', 'message', 'model', 'new', 'no', 'no-cache', 'response', 'service_version', 'services', 'session_service', 'status', 'text/event-stream', 'time', 'time_diff', 'time_ratio', 'timestamp', 'total_time', 'unhealthy', 'v2', 'v2-new', 'ストリーミングエラーが発生しました', 'メッセージが空です']

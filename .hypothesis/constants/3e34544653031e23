@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/routes/session_routes.py
-# hypothesis_version: 6.141.1
-
-[400, 500, './flask_session', '/api/session/clear', '/api/session/health', '/api/session/info', 'GET', 'N/A', 'POST', 'SESSION_FILE_DIR', 'SESSION_TYPE', '_id', 'all', 'chat', 'chat_history', 'cleared_type', 'connected', 'connection_info', 'current_scenario', 'current_scenario_id', 'degraded', 'details', 'error', 'estimated_size_bytes', 'fallback', 'fallback_active', 'filesystem', 'has_chat_history', 'has_scenario_history', 'healthy', 'message', 'model_choice', 'permanent', 'redis', 'redis_connected', 'scenario', 'session_api', 'session_dir', 'session_id', 'session_keys', 'session_store', 'session_type', 'status', 'success', 'type', 'unknown', 'watch', 'watch_history', 'シナリオ履歴をクリアしました', 'チャット履歴をクリアしました', '全セッションデータをクリアしました', '無効なクリアタイプです', '観戦履歴をクリアしました']

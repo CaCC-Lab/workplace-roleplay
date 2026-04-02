@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/utils/performance.py
-# hypothesis_version: 6.141.1
-
-[100, 128, 200, 400, 1000, 1024, 1800, 3600, '_summary', 'avg_duration_ms', 'chat_sessions', 'completion_rate', 'count', 'counters', 'error_count', 'error_rate', 'errors', 'feedback_generations', 'history', 'hit_ratio', 'hits', 'inf', 'max_duration_ms', 'maxsize', 'min_duration_ms', 'misses', 'scenario_completions', 'scenario_sessions', 'size', 'success_count', 'total_duration_ms', 'total_endpoints', 'total_requests', 'total_sessions', 'uptime_seconds', 'utf-8', 'watch_sessions']

@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/routes/docs_routes.py
-# hypothesis_version: 6.141.1
-
-['/api/docs/', '/api/docs/info', '/flasgger_static', '2.0.0', 'API Support', 'X-CSRF-Token', 'api', 'apiKey', 'apispec', 'chat', 'contact', 'csrfToken', 'description', 'docs', 'endpoint', 'endpoints', 'header', 'headers', 'health', 'in', 'info', 'model', 'model_filter', 'name', 'openapi.yaml', 'openapi_json', 'openapi_yaml', 'route', 'rule_filter', 'scenario', 'securityDefinitions', 'session', 'specs', 'specs_route', 'static_url_path', 'strength', 'swagger_ui', 'tags', 'text/yaml', 'title', 'type', 'version', 'watch', 'シナリオロールプレイAPI', 'セッション管理API', 'ヘルスチェック関連', 'モデル管理API', '会話観戦モードAPI', '強み分析API', '職場コミュニケーション練習アプリ API', '雑談練習API']

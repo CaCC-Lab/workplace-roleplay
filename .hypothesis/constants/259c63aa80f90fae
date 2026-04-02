@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/services/user_data_service.py
-# hypothesis_version: 6.141.1
-
-['.bak', '.tmp', '[^a-zA-Z0-9._-]', '_', 'advanced', 'badges', 'beginner', 'consecutive_days', 'created_at', 'daily', 'data must be a dict', 'earned', 'intermediate', 'last_activity_date', 'path', 'quests', 'quiz_history', 'root must be object', 'scenario_completions', 'skill_xp', 'stats', 'unlock_status', 'updated_at', 'user', 'user_data', 'user_id', 'utf-8', 'w', 'weekly', 'xp_history']

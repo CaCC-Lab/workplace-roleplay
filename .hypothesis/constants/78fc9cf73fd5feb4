@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/services/gamification_service.py
-# hypothesis_version: 6.141.1
-
-[0.0, 100, '+00:00', 'Z', 'harassment', 'history_count', 'last_10_average', 'last_week_xp_total', 'personal_best', 'recent_entries_used', 'scenario_id', 'scores_snapshot', 'skill_xp', 'source', 'this_week_xp_total', 'timestamp', 'week_comparison', 'xp_gains', 'xp_history', 'xp_history_entry']

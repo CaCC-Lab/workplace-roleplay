@@ -63,3 +63,14 @@ cookies.txt
 # ローカルスクリプト（必要に応じてコミット）
 # bin/
 # scripts/
+# Hypothesis test data
+.hypothesis/
+
+# User data (runtime)
+user_data/
+
+# WSL artifacts
+wsl.localhost/
+
+# Temp files
+tatus

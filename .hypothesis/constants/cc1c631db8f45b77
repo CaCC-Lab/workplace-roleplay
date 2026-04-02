@@ -1,4 +1,0 @@
-# file: /home/ryu/projects/workplace-roleplay/routes/watch_routes.py
-# hypothesis_version: 6.141.1
-
-[400, 500, '/api/watch/next', '/api/watch/start', '/watch', 'A', 'B', 'Invalid request', 'LLM', 'POST', 'assistant', 'content', 'current_speaker', 'error', 'message', 'model_a', 'model_b', 'partner_type', 'quiz', 'role', 'situation', 'speaker', 'start_time', 'timestamp', 'topic', 'user', 'watch', 'watch.html', 'watch_history', 'watch_settings', 'メッセージの生成に失敗しました', '無効なモデルA名です', '無効なモデルB名です', '観戦の初期化に失敗しました', '観戦セッションが初期化されていません']
