@@ -114,12 +114,40 @@ def handle_chat() -> Response:
     messages.append(HumanMessage(content=message))
 
     try:
+        # モデレーションチェック
+        moderation_result = None
+        try:
+            from services.moderation_service import ModerationService
+            mod_svc = ModerationService()
+            moderation_result = mod_svc.check_message(message)
+            if not moderation_result.get("allowed", True):
+                return jsonify({
+                    "response": "申し訳ございませんが、そのメッセージは送信できません。",
+                    "moderation": moderation_result,
+                }), 400
+        except Exception:
+            pass
+
         ai_message = _get_llm_and_invoke(model_name, messages)
 
         # 会話履歴の更新
         add_to_session_history("chat_history", {"human": message, "ai": ai_message})
 
-        return jsonify({"response": SecurityUtils.escape_html(ai_message)})
+        response_data = {"response": SecurityUtils.escape_html(ai_message)}
+
+        # リアルタイムフィードバック
+        try:
+            from services.realtime_feedback_service import RealtimeFeedbackService
+            rtf = RealtimeFeedbackService()
+            history = session.get("chat_history", [])
+            if rtf.should_provide_feedback(history):
+                fb = rtf.analyze_message(message, history, None)
+                if fb.get("has_feedback"):
+                    response_data["realtime_feedback"] = fb
+        except Exception:
+            pass
+
+        return jsonify(response_data)
     except Exception as e:
         raise e
 
