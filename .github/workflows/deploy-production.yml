@@ -118,8 +118,8 @@ jobs:
           ssh -i ~/.ssh/id_rsa ${{ env.VM_USER }}@${{ env.VM_HOST }} << 'ENDSSH'
             set -e
 
-            # Clean old backups first (keep last 3)
-            ls -dt /home/${{ env.VM_USER }}/workplace-roleplay.backup.* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+            # Clean old backups first (keep last 3) - sudo needed for root-owned backups
+            ls -dt /home/${{ env.VM_USER }}/workplace-roleplay.backup.* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
 
             # Backup current deployment
             if [ -d "${{ env.APP_PATH }}" ]; then
@@ -180,7 +180,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa ${{ env.VM_USER }}@${{ env.VM_HOST }} << 'ENDSSH'
             # Keep only last 3 backups
-            ls -dt /home/${{ env.VM_USER }}/workplace-roleplay.backup.* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+            ls -dt /home/${{ env.VM_USER }}/workplace-roleplay.backup.* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
             # Clean pip cache
             pip cache purge 2>/dev/null || true
             # Show disk usage
