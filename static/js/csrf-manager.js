@@ -23,7 +23,16 @@ class CSRFManager {
                 '/api/conversation_history',
                 '/api/tts',
                 '/api/generate_character_image',
-                '/api/strength_analysis'
+                '/api/strength_analysis',
+                '/api/three-way/join',
+                '/api/three-way/message',
+                '/api/three-way/leave',
+                '/api/quiz/generate',
+                '/api/quiz/answer',
+                '/api/summary/generate',
+                '/api/export/csv',
+                '/api/export/json',
+                '/api/tutorial/complete'
             ]
         };
         

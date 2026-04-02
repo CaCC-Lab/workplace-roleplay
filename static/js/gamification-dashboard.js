@@ -83,7 +83,7 @@
             .map((row) => {
                 const b = row.badge || row;
                 const earned = b.earned ? "獲得済" : "未獲得";
-                const cls = b.earned ? "feature-card" : "feature-card";
+                const cls = b.earned ? "feature-card" : "feature-card feature-card--locked";
                 return `<div class="${cls}" style="opacity:${b.earned ? 1 : 0.75}">
             <h3>${esc(b.name || b.badge_id)}</h3>
             <p>${esc(earned)}</p>
@@ -179,7 +179,7 @@
     async function initDashboard() {
         const errBox = document.getElementById("dashboard-error");
         try {
-            const [dash, growth, practice, skills, weakness] = await Promise.all([
+            const [dash, growth, practice, skills, weakness] = await Promise.allSettled([
                 fetchJson("/api/gamification/dashboard"),
                 fetchJson("/api/gamification/growth"),
                 fetchJson("/api/analytics/practice-stats"),
@@ -187,11 +187,14 @@
                 fetchJson("/api/analytics/weakness"),
             ]);
 
-            renderXpBars(dash.skill_xp);
-            renderQuests(dash.quests);
-            renderBadges(dash.badges_overview);
-            renderGrowthChart(growth);
-            renderAnalytics(practice, skills, weakness);
+            const v = (r) => r.status === "fulfilled" ? r.value : null;
+            if (v(dash)) {
+                renderXpBars(v(dash).skill_xp);
+                renderQuests(v(dash).quests);
+                renderBadges(v(dash).badges_overview);
+            }
+            if (v(growth)) renderGrowthChart(v(growth));
+            if (v(practice) || v(skills) || v(weakness)) renderAnalytics(v(practice), v(skills), v(weakness));
 
             document.getElementById("btn-export-csv")?.addEventListener("click", () =>
                 downloadExport("/api/export/csv", "conversations.csv", "text/csv").catch((e) =>
