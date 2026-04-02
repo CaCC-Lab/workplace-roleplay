@@ -83,6 +83,10 @@ def handle_chat() -> Response:
     if not message:
         raise ValidationError("メッセージが空です", field="message")
 
+    ok, msg_err = SecurityUtils.validate_message(message)
+    if not ok:
+        raise ValidationError(msg_err or "メッセージが無効です", field="message")
+
     model_name = data.get("model", DEFAULT_MODEL)
 
     # モデル名の検証
@@ -286,6 +290,16 @@ def get_chat_feedback() -> Response:
 
             strength_service = get_strength_service()
             response_data = strength_service.update_feedback_with_strength_analysis(response_data, "chat")
+
+            try:
+                from services.gamification_hooks import on_chat_feedback
+
+                strength_scores = (response_data.get("strength_analysis") or {}).get("scores") or {}
+                gamification_result = on_chat_feedback(strength_scores)
+                if gamification_result:
+                    response_data["gamification"] = gamification_result
+            except Exception:
+                pass
 
             return jsonify(response_data)
         else:

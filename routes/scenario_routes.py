@@ -349,6 +349,9 @@ def get_scenario_feedback() -> Response:
         scenario_id = data.get("scenario_id")
         selected_model = data.get("model")
 
+        if scenario_id is None or (isinstance(scenario_id, str) and not str(scenario_id).strip()):
+            return jsonify({"error": "シナリオIDが必要です"}), 400
+
         scenario_data = scenario_service.get_scenario_by_id(scenario_id)
         if not scenario_data:
             return jsonify({"error": "無効なシナリオIDです"}), 400
@@ -388,6 +391,20 @@ def get_scenario_feedback() -> Response:
                 response_data = strength_service.update_feedback_with_strength_analysis(
                     response_data, "scenario", scenario_id
                 )
+
+                try:
+                    from services.gamification_hooks import on_scenario_feedback
+
+                    strength_scores = (response_data.get("strength_analysis") or {}).get("scores") or {}
+                    hist_len = len(session.get("scenario_history", {}).get(scenario_id, []))
+                    sess_id = f"{scenario_id}_{session.get('user_id', 'anon')}_{hist_len}"
+                    gamification_result = on_scenario_feedback(
+                        strength_scores, scenario_id, scenario_data, session_id=sess_id,
+                    )
+                    if gamification_result:
+                        response_data["gamification"] = gamification_result
+                except Exception:
+                    pass
 
                 return jsonify(response_data)
             else:
