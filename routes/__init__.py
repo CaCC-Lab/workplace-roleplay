@@ -139,3 +139,48 @@ def register_blueprints(app: Flask):
         print("✅ 観戦クイズルートを登録しました (/api/quiz/*)")
     except ImportError as e:
         print(f"⚠️ 観戦クイズルートは利用できません: {e}")
+
+    # 会話要約ルート
+    try:
+        from routes.summary_routes import summary_bp
+
+        app.register_blueprint(summary_bp)
+        print("✅ 会話要約ルートを登録しました (/api/summary/*)")
+    except ImportError as e:
+        print(f"⚠️ 会話要約ルートは利用できません: {e}")
+
+    # 学習分析ルート
+    try:
+        from routes.analytics_routes import analytics_bp
+
+        app.register_blueprint(analytics_bp)
+        print("✅ 学習分析ルートを登録しました (/api/analytics/*)")
+    except ImportError as e:
+        print(f"⚠️ 学習分析ルートは利用できません: {e}")
+
+    # データエクスポートルート
+    try:
+        from routes.export_routes import export_bp
+
+        app.register_blueprint(export_bp)
+        print("✅ データエクスポートルートを登録しました (/api/export/*)")
+    except ImportError as e:
+        print(f"⚠️ データエクスポートルートは利用できません: {e}")
+
+    # チュートリアルルート
+    try:
+        from routes.tutorial_routes import tutorial_bp
+
+        app.register_blueprint(tutorial_bp)
+        print("✅ チュートリアルルートを登録しました (/api/tutorial/*)")
+    except ImportError as e:
+        print(f"⚠️ チュートリアルルートは利用できません: {e}")
+
+    # 3者会話ルート
+    try:
+        from routes.three_way_routes import three_way_bp
+
+        app.register_blueprint(three_way_bp)
+        print("✅ 3者会話ルートを登録しました (/api/three-way/*)")
+    except ImportError as e:
+        print(f"⚠️ 3者会話ルートは利用できません: {e}")

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,7 +28,7 @@
                 <div class="filter-group">
                     <label for="difficulty-filter">難易度</label>
                     <select id="difficulty-filter" class="styled-select">
-                        <option value="">すべて</option>
+                        <option value=">すべて</option>
                         <option value="初級">初級</option>
                         <option value="中級">中級</option>
                         <option value="上級">上級</option>
@@ -36,7 +37,7 @@
                 <div class="filter-group">
                     <label for="tag-filter">カテゴリー</label>
                     <select id="tag-filter" class="styled-select">
-                        <option value="">すべて</option>
+                        <option value=">すべて</option>
                         <option value="コミュニケーション基礎">コミュニケーション基礎</option>
                         <option value="報告・連絡・相談">報告・連絡・相談</option>
                         <option value="断り方・交渉術">断り方・交渉術</option>
