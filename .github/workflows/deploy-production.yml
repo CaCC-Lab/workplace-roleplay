@@ -117,10 +117,13 @@ jobs:
           # Execute deployment script
           ssh -i ~/.ssh/id_rsa ${{ env.VM_USER }}@${{ env.VM_HOST }} << 'ENDSSH'
             set -e
-            
+
+            # Clean old backups first (keep last 3)
+            ls -dt /home/${{ env.VM_USER }}/workplace-roleplay.backup.* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+
             # Backup current deployment
             if [ -d "${{ env.APP_PATH }}" ]; then
-              sudo cp -r ${{ env.APP_PATH }} ${{ env.APP_PATH }}.backup.$(date +%Y%m%d_%H%M%S)
+              sudo cp -r ${{ env.APP_PATH }} ${{ env.APP_PATH }}.backup.$(date +%Y%m%d_%H%M%S) || echo "Backup failed (disk space?), continuing..."
             fi
             
             # Create app directory if not exists
@@ -173,11 +176,15 @@ jobs:
           fi
       
       - name: Clean up old backups
+        if: always()
         run: |
           ssh -i ~/.ssh/id_rsa ${{ env.VM_USER }}@${{ env.VM_HOST }} << 'ENDSSH'
-            # Keep only last 5 backups
-            cd /home/${{ env.VM_USER }}
-            ls -t workplace-roleplay.backup.* 2>/dev/null | tail -n +6 | xargs -r rm -rf
+            # Keep only last 3 backups
+            ls -dt /home/${{ env.VM_USER }}/workplace-roleplay.backup.* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+            # Clean pip cache
+            pip cache purge 2>/dev/null || true
+            # Show disk usage
+            df -h / | tail -1
           ENDSSH
 
   notify:
