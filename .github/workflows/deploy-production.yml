@@ -128,7 +128,7 @@ jobs:
             
             # Extract new deployment
             tar -xzf /tmp/deployment.tar.gz -C ${{ env.APP_PATH }}
-            rm /tmp/deployment.tar.gz
+            rm -f /tmp/deployment.tar.gz
             
             # Setup virtual environment
             cd ${{ env.APP_PATH }}
