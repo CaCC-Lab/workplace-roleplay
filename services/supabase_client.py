@@ -7,6 +7,12 @@ from __future__ import annotations
 import os
 from typing import Any, Optional, Union
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from services.supabase_user_data_service import SupabaseUserDataService
 from services.user_data_service import UserDataService
 
