@@ -31,6 +31,15 @@ def register_blueprints(app: Flask):
     except ImportError as e:
         print(f"⚠️ メインルートは利用できません: {e}")
 
+    # 認証ルート（Supabase Auth）
+    try:
+        from routes.auth_routes import auth_bp
+
+        app.register_blueprint(auth_bp)
+        print("✅ 認証ルートを登録しました (/auth/*)")
+    except ImportError as e:
+        print(f"⚠️ 認証ルートは利用できません: {e}")
+
     # チャットルート
     try:
         from routes.chat_routes import chat_bp
