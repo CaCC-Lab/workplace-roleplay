@@ -1,5 +1,8 @@
 """
-Supabase Auth 操作の薄いラッパー
+Supabase Auth 操作（匿名サインイン対応）
+
+匿名ユーザーは auth.users に authenticated ロールで作成される。
+PIIは一切保存しない。JWTの is_anonymous クレームで匿名/恒久ユーザーを区別可能。
 """
 
 from __future__ import annotations
@@ -11,7 +14,21 @@ class SupabaseAuthService:
     def __init__(self, client: Any) -> None:
         self._client = client
 
+    def sign_in_anonymously(self) -> Dict[str, Any]:
+        """匿名サインイン。PIIなしでauth.usersに匿名ユーザーを作成する。"""
+        try:
+            res = self._client.auth.sign_in_anonymously()
+            user = getattr(res, "user", None)
+            session = getattr(res, "session", None)
+            err = getattr(res, "error", None)
+            if err is not None:
+                return {"user": None, "session": None, "error": str(err)}
+            return {"user": user, "session": session, "error": None}
+        except Exception as e:
+            return {"user": None, "session": None, "error": str(e)}
+
     def sign_up(self, email: str, password: str) -> Dict[str, Any]:
+        """メール/パスワードで恒久ユーザー登録（将来拡張: 匿名→恒久リンク用）"""
         if password is None or str(password).strip() == "":
             return {"user": None, "error": "パスワードは必須です"}
         try:
@@ -25,6 +42,7 @@ class SupabaseAuthService:
             return {"user": None, "error": str(e)}
 
     def sign_in(self, email: str, password: str) -> Dict[str, Any]:
+        """メール/パスワードでログイン（将来拡張用）"""
         if password is None or str(password).strip() == "":
             return {"user": None, "session": None, "error": "パスワードは必須です"}
         try:

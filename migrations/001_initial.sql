@@ -1,5 +1,10 @@
 -- Supabase 初期スキーマ（.kiro/specs/supabase-integration/design.md 準拠）
 -- auth.users は Supabase が提供
+-- 匿名サインイン対応: 匿名ユーザーも authenticated ロールでアクセス
+-- JWTの is_anonymous クレームで匿名/恒久ユーザーを区別可能
+
+-- 匿名サインインを有効化（Supabase Dashboard > Authentication > Settings でも設定可能）
+-- ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;
 
 -- ---------------------------------------------------------------------------
 -- user_data (SupabaseUserDataService が参照する汎用テーブル)

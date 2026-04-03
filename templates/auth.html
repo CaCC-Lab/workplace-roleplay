@@ -3,139 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ログイン・登録 | 職場コミュニケーション練習アプリ</title>
+    <title>利用開始 - 職場コミュニケーション練習</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/emergency-ui.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
-    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+    <style>
+        .auth-container { max-width: 480px; margin: 80px auto; padding: 2rem; }
+        .auth-card { background: var(--card-bg, #fff); border-radius: 16px; padding: 2.5rem; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center; }
+        .auth-card h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .auth-card p { color: var(--text-secondary, #666); margin-bottom: 1.5rem; line-height: 1.6; }
+        .auth-start-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 14px 32px; font-size: 1.1rem; font-weight: 600; border: none; border-radius: 12px; background: var(--primary, #4f46e5); color: #fff; cursor: pointer; transition: all 0.2s; }
+        .auth-start-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+        .auth-start-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .auth-notice { margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary, #f8f9fa); border-radius: 8px; font-size: 0.85rem; color: var(--text-secondary, #666); }
+        .auth-notice ul { list-style: none; padding: 0; margin: 0.5rem 0 0; text-align: left; }
+        .auth-notice li { padding: 0.25rem 0; }
+        .auth-notice li::before { content: "\2022"; margin-right: 0.5rem; color: var(--primary, #4f46e5); }
+        .auth-status { margin-top: 1rem; padding: 0.75rem; border-radius: 8px; display: none; }
+        .auth-status.error { display: block; background: #fef2f2; color: #dc2626; }
+        .auth-status.success { display: block; background: #f0fdf4; color: #16a34a; }
+    </style>
 </head>
 <body>
-    <div id="chat-container">
-        <h1><i class="fas fa-user-circle"></i> アカウント</h1>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1><i class="fas fa-comments"></i> 職場コミュニケーション練習</h1>
+            <p>個人情報の入力は不要です。<br>ボタンを押すだけで練習を始められます。</p>
 
-        <div class="content-section">
-            <div class="welcome-section">
-                <p class="auth-intro">メールアドレスとパスワードでログインするか、新規登録してください。</p>
+            <button type="button" id="start-btn" class="auth-start-btn" onclick="startAnonymous()">
+                <i class="fas fa-play-circle"></i> 練習を始める
+            </button>
 
-                <div class="auth-tab-row" role="tablist" aria-label="ログインまたは登録">
-                    <button type="button" class="primary-button auth-tab-btn" id="tab-login" role="tab" aria-selected="true" aria-controls="panel-login" data-panel="login">
-                        <i class="fas fa-sign-in-alt"></i> ログイン
-                    </button>
-                    <button type="button" class="secondary-button auth-tab-btn" id="tab-register" role="tab" aria-selected="false" aria-controls="panel-register" data-panel="register">
-                        <i class="fas fa-user-plus"></i> 新規登録
-                    </button>
-                </div>
+            <div id="auth-status" class="auth-status"></div>
 
-                <div id="auth-message" class="welcome-section" role="status" aria-live="polite" style="display:none;"></div>
-
-                <div id="panel-login" class="auth-panel" role="tabpanel" aria-labelledby="tab-login">
-                    <form id="form-login" class="auth-form" novalidate>
-                        <div class="select-group">
-                            <label for="login-email">メールアドレス</label>
-                            <input type="email" id="login-email" name="email" required autocomplete="email" class="enhanced-select">
-                        </div>
-                        <div class="select-group">
-                            <label for="login-password">パスワード</label>
-                            <input type="password" id="login-password" name="password" required autocomplete="current-password" class="enhanced-select">
-                        </div>
-                        <button type="submit" class="primary-button"><i class="fas fa-sign-in-alt"></i> ログイン</button>
-                    </form>
-                </div>
-
-                <div id="panel-register" class="auth-panel" style="display:none;" role="tabpanel" aria-labelledby="tab-register">
-                    <form id="form-register" class="auth-form" novalidate>
-                        <div class="select-group">
-                            <label for="register-email">メールアドレス</label>
-                            <input type="email" id="register-email" name="email" required autocomplete="email" class="enhanced-select">
-                        </div>
-                        <div class="select-group">
-                            <label for="register-password">パスワード</label>
-                            <input type="password" id="register-password" name="password" required autocomplete="new-password" class="enhanced-select">
-                        </div>
-                        <button type="submit" class="primary-button"><i class="fas fa-user-plus"></i> 登録する</button>
-                    </form>
-                </div>
+            <div class="auth-notice">
+                <strong>ご利用について</strong>
+                <ul>
+                    <li>個人情報は一切保存されません</li>
+                    <li>同じブラウザであれば学習データが引き継がれます</li>
+                    <li>ブラウザのデータを削除すると学習データは復元できません</li>
+                    <li>別の端末・別のブラウザでは新しいデータになります</li>
+                </ul>
             </div>
         </div>
     </div>
 
     <script>
-(function () {
-    var tabLogin = document.getElementById('tab-login');
-    var tabRegister = document.getElementById('tab-register');
-    var panelLogin = document.getElementById('panel-login');
-    var panelRegister = document.getElementById('panel-register');
-    var msgEl = document.getElementById('auth-message');
+    async function startAnonymous() {
+        var btn = document.getElementById('start-btn');
+        var status = document.getElementById('auth-status');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 準備中...';
+        status.className = 'auth-status';
+        status.style.display = 'none';
 
-    function showMessage(text, isError) {
-        msgEl.textContent = text || '';
-        msgEl.style.display = text ? 'block' : 'none';
-        msgEl.className = isError ? 'error-message' : 'welcome-section';
+        try {
+            var res = await fetch('/auth/api/anonymous', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            var data = await res.json();
+            if (!res.ok || data.error) {
+                throw new Error(data.error || '開始できませんでした');
+            }
+            status.className = 'auth-status success';
+            status.textContent = '準備完了！リダイレクトします...';
+            status.style.display = 'block';
+            setTimeout(function() { window.location.href = '/'; }, 800);
+        } catch (e) {
+            status.className = 'auth-status error';
+            status.textContent = e.message;
+            status.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play-circle"></i> 練習を始める';
+        }
     }
-
-    function setTab(panel) {
-        var isLogin = panel === 'login';
-        panelLogin.style.display = isLogin ? 'block' : 'none';
-        panelRegister.style.display = isLogin ? 'none' : 'block';
-        tabLogin.className = (isLogin ? 'primary-button' : 'secondary-button') + ' auth-tab-btn';
-        tabRegister.className = (isLogin ? 'secondary-button' : 'primary-button') + ' auth-tab-btn';
-        tabLogin.setAttribute('aria-selected', isLogin ? 'true' : 'false');
-        tabRegister.setAttribute('aria-selected', isLogin ? 'false' : 'true');
-    }
-
-    tabLogin.addEventListener('click', function () { setTab('login'); showMessage('', false); });
-    tabRegister.addEventListener('click', function () { setTab('register'); showMessage('', false); });
-
-    function postJson(url, body) {
-        return fetch(url, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, data: j }; }); });
-    }
-
-    document.getElementById('form-login').addEventListener('submit', function (e) {
-        e.preventDefault();
-        var email = document.getElementById('login-email').value.trim();
-        var password = document.getElementById('login-password').value;
-        showMessage('', false);
-        postJson('{{ url_for("auth.api_login") }}', { email: email, password: password })
-            .then(function (res) {
-                if (res.ok && !res.data.error) {
-                    showMessage('ログインに成功しました。トップへ移動します。', false);
-                    window.location.href = '{{ url_for("main.index") }}';
-                } else {
-                    showMessage(res.data.error || 'ログインに失敗しました', true);
-                }
-            })
-            .catch(function () { showMessage('通信エラーが発生しました', true); });
-    });
-
-    document.getElementById('form-register').addEventListener('submit', function (e) {
-        e.preventDefault();
-        var email = document.getElementById('register-email').value.trim();
-        var password = document.getElementById('register-password').value;
-        showMessage('', false);
-        postJson('{{ url_for("auth.api_register") }}', { email: email, password: password })
-            .then(function (res) {
-                if (res.ok && !res.data.error) {
-                    showMessage('登録が完了しました。ログインタブからサインインしてください。', false);
-                    setTab('login');
-                    document.getElementById('login-email').value = email;
-                } else {
-                    showMessage(res.data.error || '登録に失敗しました', true);
-                }
-            })
-            .catch(function () { showMessage('通信エラーが発生しました', true); });
-    });
-})();
     </script>
 </body>
 </html>

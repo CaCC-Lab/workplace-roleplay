@@ -1,5 +1,9 @@
 """
-認証（Supabase Auth）用ルート
+認証（Supabase Auth 匿名サインイン）用ルート
+
+匿名サインインでPIIなしにauth.usersにユーザー作成。
+同一ブラウザのセッションで継続利用。
+サインアウト・ブラウザデータ削除・別端末では原則復旧不可。
 """
 
 from __future__ import annotations
@@ -42,7 +46,7 @@ def _user_to_jsonable(user: Any) -> Optional[Dict[str, Any]]:
         except Exception:
             pass
     out: Dict[str, Any] = {}
-    for key in ("id", "email", "phone", "created_at", "app_metadata", "user_metadata"):
+    for key in ("id", "email", "phone", "created_at", "app_metadata", "user_metadata", "is_anonymous"):
         if hasattr(user, key):
             out[key] = getattr(user, key)
     return out if out else {"repr": str(user)}
@@ -50,13 +54,40 @@ def _user_to_jsonable(user: Any) -> Optional[Dict[str, Any]]:
 
 @auth_bp.route("/login", methods=["GET"])
 def login_page():
-    """ログイン・登録画面"""
+    """利用開始画面（匿名サインイン）"""
     return render_template("auth.html")
+
+
+@auth_bp.route("/api/anonymous", methods=["POST"])
+def api_anonymous():
+    """POST /auth/api/anonymous → 匿名サインイン → JSON
+
+    PIIなしでauth.usersに匿名ユーザーを作成。
+    authenticatedロールでDBにアクセス可能。
+    """
+    try:
+        svc = _auth_service()
+        if svc is None:
+            return jsonify({"user": None, "error": "Supabaseが設定されていません"}), 503
+        result = svc.sign_in_anonymously()
+        if result.get("error"):
+            return jsonify({"user": None, "error": result["error"]}), 400
+        sess = result.get("session")
+        token = _access_token_from_session_obj(sess)
+        if token:
+            session[SESSION_TOKEN_KEY] = token
+        return jsonify({
+            "user": _user_to_jsonable(result.get("user")),
+            "is_anonymous": True,
+            "error": None,
+        }), 200
+    except Exception as e:
+        return jsonify({"user": None, "error": str(e)}), 500
 
 
 @auth_bp.route("/api/register", methods=["POST"])
 def api_register():
-    """POST /auth/api/register → sign_up → JSON"""
+    """POST /auth/api/register → メール登録（将来拡張: 匿名→恒久リンク用）"""
     try:
         svc = _auth_service()
         if svc is None:
@@ -74,7 +105,7 @@ def api_register():
 
 @auth_bp.route("/api/login", methods=["POST"])
 def api_login():
-    """POST /auth/api/login → sign_in → session に token → JSON"""
+    """POST /auth/api/login → メールログイン（将来拡張用）"""
     try:
         svc = _auth_service()
         if svc is None:
@@ -89,23 +120,21 @@ def api_login():
         token = _access_token_from_session_obj(sess)
         if token:
             session[SESSION_TOKEN_KEY] = token
-        return (
-            jsonify(
-                {
-                    "user": _user_to_jsonable(result.get("user")),
-                    "session": None,
-                    "error": None,
-                }
-            ),
-            200,
-        )
+        return jsonify({
+            "user": _user_to_jsonable(result.get("user")),
+            "session": None,
+            "error": None,
+        }), 200
     except Exception as e:
         return jsonify({"user": None, "session": None, "error": str(e)}), 500
 
 
 @auth_bp.route("/api/logout", methods=["POST"])
 def api_logout():
-    """POST /auth/api/logout → sign_out → session 削除 → JSON"""
+    """POST /auth/api/logout → サインアウト
+
+    注意: 匿名ユーザーはサインアウト後、同じユーザーに戻れません。
+    """
     try:
         svc = _auth_service()
         if svc is not None:
@@ -122,7 +151,7 @@ def api_logout():
 
 @auth_bp.route("/api/me", methods=["GET"])
 def api_me():
-    """GET /auth/api/me → 現在のユーザー情報 JSON"""
+    """GET /auth/api/me → 現在のユーザー情報"""
     try:
         svc = _auth_service()
         if svc is None:
