@@ -38,5 +38,8 @@ bleach>=6.0.0
 python-json-logger>=2.0.0
 vibelogger>=0.1.0
 
+# ========== DATABASE & AUTH ==========
+supabase>=2.0.0
+
 # ========== API DOCUMENTATION ==========
 flasgger>=0.9.7
