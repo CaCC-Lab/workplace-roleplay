@@ -144,6 +144,11 @@ jobs:
             if [ -f /home/${{ env.VM_USER }}/.env.production ]; then
               cp /home/${{ env.VM_USER }}/.env.production ${{ env.APP_PATH }}/.env
             fi
+
+            # Append Supabase credentials from GitHub Secrets
+            echo '' >> ${{ env.APP_PATH }}/.env
+            echo 'SUPABASE_URL=${{ secrets.SUPABASE_URL }}' >> ${{ env.APP_PATH }}/.env
+            echo 'SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}' >> ${{ env.APP_PATH }}/.env
             
             # Restart application service
             sudo systemctl restart ${{ env.SERVICE_NAME }}
