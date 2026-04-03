@@ -2,6 +2,25 @@
 -- auth.users は Supabase が提供
 
 -- ---------------------------------------------------------------------------
+-- user_data (SupabaseUserDataService が参照する汎用テーブル)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_data (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    data JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
+ALTER TABLE public.user_data ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can only access own user_data"
+    ON public.user_data FOR ALL
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
 -- user_profiles
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.user_profiles (

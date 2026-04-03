@@ -36,7 +36,7 @@ class ConversationPersistenceService:
         return {"id": None}
 
     def get_conversations(self, user_id: str, mode: str, limit: int) -> List[Dict[str, Any]]:
-        lim = max(1, int(limit))
+        lim = max(1, min(int(limit), 100))
         res = (
             self._client.table(self.TABLE)
             .select("*")
@@ -50,7 +50,12 @@ class ConversationPersistenceService:
 
     def search_conversations(self, user_id: str, keyword: str) -> List[Dict[str, Any]]:
         kw = (keyword or "").strip()
-        res = self._client.table(self.TABLE).select("*").eq("user_id", user_id).execute()
+        res = (
+            self._client.table(self.TABLE)
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
         data = getattr(res, "data", None)
         if not isinstance(data, list):
             return []
