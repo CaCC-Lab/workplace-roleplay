@@ -14,12 +14,33 @@ from services.gamification_constants import SIX_AXES, utc_now_iso
 
 
 class UserDataService:
-    """JSONファイルベースのユーザーデータ永続化サービス"""
+    """ユーザーデータ永続化サービス（Supabase利用可能時は自動デリゲート）"""
 
     DATA_DIR = "user_data"
 
     def __init__(self, data_dir: Optional[str] = None) -> None:
         self._data_dir = data_dir if data_dir is not None else self.DATA_DIR
+        self._delegate: Optional[Any] = None
+        if data_dir is None:
+            try:
+                from services.supabase_client import get_supabase_client_manager
+                mgr = get_supabase_client_manager()
+                client = mgr.get_client()
+                if client is not None:
+                    from services.supabase_user_data_service import SupabaseUserDataService
+                    self._delegate = SupabaseUserDataService(client)
+            except Exception:
+                pass
+
+    def get_user_data(self, user_id: str) -> Dict[str, Any]:
+        if self._delegate is not None:
+            return self._delegate.get_user_data(user_id)
+        return self._get_user_data_json(user_id)
+
+    def save_user_data(self, user_id: str, data: Dict[str, Any]) -> None:
+        if self._delegate is not None:
+            return self._delegate.save_user_data(user_id, data)
+        return self._save_user_data_json(user_id, data)
 
     def _get_file_path(self, user_id: str) -> str:
         if not user_id or not isinstance(user_id, str):
@@ -60,8 +81,8 @@ class UserDataService:
             },
         }
 
-    def get_user_data(self, user_id: str) -> Dict[str, Any]:
-        """ユーザーデータを読み込む。存在しない/破損時はデフォルト値を返す"""
+    def _get_user_data_json(self, user_id: str) -> Dict[str, Any]:
+        """JSONファイルからユーザーデータを読み込む。存在しない/破損時はデフォルト値を返す"""
         self._ensure_dir()
         path = self._get_file_path(user_id)
         if not os.path.isfile(path):
@@ -92,8 +113,8 @@ class UserDataService:
                 pass
             return self._create_default_data(user_id)
 
-    def save_user_data(self, user_id: str, data: Dict[str, Any]) -> None:
-        """ユーザーデータをJSONファイルに保存する"""
+    def _save_user_data_json(self, user_id: str, data: Dict[str, Any]) -> None:
+        """JSONファイルにユーザーデータを保存する"""
         if data is None or not isinstance(data, dict):
             raise TypeError("data must be a dict")
         self._ensure_dir()

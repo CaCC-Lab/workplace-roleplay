@@ -107,6 +107,19 @@ def on_scenario_feedback(
     us = UnlockService(uds, ScenarioService())
     newly_unlocked = us.check_and_unlock(uid)
 
+    # 会話履歴をDBに永続化
+    try:
+        from flask import session as flask_session
+        from services.supabase_client import get_supabase_client_manager
+        client = get_supabase_client_manager().get_client()
+        if client:
+            from services.conversation_persistence_service import ConversationPersistenceService
+            cps = ConversationPersistenceService(client)
+            history = flask_session.get("scenario_history", {}).get(scenario_id, [])
+            cps.save_conversation(uid, "scenario", history, scenario_id)
+    except Exception:
+        pass
+
     result: Dict[str, Any] = {}
     if newly_unlocked:
         result["newly_unlocked_levels"] = newly_unlocked
@@ -141,6 +154,19 @@ def on_chat_feedback(scores: Dict[str, Any]) -> Dict[str, Any]:
         n = res.get("notification")
         if n:
             badge_notifications.append(n)
+
+    # 会話履歴をDBに永続化
+    try:
+        from flask import session as flask_session
+        from services.supabase_client import get_supabase_client_manager
+        client = get_supabase_client_manager().get_client()
+        if client:
+            from services.conversation_persistence_service import ConversationPersistenceService
+            cps = ConversationPersistenceService(client)
+            history = flask_session.get("chat_history", [])
+            cps.save_conversation(uid, "chat", history)
+    except Exception:
+        pass
 
     result: Dict[str, Any] = {}
     if badge_notifications:

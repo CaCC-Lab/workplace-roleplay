@@ -17,6 +17,14 @@ def setup_test_env():
     os.environ["TESTING"] = "1"
     os.environ["FLASK_ENV"] = "testing"
     os.environ["FLASK_SECRET_KEY"] = "test-secret-key-for-testing"
+    # テスト時はSupabaseを無効化（JSONフォールバックを使用）
+    os.environ.pop("SUPABASE_URL", None)
+    os.environ.pop("SUPABASE_KEY", None)
+    try:
+        from services.supabase_client import get_supabase_client_manager
+        get_supabase_client_manager().reset()
+    except Exception:
+        pass
 
     # テスト用のGoogle APIキー（ダミー）
     os.environ["GOOGLE_API_KEY"] = "test-api-key-1"
