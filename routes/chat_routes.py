@@ -288,6 +288,10 @@ def get_chat_feedback() -> Response:
 
         selected_model = data.get("model")
 
+        # 練習が開始されているか確認
+        if "chat_settings" not in session:
+            return jsonify({"error": "練習を開始してからフィードバックを取得してください"}), 400
+
         # 会話履歴の取得
         if "chat_history" not in session:
             return jsonify({"error": "会話履歴が見つかりません"}), 404
