@@ -94,6 +94,11 @@ async function startConversation() {
 async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg) return;
+    if (sendButton.disabled) return;
+
+    // AI応答待ち中は入力を無効化
+    messageInput.disabled = true;
+    sendButton.disabled = true;
 
     let selectedModel = localStorage.getItem('selectedModel');
     if (!selectedModel) {
@@ -141,6 +146,11 @@ async function sendMessage() {
         // エラーメッセージも安全に表示
         const safeErrorMsg = err.message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         displayMessage("エラーが発生しました: " + safeErrorMsg, "error-message");
+    } finally {
+        // AI応答完了後に入力を再有効化
+        messageInput.disabled = false;
+        sendButton.disabled = false;
+        messageInput.focus();
     }
 }
 

@@ -54,7 +54,10 @@
     </div>
 
     <script>
+    var _startInProgress = false;
     async function startAnonymous() {
+        if (_startInProgress) return;
+        _startInProgress = true;
         var btn = document.getElementById('start-btn');
         var status = document.getElementById('auth-status');
         btn.disabled = true;
@@ -78,6 +81,7 @@
             status.style.display = 'block';
             setTimeout(function() { window.location.href = '/'; }, 800);
         } catch (e) {
+            _startInProgress = false;
             status.className = 'auth-status error';
             status.textContent = e.message;
             status.style.display = 'block';

@@ -334,6 +334,8 @@ document.getElementById('get-feedback-button').addEventListener('click', async (
             
             content.classList.add('active');
             document.getElementById('feedback-section').scrollIntoView({ behavior: 'smooth' });
+            // フィードバック取得完了後はページ離脱警告を解除
+            hasUnsavedChanges = false;
         } else {
             // エラーメッセージの表示
             const errorMsg = data.error || 'フィードバックの取得に失敗しました';

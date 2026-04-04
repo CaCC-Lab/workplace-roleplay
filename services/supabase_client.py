@@ -19,6 +19,7 @@ from services.user_data_service import UserDataService
 # 環境変数名（プロジェクトで統一）
 ENV_SUPABASE_URL = "SUPABASE_URL"
 ENV_SUPABASE_KEY = "SUPABASE_KEY"
+ENV_SUPABASE_SERVICE_KEY = "SUPABASE_SERVICE_KEY"
 
 _supabase_client_manager_instance: Optional["SupabaseClientManager"] = None
 
@@ -71,7 +72,8 @@ class SupabaseClientManager:
             return None
         try:
             url = os.environ[ENV_SUPABASE_URL].strip()
-            key = os.environ[ENV_SUPABASE_KEY].strip()
+            # サーバーサイドはservice_role keyでRLSバイパス（未設定ならanon key）
+            key = (os.environ.get(ENV_SUPABASE_SERVICE_KEY) or os.environ.get(ENV_SUPABASE_KEY, "")).strip()
             self._client_cache = create_client(url, key)
         except Exception:
             self._client_cache = None
