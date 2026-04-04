@@ -109,6 +109,37 @@
 
 ---
 
+## Day 3-4 (2026-04-03〜04)
+
+### 実施フェーズ
+
+#### Feature: Supabase統合（DB・認証・会話永続化）
+- [x] Phase 0.5: supabase-py動作確認
+- [x] Phase 1: Spec作成（requirements/design/tasks）
+- [x] Phase 2〜7: feature/supabase-integration → PR #40 → MERGED
+- [x] 匿名サインインに方針変更（PIIなし・ワンクリック開始）
+- [x] UserDataService自動デリゲート（Supabase利用可能時）
+- [x] 会話永続化フック追加（gamification_hooks統合）
+- [x] テスト環境のSupabase無効化（conftest.py）
+
+### Supabase構成
+| 項目 | 内容 |
+|------|------|
+| テーブル数 | 10（user_data, user_profiles, skill_xp, xp_history, scenario_completions, badges, quests, conversations, quiz_history, user_stats） |
+| RLS | 全テーブルに auth.uid() ベースのポリシー |
+| 認証方式 | Anonymous Sign-In（PIIなし） |
+| フォールバック | SUPABASE_URL未設定時はJSONファイル |
+
+### デプロイ関連
+| 問題 | 対応 |
+|------|------|
+| Supabase環境変数が.envに読み込まれない | supabase_client.pyにload_dotenv追加 |
+| テスト環境でSupabase接続→RLSエラー | conftest.pyでSUPABASE_URL/KEY削除 |
+| SSH鍵がローカルにない | GitHub Secrets + デプロイワークフロー経由で設定 |
+| UserDataService() → get_user_data_service() 切り替え時にテスト破損 | UserDataService.__init__内で自動デリゲート方式に変更 |
+
+---
+
 ## Day 2 (2026-04-02)
 
 ### 実施フェーズ（複数機能を連続実行）

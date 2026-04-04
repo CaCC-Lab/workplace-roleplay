@@ -6,15 +6,17 @@
 ## 📌 フェーズ1: 基盤機能（優先度：高）
 
 ### 1.1 セキュリティ・認証基盤
-- [ ] **ユーザー認証システムの実装**
-  - [ ] ユーザー登録・ログイン機能
+- [x] **ユーザー認証システムの実装**
+  - [x] **匿名サインイン**（2026年4月3日実装）
+    - [x] Supabase Auth 匿名サインイン（PIIなし・ワンクリック開始）
+    - [x] SupabaseAuthService（sign_in_anonymously / sign_out / get_current_user）
+    - [x] /auth/login 利用開始画面 + /auth/api/anonymous エンドポイント
+    - [x] 将来拡張: メール/OAuthを後付けでリンク可能（sign_up / sign_in 実装済み）
   - [x] **セッション管理の強化**（2025年7月17日実装）
     - [x] Redis統合セッション管理
     - [x] 自動フォールバック機能（Redis→Filesystem）
     - [x] セッション監視API（/api/session/health, /api/session/info）
     - [x] 包括的テストスイート（249行のテストコード）
-  - [ ] パスワードハッシュ化（bcrypt等）
-  - [ ] JWT認証の実装（APIセキュリティ向上）
 
 - [ ] **データセキュリティの強化**
   - [ ] HTTPS対応（SSL証明書の設定）
@@ -60,16 +62,19 @@
   - [x] セキュリティユーティリティ（config/security_utils.py）
 
 ### 1.2 データベース統合
-- [ ] **SQLiteまたはPostgreSQLの導入**
-  - [ ] ユーザーテーブル設計
-  - [ ] 会話履歴テーブル設計
-  - [ ] 学習進捗テーブル設計
-  - [ ] マイグレーションスクリプト作成
+- [x] **Supabase (PostgreSQL) の導入**（2026年4月3日実装）
+  - [x] 10テーブル設計 + Row Level Security（migrations/001_initial.sql）
+  - [x] SupabaseUserDataService（UserDataService互換）
+  - [x] UserDataService自動デリゲート（Supabase利用可能時）
+  - [x] JSONファイルフォールバック（Supabase未設定時）
+  - [x] SupabaseClientManager（接続管理シングルトン）
+  - [x] UserDataFactory（環境変数ベース切り替え）
 
 ### 1.3 会話メモリの永続化
-- [ ] **ユーザー別会話履歴の保存**
-  - [ ] DBへの会話履歴保存機能
-  - [ ] 会話履歴の検索・フィルタリング
+- [x] **ユーザー別会話履歴の保存**（2026年4月4日実装）
+  - [x] ConversationPersistenceService（Supabase DB保存/取得/検索）
+  - [x] シナリオ/雑談フィードバック時に自動保存（gamification_hooks統合）
+  - [x] 会話履歴の検索・フィルタリング（モード・キーワード）
   - [x] **会話のエクスポート機能（CSV/JSON）**（2026年4月2日実装）
     - [x] ExportService（CSV/JSONエクスポート、学習レポート生成）
     - [x] APIルート（/api/export/csv, /api/export/json, /api/export/report）
