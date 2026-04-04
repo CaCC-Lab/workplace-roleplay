@@ -53,4 +53,4 @@ class SupabaseUserDataService(UserDataService):
             "user_id": user_id,
             "data": payload,
         }
-        self._client.table(self.TABLE).upsert(row).execute()
+        self._client.table(self.TABLE).upsert(row, on_conflict="user_id").execute()
