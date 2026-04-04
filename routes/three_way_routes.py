@@ -7,6 +7,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request, session
 
 from services.session_service import SessionService
+from utils.security import SecurityUtils
 
 three_way_bp = Blueprint("three_way", __name__, url_prefix="/api/three-way")
 
@@ -42,10 +43,16 @@ def send_message():
     try:
         from services.three_way_service import ThreeWayConversationService
 
+        if not session.get("three_way_active"):
+            return jsonify({"error": "3者会話に参加していません"}), 400
         payload = request.get_json(silent=True) or {}
         message = payload.get("message", "")
         if not message.strip():
             return jsonify({"error": "メッセージが空です"}), 400
+        message = SecurityUtils.sanitize_input(message)
+        ok, msg_err = SecurityUtils.validate_message(message)
+        if not ok:
+            return jsonify({"error": msg_err or "無効なメッセージです"}), 400
         history = session.get("watch_history") or []
         turn_order = session.get("three_way_turn_order") or ["A", "B", "user"]
         svc = ThreeWayConversationService()

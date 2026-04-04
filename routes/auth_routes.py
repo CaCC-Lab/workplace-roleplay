@@ -66,6 +66,18 @@ def api_anonymous():
     authenticatedロールでDBにアクセス可能。
     """
     try:
+        existing_token = session.get(SESSION_TOKEN_KEY)
+        if existing_token:
+            svc = _auth_service()
+            if svc:
+                user = svc.get_current_user(existing_token)
+                if user:
+                    return jsonify({
+                        "user": _user_to_jsonable(user.get("user")),
+                        "is_anonymous": True,
+                        "error": None,
+                        "already_signed_in": True,
+                    }), 200
         svc = _auth_service()
         if svc is None:
             return jsonify({"user": None, "error": "Supabaseが設定されていません"}), 503
