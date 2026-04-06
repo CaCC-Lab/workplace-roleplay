@@ -56,8 +56,6 @@ def test_security_utils():
     assert len(hashed) == 64
     print(f"  ✓ SHA-256ハッシュ生成: {hashed[:16]}...")
 
-    return True
-
 
 def test_csrf_protection():
     """CSRF保護のテスト"""
@@ -73,8 +71,6 @@ def test_csrf_protection():
     assert token1 != token2
     print(f"  ✓ CSRFトークン生成: {token1[:16]}...")
     print("  ✓ トークンはユニーク")
-
-    return True
 
 
 def test_rate_limiter():
@@ -98,8 +94,6 @@ def test_rate_limiter():
     assert limiter.is_allowed("another_user") == True
     print("  ✓ 別ユーザー: 許可")
 
-    return True
-
 
 def test_feature_flags():
     """フィーチャーフラグのテスト"""
@@ -118,36 +112,24 @@ def test_feature_flags():
     print(f"  ✓ TTS有効: {config['tts']}")
     print(f"  ✓ デフォルトモデル: {config['default_model']}")
 
-    return True
-
 
 def test_ab_routes_integration():
     """A/Bテストルートの統合テスト"""
     print("\n🔄 A/Bテストルートのテスト...")
 
-    try:
-        from app import app
+    from app import app
 
-        client = app.test_client()
+    client = app.test_client()
 
-        # ヘルスチェック
-        response = client.get("/api/v2/health")
-        if response.status_code == 200:
-            print("  ✓ V2ヘルスチェック: 正常")
-        else:
-            print(f"  ⚠️ V2ヘルスチェック: {response.status_code}")
+    # ヘルスチェック
+    response = client.get("/api/v2/health")
+    assert response.status_code == 200, f"V2ヘルスチェック: {response.status_code}"
+    print("  ✓ V2ヘルスチェック: 正常")
 
-        # 設定エンドポイント
-        response = client.get("/api/v2/config")
-        if response.status_code == 200:
-            print("  ✓ V2設定エンドポイント: 正常")
-        else:
-            print(f"  ⚠️ V2設定エンドポイント: {response.status_code}")
-
-    except Exception as e:
-        print(f"  ⚠️ 統合テストスキップ: {e}")
-
-    return True
+    # 設定エンドポイント
+    response = client.get("/api/v2/config")
+    assert response.status_code == 200, f"V2設定エンドポイント: {response.status_code}"
+    print("  ✓ V2設定エンドポイント: 正常")
 
 
 def main():
@@ -170,8 +152,8 @@ def main():
     results = []
     for name, test_func in tests:
         try:
-            passed = test_func()
-            results.append((name, passed))
+            test_func()
+            results.append((name, True))
         except AssertionError as e:
             print(f"\n❌ {name}: 失敗 - {e}")
             results.append((name, False))

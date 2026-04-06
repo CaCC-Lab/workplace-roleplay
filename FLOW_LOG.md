@@ -134,8 +134,24 @@
 - 既存テスト影響: なし（1464 passed）
 
 #### 追加発見
-- `deepdiff`が`requirements-dev.txt`に未記載（手動pip install必要だった）
-- `test_security_fixed.py`の複数テストが`return True/False`しておりPytestWarning（別件）
+- `deepdiff`はrequirements-dev.txtに記載済み（venvにインストール不足だっただけ）
+- `test_security_fixed.py`のPytestWarning → 下記Bugfix Specで修正
+
+### Bugfix: test_security_fixed.py PytestReturnNotNoneWarning 5件
+
+#### Bugfix Spec フロー実行記録
+| Step | 内容 |
+|------|------|
+| Step 0: Evidence Collection | pytest実行で PytestReturnNotNoneWarning 5件確認 |
+| Step 1: Bugfix Spec作成 | `.kiro/specs/test-security-fixed-warnings/bugfix.md` |
+| Step 2: Bugfix Spec Gate | 証拠あり、Unchanged: assert文はそのまま |
+| Step 3-4: 修正 | return True削除、test_ab_routes_integrationのassert強化 |
+| Step 5: Verification | 1464 passed, 0 failed, warnings 13→8件 |
+
+#### 修正内容
+- 5関数から`return True`削除
+- `test_ab_routes_integration`の`if status == 200`を`assert status == 200`に変更
+- `main()`のresult判定をtry/exceptベースに修正
 
 ---
 
