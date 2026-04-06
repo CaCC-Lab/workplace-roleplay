@@ -109,6 +109,36 @@
 
 ---
 
+## Day 5 (2026-04-06)
+
+### Bugfix: テスト9件が実装変更に追従していない
+
+#### Bugfix Spec フロー実行記録
+| Step | 内容 |
+|------|------|
+| Step 0: Evidence Collection | pytest実行で9 failed確認（1455 passed / 9 failed） |
+| Step 1: Bugfix Spec作成 | `.kiro/specs/test-sync-failures/bugfix.md` |
+| Step 2: Bugfix Spec Gate | 証拠あり（pytest出力+ソースコード行番号）、Unchanged: 1455件のpassingテスト |
+| Step 3-4: 修正 | テスト3ファイル修正（実装コード変更なし） |
+| Step 5: Verification | 1464 passed, 0 failed, 14 skipped |
+
+#### バグ原因と修正内容
+| カテゴリ | 失敗数 | 原因 | 修正 |
+|---------|-----:|------|------|
+| XSSテスト | 3 | `validate_message()`追加後、テストが旧挙動（200）を期待 | 400期待に修正 |
+| extensionsテスト | 2 | `Session(app)`がmockされずValueError | `Session`のmock追加 |
+| chat_feedbackテスト | 4 | `chat_settings`セッションチェック追加後、テストが未設定 | セッションに`chat_settings`設定 |
+
+#### Unchanged確認結果
+- 実装コード変更: なし（テストのみ修正）
+- 既存テスト影響: なし（1464 passed）
+
+#### 追加発見
+- `deepdiff`が`requirements-dev.txt`に未記載（手動pip install必要だった）
+- `test_security_fixed.py`の複数テストが`return True/False`しておりPytestWarning（別件）
+
+---
+
 ## Day 3-4 (2026-04-03〜04)
 
 ### 実施フェーズ

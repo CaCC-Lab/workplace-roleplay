@@ -235,6 +235,7 @@ class TestChatFeedback:
                 {"human": "こんにちは", "ai": "こんにちは！"},
                 {"human": "今日は天気がいいですね", "ai": "そうですね、気持ちいい天気ですね。"},
             ]
+            sess["chat_settings"] = {"model": "gemini-1.5-flash", "partner_type": "colleague", "situation": "break"}
 
         with patch("services.feedback_service.FeedbackService.build_chat_feedback_prompt") as mock_build:
             mock_build.return_value = "フィードバックプロンプト"
@@ -269,18 +270,19 @@ class TestChatFeedback:
                     assert "feedback" in data
 
     def test_履歴がない場合エラーを返す(self, csrf_client):
-        """会話履歴がない場合"""
+        """練習未開始（chat_settingsなし）の場合400を返す"""
         response = csrf_client.post(
             "/api/chat_feedback",
             json={"model": "gemini-1.5-flash"},
         )
 
-        assert response.status_code == 404
+        assert response.status_code == 400
 
     def test_レート制限エラーを処理する(self, csrf_client):
         """レート制限エラーの処理"""
         with csrf_client.session_transaction() as sess:
             sess["chat_history"] = [{"human": "test", "ai": "response"}]
+            sess["chat_settings"] = {"model": "gemini-1.5-flash", "partner_type": "colleague", "situation": "break"}
 
         with patch("services.feedback_service.FeedbackService.build_chat_feedback_prompt") as mock_build:
             mock_build.return_value = "prompt"
@@ -299,6 +301,7 @@ class TestChatFeedback:
         """その他のエラーの処理"""
         with csrf_client.session_transaction() as sess:
             sess["chat_history"] = [{"human": "test", "ai": "response"}]
+            sess["chat_settings"] = {"model": "gemini-1.5-flash", "partner_type": "colleague", "situation": "break"}
 
         with patch("services.feedback_service.FeedbackService.build_chat_feedback_prompt") as mock_build:
             mock_build.return_value = "prompt"

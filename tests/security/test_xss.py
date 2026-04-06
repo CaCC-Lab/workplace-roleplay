@@ -43,7 +43,7 @@ class TestXSSPrevention:
     # ========== 入力サニタイズのテスト ==========
 
     def test_基本的なスクリプトタグの無害化(self, csrf_client):
-        """<script>タグが適切にサニタイズされることを確認"""
+        """<script>タグがvalidate_messageにより拒否されることを確認"""
         csrf_token = self._get_csrf_token(csrf_client)
 
         with csrf_client.session_transaction() as sess:
@@ -53,20 +53,13 @@ class TestXSSPrevention:
         # スクリプトタグを含むペイロード
         payload = "こんにちは<script>alert('XSS')</script>テストです"
 
-        with patch("app.initialize_llm") as mock_init_llm:
-            mock_llm = MagicMock()
-            mock_chunk = MagicMock()
-            mock_chunk.content = "テストレスポンス"
-            mock_llm.stream.return_value = iter([mock_chunk])
-            mock_init_llm.return_value = mock_llm
+        response = csrf_client.post("/api/chat", json={"message": payload}, headers={"X-CSRF-Token": csrf_token})
 
-            response = csrf_client.post("/api/chat", json={"message": payload}, headers={"X-CSRF-Token": csrf_token})
-
-            # レスポンスが正常であることを確認
-            assert response.status_code == 200
+        # validate_messageにより400で拒否される
+        assert response.status_code == 400
 
     def test_イベントハンドラの無害化(self, csrf_client):
-        """onclickなどのイベントハンドラが除去されることを確認"""
+        """onclickなどのイベントハンドラがvalidate_messageにより拒否されることを確認"""
         csrf_token = self._get_csrf_token(csrf_client)
 
         with csrf_client.session_transaction() as sess:
@@ -80,19 +73,12 @@ class TestXSSPrevention:
         ]
 
         for payload in payloads:
-            with patch("app.initialize_llm") as mock_init_llm:
-                mock_llm = MagicMock()
-                mock_chunk = MagicMock()
-                mock_chunk.content = "安全なレスポンス"
-                mock_llm.stream.return_value = iter([mock_chunk])
-                mock_init_llm.return_value = mock_llm
+            response = csrf_client.post(
+                "/api/chat", json={"message": payload}, headers={"X-CSRF-Token": csrf_token}
+            )
 
-                response = csrf_client.post(
-                    "/api/chat", json={"message": payload}, headers={"X-CSRF-Token": csrf_token}
-                )
-
-                # 正常に処理されることを確認
-                assert response.status_code == 200
+            # validate_messageにより400で拒否される
+            assert response.status_code == 400
 
     def test_JavaScriptプロトコルの無害化(self, csrf_client):
         """javascript:プロトコルが無害化されることを確認"""
@@ -191,7 +177,7 @@ class TestXSSPrevention:
     # ========== 特殊な攻撃ベクターのテスト ==========
 
     def test_データURIスキームの処理(self, csrf_client):
-        """data:URIスキームを使用したXSS攻撃の防御"""
+        """data:URIスキームを使用したXSS攻撃がvalidate_messageにより拒否されることを確認"""
         csrf_token = self._get_csrf_token(csrf_client)
         payload = "<img src=\"data:text/html,<script>alert('XSS')</script>\">"
 
@@ -199,17 +185,10 @@ class TestXSSPrevention:
             sess["chat_history"] = []
             sess["chat_settings"] = {"system_prompt": "テストプロンプト", "model": "gemini-1.5-flash"}
 
-        with patch("app.initialize_llm") as mock_init_llm:
-            mock_llm = MagicMock()
-            mock_chunk = MagicMock()
-            mock_chunk.content = "安全なレスポンス"
-            mock_llm.stream.return_value = iter([mock_chunk])
-            mock_init_llm.return_value = mock_llm
+        response = csrf_client.post("/api/chat", json={"message": payload}, headers={"X-CSRF-Token": csrf_token})
 
-            response = csrf_client.post("/api/chat", json={"message": payload}, headers={"X-CSRF-Token": csrf_token})
-
-            # レスポンスが正常であることを確認
-            assert response.status_code == 200
+        # validate_messageにより400で拒否される
+        assert response.status_code == 400
 
     def test_エンコーディング攻撃の防御(self, csrf_client):
         """異なるエンコーディングを使用した攻撃の防御"""
