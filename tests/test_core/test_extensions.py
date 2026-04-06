@@ -18,12 +18,14 @@ class TestInitExtensions:
         app = Flask(__name__)
         app.config["SECRET_KEY"] = "test-secret"
 
-        with patch("core.extensions._initialize_session_store") as mock_init:
+        with patch("core.extensions._initialize_session_store") as mock_init, \
+             patch("core.extensions.Session") as mock_session:
             mock_init.return_value = None
 
             result = init_extensions(app)
 
             assert mock_init.called
+            mock_session.assert_called_once_with(app)
 
     def test_config指定で初期化(self):
         """config指定で初期化"""
@@ -34,12 +36,14 @@ class TestInitExtensions:
         mock_config = MagicMock()
         mock_config.SESSION_TYPE = "filesystem"
 
-        with patch("core.extensions._initialize_session_store") as mock_init:
+        with patch("core.extensions._initialize_session_store") as mock_init, \
+             patch("core.extensions.Session") as mock_session:
             mock_init.return_value = None
 
             result = init_extensions(app, config=mock_config)
 
             mock_init.assert_called_once_with(app, mock_config)
+            mock_session.assert_called_once_with(app)
 
 
 class TestInitializeSessionStore:

@@ -109,6 +109,70 @@
 
 ---
 
+## Day 5 (2026-04-06)
+
+### Bugfix: テスト9件が実装変更に追従していない
+
+#### Bugfix Spec フロー実行記録
+| Step | 内容 |
+|------|------|
+| Step 0: Evidence Collection | pytest実行で9 failed確認（1455 passed / 9 failed） |
+| Step 1: Bugfix Spec作成 | `.kiro/specs/test-sync-failures/bugfix.md` |
+| Step 2: Bugfix Spec Gate | 証拠あり（pytest出力+ソースコード行番号）、Unchanged: 1455件のpassingテスト |
+| Step 3-4: 修正 | テスト3ファイル修正（実装コード変更なし） |
+| Step 5: Verification | 1464 passed, 0 failed, 14 skipped |
+
+#### バグ原因と修正内容
+| カテゴリ | 失敗数 | 原因 | 修正 |
+|---------|-----:|------|------|
+| XSSテスト | 3 | `validate_message()`追加後、テストが旧挙動（200）を期待 | 400期待に修正 |
+| extensionsテスト | 2 | `Session(app)`がmockされずValueError | `Session`のmock追加 |
+| chat_feedbackテスト | 4 | `chat_settings`セッションチェック追加後、テストが未設定 | セッションに`chat_settings`設定 |
+
+#### Unchanged確認結果
+- 実装コード変更: なし（テストのみ修正）
+- 既存テスト影響: なし（1464 passed）
+
+#### 追加発見
+- `deepdiff`はrequirements-dev.txtに記載済み（venvにインストール不足だっただけ）
+- `test_security_fixed.py`のPytestWarning → 下記Bugfix Specで修正
+
+### Bugfix: test_security_fixed.py PytestReturnNotNoneWarning 5件
+
+#### Bugfix Spec フロー実行記録
+| Step | 内容 |
+|------|------|
+| Step 0: Evidence Collection | pytest実行で PytestReturnNotNoneWarning 5件確認 |
+| Step 1: Bugfix Spec作成 | `.kiro/specs/test-security-fixed-warnings/bugfix.md` |
+| Step 2: Bugfix Spec Gate | 証拠あり、Unchanged: assert文はそのまま |
+| Step 3-4: 修正 | return True削除、test_ab_routes_integrationのassert強化 |
+| Step 5: Verification | 1464 passed, 0 failed, warnings 13→8件 |
+
+#### 修正内容
+- 5関数から`return True`削除
+- `test_ab_routes_integration`の`if status == 200`を`assert status == 200`に変更
+- `main()`のresult判定をtry/exceptベースに修正
+
+### Bugfix: pytest warning 8件の解消
+
+#### Bugfix Spec フロー実行記録
+| Step | 内容 |
+|------|------|
+| Step 0: Evidence Collection | pytest実行で8 warnings確認（3カテゴリ） |
+| Step 1: Bugfix Spec作成 | `.kiro/specs/pytest-warnings-cleanup/bugfix.md` |
+| Step 2: Bugfix Spec Gate | 証拠あり、Unchanged: テスト数・環境変数設定に影響なし |
+| Step 3-4: 修正 | pytest.iniのenv削除 + filterwarnings追加 |
+| Step 5: Verification | 1464 passed, 14 skipped, 0 warnings |
+
+#### 修正内容
+| Warning | 件数 | 対応 |
+|---------|-----:|------|
+| `Unknown config option: env` | 1 | pytest.iniからenv削除（conftest.pyで既に設定済み） |
+| `Convert_system_message_to_human` | 5 | filterwarningsで抑制（外部ライブラリ起因） |
+| `Using default SECRET_KEY` | 2 | filterwarningsで抑制（テスト環境の意図的動作） |
+
+---
+
 ## Day 3-4 (2026-04-03〜04)
 
 ### 実施フェーズ
