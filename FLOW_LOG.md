@@ -153,6 +153,24 @@
 - `test_ab_routes_integration`の`if status == 200`を`assert status == 200`に変更
 - `main()`のresult判定をtry/exceptベースに修正
 
+### Bugfix: pytest warning 8件の解消
+
+#### Bugfix Spec フロー実行記録
+| Step | 内容 |
+|------|------|
+| Step 0: Evidence Collection | pytest実行で8 warnings確認（3カテゴリ） |
+| Step 1: Bugfix Spec作成 | `.kiro/specs/pytest-warnings-cleanup/bugfix.md` |
+| Step 2: Bugfix Spec Gate | 証拠あり、Unchanged: テスト数・環境変数設定に影響なし |
+| Step 3-4: 修正 | pytest.iniのenv削除 + filterwarnings追加 |
+| Step 5: Verification | 1464 passed, 14 skipped, 0 warnings |
+
+#### 修正内容
+| Warning | 件数 | 対応 |
+|---------|-----:|------|
+| `Unknown config option: env` | 1 | pytest.iniからenv削除（conftest.pyで既に設定済み） |
+| `Convert_system_message_to_human` | 5 | filterwarningsで抑制（外部ライブラリ起因） |
+| `Using default SECRET_KEY` | 2 | filterwarningsで抑制（テスト環境の意図的動作） |
+
 ---
 
 ## Day 3-4 (2026-04-03〜04)
