@@ -26,6 +26,10 @@ class Config(BaseSettings):
     DEFAULT_MODEL: str = Field(default="gemini/gemini-1.5-flash", alias="DEFAULT_MODEL")
     API_BASE_URL: Optional[str] = Field(default=None, alias="API_BASE_URL")
 
+    # Ollama Cloud 設定（OpenAI互換API）
+    OLLAMA_API_KEY: Optional[str] = Field(default=None, alias="OLLAMA_API_KEY")
+    OLLAMA_BASE_URL: str = Field(default="https://ollama.com/v1", alias="OLLAMA_BASE_URL")
+
     # セッション設定
     SESSION_TYPE: str = Field(default="filesystem", alias="SESSION_TYPE")
     SESSION_LIFETIME_MINUTES: int = Field(default=30, alias="SESSION_LIFETIME_MINUTES")
@@ -116,6 +120,11 @@ class Config(BaseSettings):
         gemini_pattern = re.compile(r"^(gemini/)?gemini-\d+\.\d+-(pro|flash|flash-lite)(-.*)?$")
         if gemini_pattern.match(v):
             warnings.warn(f"Using experimental model pattern: {v}. Please verify compatibility.", UserWarning)
+            return v
+
+        # Ollama Cloud モデル: ollama/<name>[:<tag>] 形式（例: ollama/gemma4:31b-cloud）
+        ollama_pattern = re.compile(r"^ollama/[a-z0-9_.\-]+(:[a-z0-9_.\-]+)?$")
+        if ollama_pattern.match(v):
             return v
 
         raise ValueError(f"Unsupported model: {v}")
