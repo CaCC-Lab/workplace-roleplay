@@ -192,7 +192,32 @@ DEFAULT_MODEL=gemini/gemini-2.5-flash-lite
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_KEY=your_anon_public_key
 SUPABASE_SERVICE_KEY=your_service_role_key  # サーバーサイド用（RLSバイパス）
+
+# Ollama Cloud（オプション: $20/月定額で高品質モデルを利用）
+# DEFAULT_MODEL=ollama/gemma4:31b-cloud
+# OLLAMA_API_KEY=your_ollama_api_key
+# OLLAMA_BASE_URL=https://ollama.com/v1
 ```
+
+### Ollama Cloud 連携
+
+Gemini の代わりに Ollama Cloud（OpenAI互換API）の高品質モデルを利用できる。
+料金は $20/月の定額プラン（Pro）で、サプライズ請求が発生しない利点がある。
+
+設定手順:
+
+1. https://ollama.com/settings/keys で API キーを発行
+2. `.env` に以下を設定
+   ```
+   OLLAMA_API_KEY=your_api_key_here
+   DEFAULT_MODEL=ollama/gemma4:31b-cloud
+   ```
+3. アプリ再起動
+
+利用可能モデル例（2026年4月時点）:
+- `ollama/gemma4:31b-cloud` — MMLU 85.2% / GPQA 84.3% / 140言語対応（推奨）
+- `ollama/qwen2.5:72b-cloud` — 高品質な日本語・コード対応
+- その他は https://ollama.com/search?c=cloud で確認
 
 ### Supabase マイグレーション
 

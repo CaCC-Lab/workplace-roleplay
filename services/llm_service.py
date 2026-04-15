@@ -12,6 +12,11 @@ import google.generativeai as genai
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+try:  # Ollama Cloud は OpenAI 互換 API 経由で利用
+    from langchain_openai import ChatOpenAI  # type: ignore
+except ImportError:  # pragma: no cover - オプショナル依存
+    ChatOpenAI = None  # type: ignore
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from compliant_api_manager import CompliantAPIManager
 from config import Config
@@ -106,18 +111,66 @@ class LLMService:
             print(f"Error creating Gemini LLM: {str(e)}")
             raise
 
-    def initialize_llm(self, model_name: str) -> ChatGoogleGenerativeAI:
+    # Ollama Cloud のデフォルトエンドポイント（OpenAI互換API）
+    OLLAMA_DEFAULT_BASE_URL = "https://ollama.com/v1"
+
+    def create_ollama_llm(self, model_name: str):
         """
-        モデル名に基づいて適切なLLMを初期化
+        Ollama Cloud（OpenAI互換API）経由の LLM インスタンスを生成。
+
+        Args:
+            model_name: ollama/プレフィックスを除いたモデル名（例: "gemma4:31b-cloud"）
+
+        Returns:
+            ChatOpenAI: LangChain の ChatOpenAI インスタンス（base_url=Ollama Cloud）
+
+        Raises:
+            RuntimeError: langchain_openai 未インストール / OLLAMA_API_KEY 未設定
+        """
+        if ChatOpenAI is None:
+            raise RuntimeError(
+                "langchain-openai is not installed. "
+                "Install with: pip install langchain-openai"
+            )
+
+        api_key = (os.environ.get("OLLAMA_API_KEY") or "").strip()
+        if not api_key:
+            # what/why/how 形式のエラー
+            raise RuntimeError(
+                "OLLAMA_API_KEY is not set. "
+                "Ollama Cloud モデル (ollama/*) の初期化には API キーが必須です。 "
+                "https://ollama.com/settings/keys で発行し .env の OLLAMA_API_KEY に設定してください。"
+            )
+
+        base_url = (os.environ.get("OLLAMA_BASE_URL") or self.OLLAMA_DEFAULT_BASE_URL).strip()
+
+        return ChatOpenAI(
+            model=model_name,
+            api_key=api_key,
+            base_url=base_url,
+            temperature=self.default_temperature,
+            streaming=True,
+        )
+
+    def initialize_llm(self, model_name: str):
+        """
+        モデル名に基づいて適切なLLMを初期化（Gemini / Ollama Cloud を振り分け）
 
         Args:
             model_name: 使用するモデル名
+                - "gemini/..." / "gemini-..." → ChatGoogleGenerativeAI
+                - "ollama/..."                 → ChatOpenAI (Ollama Cloud)
 
         Returns:
-            ChatGoogleGenerativeAI: 初期化されたLLMインスタンス
+            LangChain BaseChatModel の具象インスタンス
         """
         try:
-            # gemini/プレフィックスを削除
+            # Ollama Cloud プレフィックス
+            if model_name.startswith("ollama/"):
+                ollama_model = model_name.replace("ollama/", "", 1)
+                return self.create_ollama_llm(ollama_model)
+
+            # Gemini 経路（既存）
             if model_name.startswith("gemini/"):
                 model_name = model_name.replace("gemini/", "")
 
@@ -126,7 +179,7 @@ class LLMService:
             print(f"Error in initialize_llm: {str(e)}")
             raise
 
-    def get_or_create_model(self, model_name: str) -> ChatGoogleGenerativeAI:
+    def get_or_create_model(self, model_name: str):
         """
         モデルを取得または作成（キャッシュ機能付き）
 
@@ -134,7 +187,7 @@ class LLMService:
             model_name: 使用するモデル名
 
         Returns:
-            ChatGoogleGenerativeAI: LLMインスタンス
+            LangChain BaseChatModel の具象インスタンス（Gemini / Ollama）
         """
         if model_name not in self.models:
             self.models[model_name] = self.initialize_llm(model_name)

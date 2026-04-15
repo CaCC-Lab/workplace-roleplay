@@ -14,6 +14,7 @@ gevent>=23.0.0
 langchain>=0.1.0,<1.0.0
 langchain-core>=0.1.0,<1.0.0
 langchain-google-genai>=0.0.3
+langchain-openai>=0.1.0,<1.0.0  # Ollama Cloud (OpenAI互換API) 用
 google-generativeai>=0.3.0
 google-cloud-aiplatform>=1.36.0
 google-api-core>=2.15.0
