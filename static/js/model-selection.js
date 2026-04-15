@@ -23,9 +23,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 strengthAnalysisCard.style.display = 'block';
             }
             
-            // モデル選択が無効の場合はデフォルトモデルを使用
-            if (!flags.model_selection && flags.default_model) {
-                localStorage.setItem('selectedModel', flags.default_model);
+            // モデル選択UIが無効の場合は localStorage の旧キャッシュを除去。
+            // （localStorage に DEFAULT_MODEL を書き込むと、フィードバック/シナリオ時に
+            //  `model` として送信されてしまい、バックエンドの <MODE>_MODEL env を
+            //  上書きしてしまうため。
+            //  未設定 (null) で送信し、バックエンドの resolve_model にフォールバックを委譲する）
+            if (!flags.model_selection) {
+                localStorage.removeItem('selectedModel');
             }
         })
         .catch(err => {
@@ -84,10 +88,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         modelSelect.value = geminiModels[0].value;
                     }
                     
-                    // 選択を保存
-                    if (modelSelect.value) {
-                        localStorage.setItem('selectedModel', modelSelect.value);
-                    }
+                    // ユーザーが明示的に選択を変更したときのみ保存するため、
+                    // ここでの自動保存は行わない（<select> の change ハンドラで保存される）
                 }
             }
         })

@@ -32,11 +32,8 @@ async function sendMessage() {
     const msg = messageInput.value.trim();
     if (!msg) return;
 
+    // localStorage に明示選択がなければ null を送信 → バックエンドの resolve_model に委譲
     const selectedModel = localStorage.getItem('selectedModel');
-    if (!selectedModel) {
-        displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
-        return;
-    }
 
     displayMessage("あなた: " + msg, "user-message");
     messageInput.value = "";  // 入力欄をクリア
@@ -106,14 +103,9 @@ window.addEventListener('beforeunload', function(e) {
 // 初期メッセージの取得
 window.addEventListener('load', async () => {
     try {
-        // モデル選択（localStorageから取得、なければデフォルト値を使用）
-        let selectedModel = localStorage.getItem('selectedModel');
-        if (!selectedModel) {
-            // デフォルトモデルを設定（gemini-1.5-flashをデフォルトとする）
-            selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
-            localStorage.setItem('selectedModel', selectedModel);
-            console.log('デフォルトモデルを設定:', selectedModel);
-        }
+        // ユーザーが明示的に選択したモデル（未選択なら null を送信し、バックエンドの
+        // resolve_model("scenario", ...) が SCENARIO_MODEL env → DEFAULT_MODEL にフォールバック）
+        const selectedModel = localStorage.getItem('selectedModel');
         
         // CSRFトークンを取得
         const token = await getCSRFToken();
@@ -883,7 +875,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // 2. モデル未選択時の対応強化
 function validateModelSelection() {
     const selectedModel = localStorage.getItem('selectedModel');
-    
+
+    // モデル選択UIが無効（機能フラグで非表示）の場合は検証をスキップ。
+    // バックエンドの resolve_model が <MODE>_MODEL env → DEFAULT_MODEL で自動解決する。
+    const modelSelectionSection = document.getElementById('model-selection-section');
+    const isModelSelectionVisible =
+        modelSelectionSection && modelSelectionSection.style.display !== 'none';
+    if (!isModelSelectionVisible) {
+        return true;
+    }
+
     if (!selectedModel) {
         // モデルが選択されていない場合
         const errorDiv = document.createElement('div');

@@ -69,11 +69,9 @@ speedSlider.addEventListener('change', function() {
 // 観戦開始
 startButton.addEventListener('click', async function() {
     if (!conversationStarted) {
+        // ユーザーが明示的に選択していなければ null を送信 → バックエンドの
+        // resolve_model("watch", ...) が WATCH_MODEL env → DEFAULT_MODEL でフォールバック
         const selectedModel = localStorage.getItem('selectedModel');
-        if (!selectedModel) {
-            displayMessage("エラー: モデルが選択されていません。トップページでモデルを選択してください。", "error-message");
-            return;
-        }
 
         const partnerType = document.getElementById('partner-type').value;
         const situation = document.getElementById('situation').value;

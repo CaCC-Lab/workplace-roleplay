@@ -28,13 +28,8 @@ async function getCSRFToken() {
 async function startConversation() {
     if (conversationStarted) return;
 
-    let selectedModel = localStorage.getItem('selectedModel');
-    if (!selectedModel) {
-        // デフォルトモデルを設定
-        selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
-        localStorage.setItem('selectedModel', selectedModel);
-        console.log('デフォルトモデルを設定:', selectedModel);
-    }
+    // ユーザーが明示的に選択したモデル（無ければ null を送りバックエンドのフォールバックに委譲）
+    const selectedModel = localStorage.getItem('selectedModel');
 
     const partnerType = document.getElementById('partner-type').value;
     const situation = document.getElementById('situation').value;
@@ -100,13 +95,8 @@ async function sendMessage() {
     messageInput.disabled = true;
     sendButton.disabled = true;
 
-    let selectedModel = localStorage.getItem('selectedModel');
-    if (!selectedModel) {
-        // デフォルトモデルを設定
-        selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
-        localStorage.setItem('selectedModel', selectedModel);
-        console.log('デフォルトモデルを設定:', selectedModel);
-    }
+    // ユーザーが明示的に選択したモデル（未選択なら null → バックエンドの resolve_model にフォールバック）
+    const selectedModel = localStorage.getItem('selectedModel');
 
     displayMessage("あなた: " + msg, "user-message");
     messageInput.value = "";
@@ -252,11 +242,7 @@ async function getFeedback() {
 // 履歴クリア処理
 async function clearHistory() {
     try {
-        let selectedModel = localStorage.getItem('selectedModel');
-        if (!selectedModel) {
-            selectedModel = window.DEFAULT_MODEL || 'gemini-1.5-flash';
-            localStorage.setItem('selectedModel', selectedModel);
-        }
+        const selectedModel = localStorage.getItem('selectedModel');
         // CSRFトークンを取得
         const token = await getCSRFToken();
         
