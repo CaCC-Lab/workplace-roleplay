@@ -92,10 +92,11 @@ class Config(BaseSettings):
     @field_validator("DEFAULT_MODEL", "SCENARIO_MODEL", "CHAT_MODEL", "WATCH_MODEL", "FEEDBACK_MODEL")
     def validate_model(cls, v):
         """モデル名のバリデーション（動的パターンマッチング対応）。
-        モード別フィールド（SCENARIO_MODEL 等）は None 許可。"""
-        # モード別モデルは未設定 (None) を許可（DEFAULT_MODEL にフォールバック）
-        if v is None:
-            return v
+        モード別フィールド（SCENARIO_MODEL 等）は None / 空文字列を許可。"""
+        # モード別モデルは未設定 (None / "") を許可（DEFAULT_MODEL にフォールバック）
+        # 空文字列は GitHub Secrets が未設定のとき "KEY=" で書き込まれた場合に発生
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return None
         import re
 
         # サポートされているモデルの明示的リスト（2024年12月最新）

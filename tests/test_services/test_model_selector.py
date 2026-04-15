@@ -90,3 +90,14 @@ class TestConfigModeFields:
 
         with pytest.raises(ValueError, match="Unsupported model"):
             Config(FEEDBACK_MODEL="invalid/random-model")
+
+    def test_空文字列はNoneとして扱われる(self, monkeypatch):
+        """GitHub Secrets 未設定時に '.env' へ 'KEY=' が書き込まれるケース"""
+        from config.config import Config
+
+        for key in ("SCENARIO_MODEL", "CHAT_MODEL", "WATCH_MODEL", "FEEDBACK_MODEL"):
+            monkeypatch.delenv(key, raising=False)
+
+        cfg = Config(_env_file=None, SCENARIO_MODEL="", CHAT_MODEL="   ")
+        assert cfg.SCENARIO_MODEL is None
+        assert cfg.CHAT_MODEL is None
