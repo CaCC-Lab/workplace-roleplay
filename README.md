@@ -191,7 +191,17 @@ DEFAULT_MODEL=gemini/gemini-2.5-flash-lite
 # Supabase（オプション: 設定するとDB永続化+匿名認証が有効）
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_KEY=your_anon_public_key
+SUPABASE_SERVICE_KEY=your_service_role_key  # サーバーサイド用（RLSバイパス）
 ```
+
+### Supabase マイグレーション
+
+初回セットアップ時、および RLS ポリシー更新時は `migrations/` 配下の SQL を
+Supabase Dashboard → SQL Editor で番号順に実行する:
+
+1. `001_initial.sql` — 初期スキーマ
+2. `002_fix_rls.sql` — `user_id` を TEXT 化
+3. `003_enable_rls_server_only.sql` — public テーブルに RLS 有効化（service_role 経由のみアクセス可）
 
 ### 機能フラグ
 
