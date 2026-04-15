@@ -219,6 +219,27 @@ Gemini の代わりに Ollama Cloud（OpenAI互換API）の高品質モデルを
 - `ollama/qwen2.5:72b-cloud` — 高品質な日本語・コード対応
 - その他は https://ollama.com/search?c=cloud で確認
 
+### モード別モデル指定（オプション）
+
+Phase B で導入。用途ごとに最適なモデルを割り当てられる。
+
+優先順位: **UI選択 > `<MODE>_MODEL` 環境変数 > `DEFAULT_MODEL`**
+
+| 環境変数 | 対象 |
+|---|---|
+| `SCENARIO_MODEL` | シナリオロールプレイ |
+| `CHAT_MODEL` | 雑談 |
+| `WATCH_MODEL` | 観戦モード |
+| `FEEDBACK_MODEL` | フィードバック生成 |
+
+ハイブリッド構成例（コストと品質のバランス）:
+```
+DEFAULT_MODEL=gemini/gemini-2.5-flash        # 軽快な雑談向け（無料枠内）
+SCENARIO_MODEL=ollama/gemma4:31b-cloud       # 演じ分けの品質を優先
+FEEDBACK_MODEL=ollama/gemma4:31b-cloud       # 深い洞察が必要
+# WATCH_MODEL / CHAT_MODEL は未設定で DEFAULT_MODEL にフォールバック
+```
+
 ### Supabase マイグレーション
 
 初回セットアップ時、および RLS ポリシー更新時は `migrations/` 配下の SQL を

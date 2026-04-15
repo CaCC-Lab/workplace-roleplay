@@ -34,6 +34,7 @@ except ImportError:
 # サービス層のインポート
 from services.watch_service import get_watch_service
 from services.quiz_service import QuizService
+from services.model_selector import resolve_model
 
 from utils.helpers import (
     clear_session_history,
@@ -80,8 +81,8 @@ def start_watch():
         if not data:
             return jsonify({"error": "Invalid request"}), 400
 
-        model_a = data.get("model_a")
-        model_b = data.get("model_b")
+        model_a = resolve_model("watch", data.get("model_a"))
+        model_b = resolve_model("watch", data.get("model_b"))
 
         if not SecurityUtils.validate_model_name(model_a):
             return jsonify({"error": "無効なモデルA名です"}), 400

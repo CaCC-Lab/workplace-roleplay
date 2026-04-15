@@ -20,6 +20,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 # サービス層のインポート
 from services.scenario_service import get_scenario_service
+from services.model_selector import resolve_model
 
 from config import get_cached_config
 from errors import (
@@ -229,7 +230,7 @@ def scenario_chat() -> Response:
         # 入力値のサニタイズ
         user_message = SecurityUtils.sanitize_input(data.get("message", ""))
         scenario_id = data.get("scenario_id", "")
-        selected_model = data.get("model", DEFAULT_MODEL)
+        selected_model = resolve_model("scenario", data.get("model"))
 
         # 入力検証
         if not SecurityUtils.validate_scenario_id(scenario_id):
@@ -347,7 +348,7 @@ def get_scenario_feedback() -> Response:
             return jsonify({"error": "Invalid JSON"}), 400
 
         scenario_id = data.get("scenario_id")
-        selected_model = data.get("model")
+        selected_model = resolve_model("feedback", data.get("model"))
 
         if scenario_id is None or (isinstance(scenario_id, str) and not str(scenario_id).strip()):
             return jsonify({"error": "シナリオIDが必要です"}), 400
@@ -496,7 +497,7 @@ def get_assist() -> Any:
 上記の状況で、適切な返答のヒントを1-2文で簡潔に提案してください。
 """
 
-    selected_model = session.get("selected_model", DEFAULT_MODEL)
+    selected_model = resolve_model("scenario", session.get("selected_model"))
 
     from app import create_model_and_get_response
 

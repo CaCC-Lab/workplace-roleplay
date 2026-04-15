@@ -30,6 +30,12 @@ class Config(BaseSettings):
     OLLAMA_API_KEY: Optional[str] = Field(default=None, alias="OLLAMA_API_KEY")
     OLLAMA_BASE_URL: str = Field(default="https://ollama.com/v1", alias="OLLAMA_BASE_URL")
 
+    # モード別モデル設定（Phase B）- 未設定時は DEFAULT_MODEL にフォールバック
+    SCENARIO_MODEL: Optional[str] = Field(default=None, alias="SCENARIO_MODEL")
+    CHAT_MODEL: Optional[str] = Field(default=None, alias="CHAT_MODEL")
+    WATCH_MODEL: Optional[str] = Field(default=None, alias="WATCH_MODEL")
+    FEEDBACK_MODEL: Optional[str] = Field(default=None, alias="FEEDBACK_MODEL")
+
     # セッション設定
     SESSION_TYPE: str = Field(default="filesystem", alias="SESSION_TYPE")
     SESSION_LIFETIME_MINUTES: int = Field(default=30, alias="SESSION_LIFETIME_MINUTES")
@@ -83,9 +89,13 @@ class Config(BaseSettings):
             raise ValueError("Session lifetime must be positive")
         return v
 
-    @field_validator("DEFAULT_MODEL")
+    @field_validator("DEFAULT_MODEL", "SCENARIO_MODEL", "CHAT_MODEL", "WATCH_MODEL", "FEEDBACK_MODEL")
     def validate_model(cls, v):
-        """モデル名のバリデーション（動的パターンマッチング対応）"""
+        """モデル名のバリデーション（動的パターンマッチング対応）。
+        モード別フィールド（SCENARIO_MODEL 等）は None 許可。"""
+        # モード別モデルは未設定 (None) を許可（DEFAULT_MODEL にフォールバック）
+        if v is None:
+            return v
         import re
 
         # サポートされているモデルの明示的リスト（2024年12月最新）
