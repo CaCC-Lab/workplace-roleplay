@@ -287,7 +287,7 @@ def get_chat_feedback() -> Response:
         if not data:
             return jsonify({"error": "Invalid request"}), 400
 
-        selected_model = resolve_model("feedback", data.get("model"))
+        selected_model = resolve_model("feedback")
 
         # 練習が開始されているか確認
         if "chat_settings" not in session:

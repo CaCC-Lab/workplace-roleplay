@@ -348,7 +348,7 @@ def get_scenario_feedback() -> Response:
             return jsonify({"error": "Invalid JSON"}), 400
 
         scenario_id = data.get("scenario_id")
-        selected_model = resolve_model("feedback", data.get("model"))
+        selected_model = resolve_model("feedback")
 
         if scenario_id is None or (isinstance(scenario_id, str) and not str(scenario_id).strip()):
             return jsonify({"error": "シナリオIDが必要です"}), 400

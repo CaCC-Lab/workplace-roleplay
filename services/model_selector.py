@@ -1,10 +1,14 @@
 """
 モード別モデル解決ヘルパー（Phase B）
 
-優先順位:
+優先順位（feedback 以外）:
     1. session_selected（UI で選択されたモデル）
     2. <MODE>_MODEL 環境変数
     3. DEFAULT_MODEL
+
+feedback モード:
+    会話で選んだモデルとは独立し、常に FEEDBACK_MODEL → DEFAULT_MODEL のみ
+    （session_selected は無視）
 
 モードは以下の4種類:
     - scenario : シナリオロールプレイ
@@ -33,7 +37,7 @@ def resolve_model(mode: str, session_selected: Optional[str] = None) -> str:
 
     Args:
         mode: "scenario" | "chat" | "watch" | "feedback"
-        session_selected: UI で選択されたモデル名（あれば最優先）
+        session_selected: UI で選択されたモデル名（feedback 以外で最優先）
 
     Returns:
         解決されたモデル名（例: "ollama/gemma4:31b-cloud"）
@@ -46,6 +50,10 @@ def resolve_model(mode: str, session_selected: Optional[str] = None) -> str:
             f"Unknown mode: {mode!r}. "
             f"Expected one of: {sorted(_MODE_ENV_MAP.keys())}"
         )
+
+    # フィードバックは会話モデルと切り離し、FEEDBACK_MODEL / DEFAULT_MODEL のみ
+    if mode == "feedback":
+        session_selected = None
 
     # 1. session_selected が最優先
     if session_selected:

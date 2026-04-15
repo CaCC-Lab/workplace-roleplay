@@ -19,6 +19,20 @@ def default_model_config():
         yield cfg
 
 
+class TestFeedbackModeUsesEnvOnly:
+    """feedback は session_selected を無視し FEEDBACK_MODEL → DEFAULT_MODEL"""
+
+    def test_feedbackはUI選択よりFEEDBACK_MODELが優先(self, default_model_config, monkeypatch):
+        monkeypatch.setenv("FEEDBACK_MODEL", "ollama/gemma4:31b-cloud")
+        result = resolve_model("feedback", session_selected="gemini/gemini-2.5-flash-lite")
+        assert result == "ollama/gemma4:31b-cloud"
+
+    def test_feedback_Feedback未設定はDEFAULT_MODEL(self, default_model_config, monkeypatch):
+        monkeypatch.delenv("FEEDBACK_MODEL", raising=False)
+        result = resolve_model("feedback", session_selected="gemini/gemini-2.5-pro")
+        assert result == "gemini/gemini-2.5-flash"
+
+
 class TestResolveModelPriority:
     """優先順位: session_selected > <MODE>_MODEL env > DEFAULT_MODEL"""
 
