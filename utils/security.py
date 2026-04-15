@@ -100,6 +100,12 @@ class SecurityUtils:
         if len(model_name) > SecurityUtils.MAX_MODEL_NAME_LENGTH:
             return False
 
+        # Ollama Cloud モデル: ollama/<name>[:<tag>] 形式を許可
+        # 例: ollama/gemma4:31b-cloud, ollama/qwen2.5:72b-cloud
+        ollama_pattern = r"^ollama/[a-zA-Z0-9_.\-]+(:[a-zA-Z0-9_.\-]+)?$"
+        if re.match(ollama_pattern, model_name):
+            return True
+
         # gemini/プレフィックスを除去
         if model_name.startswith("gemini/"):
             model_name = model_name[7:]  # 'gemini/'の7文字を除去

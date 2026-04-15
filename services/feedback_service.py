@@ -146,16 +146,20 @@ AIの行動・対応・努力・理解度は一切評価しないこと。
                 gemini_models = ["gemini/gemini-1.5-flash", "gemini/gemini-1.5-pro"]
 
             if preferred_model:
-                if not preferred_model.startswith("gemini/"):
-                    normalized_model = f"gemini/{preferred_model}"
+                # Ollama Cloud 等、Gemini 以外のプロバイダは直接利用（Gemini リスト検証をスキップ）
+                if preferred_model.startswith("ollama/"):
+                    model_name = preferred_model
                 else:
-                    normalized_model = preferred_model
+                    if not preferred_model.startswith("gemini/"):
+                        normalized_model = f"gemini/{preferred_model}"
+                    else:
+                        normalized_model = preferred_model
 
-                if normalized_model in gemini_models:
-                    model_name = normalized_model
-                else:
-                    flash_models = [m for m in gemini_models if "flash" in m.lower()]
-                    model_name = flash_models[0] if flash_models else gemini_models[0] if gemini_models else None
+                    if normalized_model in gemini_models:
+                        model_name = normalized_model
+                    else:
+                        flash_models = [m for m in gemini_models if "flash" in m.lower()]
+                        model_name = flash_models[0] if flash_models else gemini_models[0] if gemini_models else None
             elif gemini_models:
                 flash_models = [m for m in gemini_models if "flash" in m.lower()]
                 model_name = flash_models[0] if flash_models else gemini_models[0]

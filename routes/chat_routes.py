@@ -39,6 +39,7 @@ except ImportError:
 
 # サービス層のインポート
 from services.feedback_service import get_feedback_service
+from services.model_selector import resolve_model
 
 from utils.helpers import (
     add_messages_from_history,
@@ -87,7 +88,7 @@ def handle_chat() -> Response:
     if not ok:
         raise ValidationError(msg_err or "メッセージが無効です", field="message")
 
-    model_name = data.get("model", DEFAULT_MODEL)
+    model_name = resolve_model("chat", data.get("model"))
 
     # モデル名の検証
     if not SecurityUtils.validate_model_name(model_name):
@@ -161,7 +162,7 @@ def start_chat() -> Response:
         if not data:
             return jsonify({"error": "Invalid request"}), 400
 
-        model_name = data.get("model", DEFAULT_MODEL)
+        model_name = resolve_model("chat", data.get("model"))
         partner_type = data.get("partner_type", "colleague")
         situation = data.get("situation", "break")
         topic = data.get("topic", "general")
@@ -286,7 +287,7 @@ def get_chat_feedback() -> Response:
         if not data:
             return jsonify({"error": "Invalid request"}), 400
 
-        selected_model = data.get("model")
+        selected_model = resolve_model("feedback", data.get("model"))
 
         # 練習が開始されているか確認
         if "chat_settings" not in session:
