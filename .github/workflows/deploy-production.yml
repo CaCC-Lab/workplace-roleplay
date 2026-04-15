@@ -133,12 +133,24 @@ jobs:
             tar -xzf /tmp/deployment.tar.gz -C ${{ env.APP_PATH }}
             rm -f /tmp/deployment.tar.gz
             
-            # Setup virtual environment
+            # Setup virtual environment (冪等化: requirements.txt 未変更なら pip install をスキップ)
             cd ${{ env.APP_PATH }}
-            python3 -m venv venv
+            REQ_HASH=$(sha256sum requirements.txt | awk '{print $1}')
+            STAMP_FILE="venv/.requirements.sha256"
+
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
             source venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
+
+            if [ ! -f "$STAMP_FILE" ] || [ "$(cat $STAMP_FILE 2>/dev/null)" != "$REQ_HASH" ]; then
+              echo "↻ requirements.txt changed or first run - installing dependencies"
+              pip install --upgrade pip
+              pip install -r requirements.txt
+              echo "$REQ_HASH" > "$STAMP_FILE"
+            else
+              echo "✓ requirements.txt unchanged - skipping pip install"
+            fi
             
             # Copy environment variables (ensure .env exists on server)
             if [ -f /home/${{ env.VM_USER }}/.env.production ]; then
