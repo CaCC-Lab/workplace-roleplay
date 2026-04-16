@@ -163,6 +163,12 @@ jobs:
             echo 'SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}' >> ${{ env.APP_PATH }}/.env
             echo 'SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}' >> ${{ env.APP_PATH }}/.env
 
+            # DEFAULT_MODEL を Secrets から上書き（設定されていれば .env.production の値を上書き）
+            if [ -n '${{ secrets.DEFAULT_MODEL }}' ]; then
+              sed -i '/^DEFAULT_MODEL=/d' ${{ env.APP_PATH }}/.env
+              echo 'DEFAULT_MODEL=${{ secrets.DEFAULT_MODEL }}' >> ${{ env.APP_PATH }}/.env
+            fi
+
             # Append Ollama Cloud credentials and mode-specific models from GitHub Secrets
             # 未設定の Secrets は空文字列として追記されるが、空値は resolve_model / config 側で
             # 適切にスキップされ、DEFAULT_MODEL にフォールバックする
