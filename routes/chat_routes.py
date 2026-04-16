@@ -200,20 +200,19 @@ def start_chat() -> Response:
         }
         session.modified = True
 
-        # 初回メッセージの生成
-        first_prompt = f"""
-相手: {get_partner_description(partner_type)}
-状況: {get_situation_description(situation)}
-話題: {get_topic_description(topic)}
-
-上記の設定で、あなたから雑談を始めてください。
-最初の声かけとして、状況に応じた自然な挨拶や話題提供をしてください。
-"""
+        # 初回メッセージの生成（システムプロンプトを含めて送信）
+        system_prompt = session["chat_settings"]["system_prompt"]
+        first_user_msg = "上記の設定で、あなたから雑談を始めてください。最初の声かけとして、状況に応じた自然な挨拶や話題提供をしてください。"
 
         try:
-            from app import create_model_and_get_response
+            from app import initialize_llm, extract_content
 
-            response = create_model_and_get_response(model_name, first_prompt)
+            llm = initialize_llm(model_name)
+            messages = [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=first_user_msg),
+            ]
+            response = extract_content(llm.invoke(messages))
 
             # 履歴に保存
             add_to_session_history("chat_history", {"human": "[雑談開始]", "ai": response})

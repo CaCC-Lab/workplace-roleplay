@@ -111,8 +111,9 @@ class TestStartChat:
 
     def test_正常な開始(self, client):
         """正常な雑談開始"""
-        with patch("app.create_model_and_get_response") as mock_response:
-            mock_response.return_value = "こんにちは！いい天気ですね。"
+        with patch("app.initialize_llm") as mock_llm, patch("app.extract_content") as mock_extract:
+            mock_llm.return_value.invoke.return_value = "こんにちは！いい天気ですね。"
+            mock_extract.return_value = "こんにちは！いい天気ですね。"
 
             response = client.post(
                 "/api/start_chat",
@@ -130,8 +131,8 @@ class TestStartChat:
 
     def test_レート制限エラー(self, client):
         """レート制限エラー発生"""
-        with patch("app.create_model_and_get_response") as mock_response:
-            mock_response.side_effect = Exception("Rate limit exceeded")
+        with patch("app.initialize_llm") as mock_llm:
+            mock_llm.return_value.invoke.side_effect = Exception("Rate limit exceeded")
 
             with patch("errors.handle_llm_specific_error") as mock_handler:
                 from errors import RateLimitError
@@ -153,8 +154,8 @@ class TestStartChat:
 
     def test_一般エラー(self, client):
         """一般エラー発生"""
-        with patch("app.create_model_and_get_response") as mock_response:
-            mock_response.side_effect = Exception("API error")
+        with patch("app.initialize_llm") as mock_llm:
+            mock_llm.return_value.invoke.side_effect = Exception("API error")
 
             with patch("errors.handle_llm_specific_error") as mock_handler:
                 from errors import ExternalAPIError
@@ -274,8 +275,9 @@ class TestPartnerTypeDescriptions:
         partner_types = ["colleague", "senior", "junior", "manager", "client"]
 
         for partner_type in partner_types:
-            with patch("app.create_model_and_get_response") as mock_response:
-                mock_response.return_value = "テスト応答"
+            with patch("app.initialize_llm") as mock_llm, patch("app.extract_content") as mock_extract:
+                mock_llm.return_value.invoke.return_value = "テスト応答"
+                mock_extract.return_value = "テスト応答"
 
                 response = client.post(
                     "/api/start_chat",
@@ -296,8 +298,9 @@ class TestSituationDescriptions:
         situations = ["break", "lunch", "meeting", "after_work"]
 
         for situation in situations:
-            with patch("app.create_model_and_get_response") as mock_response:
-                mock_response.return_value = "テスト応答"
+            with patch("app.initialize_llm") as mock_llm, patch("app.extract_content") as mock_extract:
+                mock_llm.return_value.invoke.return_value = "テスト応答"
+                mock_extract.return_value = "テスト応答"
 
                 response = client.post(
                     "/api/start_chat",
@@ -317,8 +320,9 @@ class TestTopicDescriptions:
         topics = ["general", "weather", "hobby", "news", "food"]
 
         for topic in topics:
-            with patch("app.create_model_and_get_response") as mock_response:
-                mock_response.return_value = "テスト応答"
+            with patch("app.initialize_llm") as mock_llm, patch("app.extract_content") as mock_extract:
+                mock_llm.return_value.invoke.return_value = "テスト応答"
+                mock_extract.return_value = "テスト応答"
 
                 response = client.post(
                     "/api/start_chat",
