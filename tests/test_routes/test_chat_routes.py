@@ -69,8 +69,9 @@ class TestStartChat:
 
     def test_雑談開始が正常に動作する(self, csrf_client):
         """雑談を正常に開始できること"""
-        with patch("app.create_model_and_get_response") as mock_create:
-            mock_create.return_value = "おはようございます！今日もお仕事お疲れ様です。"
+        with patch("app.initialize_llm") as mock_llm, patch("app.extract_content") as mock_extract:
+            mock_llm.return_value.invoke.return_value = "おはようございます！今日もお仕事お疲れ様です。"
+            mock_extract.return_value = "おはようございます！今日もお仕事お疲れ様です。"
 
             response = csrf_client.post(
                 "/api/start_chat",
@@ -91,8 +92,9 @@ class TestStartChat:
         partner_types = ["colleague", "senior", "junior", "boss", "client"]
 
         for partner_type in partner_types:
-            with patch("app.create_model_and_get_response") as mock_create:
-                mock_create.return_value = "テスト応答"
+            with patch("app.initialize_llm") as mock_llm, patch("app.extract_content") as mock_extract:
+                mock_llm.return_value.invoke.return_value = "テスト応答"
+                mock_extract.return_value = "テスト応答"
 
                 response = csrf_client.post(
                     "/api/start_chat",
@@ -111,8 +113,9 @@ class TestStartChat:
         situations = ["break", "lunch", "morning", "evening", "party"]
 
         for situation in situations:
-            with patch("app.create_model_and_get_response") as mock_create:
-                mock_create.return_value = "テスト応答"
+            with patch("app.initialize_llm") as mock_llm, patch("app.extract_content") as mock_extract:
+                mock_llm.return_value.invoke.return_value = "テスト応答"
+                mock_extract.return_value = "テスト応答"
 
                 response = csrf_client.post(
                     "/api/start_chat",
@@ -131,8 +134,9 @@ class TestStartChat:
         topics = ["general", "hobby", "news", "food", "work"]
 
         for topic in topics:
-            with patch("app.create_model_and_get_response") as mock_create:
-                mock_create.return_value = "テスト応答"
+            with patch("app.initialize_llm") as mock_llm, patch("app.extract_content") as mock_extract:
+                mock_llm.return_value.invoke.return_value = "テスト応答"
+                mock_extract.return_value = "テスト応答"
 
                 response = csrf_client.post(
                     "/api/start_chat",
@@ -148,8 +152,8 @@ class TestStartChat:
 
     def test_レート制限エラーを適切に処理する(self, csrf_client):
         """レート制限エラーが発生した場合"""
-        with patch("app.create_model_and_get_response") as mock_create:
-            mock_create.side_effect = Exception("429 Resource has been exhausted")
+        with patch("app.initialize_llm") as mock_llm:
+            mock_llm.return_value.invoke.side_effect = Exception("429 Resource has been exhausted")
 
             response = csrf_client.post(
                 "/api/start_chat",
