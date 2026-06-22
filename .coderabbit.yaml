@@ -1,0 +1,31 @@
+# CodeRabbit 設定 — 司令塔リポ正本（全リポ配布用の雛形）
+#
+# 目的: レビュー量を絞り、Pro プランのレビュー上限 / レート制限に当たりにくくする。
+# 配布: 各リポの「デフォルトブランチ直下」に .coderabbit.yaml としてコピーする。
+#       CodeRabbit はデフォルトブランチ直下の .coderabbit.yaml を読み、
+#       ダッシュボード（組織 / リポ）設定より優先する。
+#       ※ 組織 UI には incremental review のトグルが無いため、全リポで切るには
+#         このファイル方式が唯一の確実な手段（2026-06 時点・実画面で確認）。
+# 参考: https://docs.coderabbit.ai/reference/configuration
+
+language: ja-JP            # レビューを日本語で出す（英語にするなら en-US ／この行を削除）
+
+reviews:
+  profile: chill           # 指摘を控えめに（nitpick を減らす）
+  high_level_summary: true # PR 要約は残す（人間レビューに有用）
+  poem: false              # おまけの詩を止めて出力を簡素化
+  auto_review:
+    enabled: true
+    auto_incremental_review: false  # ★最大の節約: push 毎の再レビューを止め、PR オープン時の 1 回だけにする
+    drafts: false                   # Draft PR はレビューしない
+  path_filters:            # レビュー対象から除外（自動生成物・ノイズ）
+    - "!**/*.lock"
+    - "!**/package-lock.json"
+    - "!**/pnpm-lock.yaml"
+    - "!**/yarn.lock"
+    - "!**/node_modules/**"
+    - "!dist/**"
+    - "!build/**"
+    - "!**/*.min.js"
+    # ドキュメント中心のリポでさらに絞るなら次行を有効化（このリポでは無効のまま推奨）:
+    # - "!**/*.md"
