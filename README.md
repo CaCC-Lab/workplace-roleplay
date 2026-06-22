@@ -248,6 +248,7 @@ Supabase Dashboard → SQL Editor で番号順に実行する:
 1. `001_initial.sql` — 初期スキーマ
 2. `002_fix_rls.sql` — `user_id` を TEXT 化
 3. `003_enable_rls_server_only.sql` — public テーブルに RLS 有効化（service_role 経由のみアクセス可）
+4. `004_harden_gamification_rls.sql` — ゲーミフィケーション系8テーブルのクライアント向けポリシーを撤去し service_role 専用に統一
 
 ### 機能フラグ
 
