@@ -250,6 +250,16 @@ Supabase Dashboard → SQL Editor で番号順に実行する:
 3. `003_enable_rls_server_only.sql` — public テーブルに RLS 有効化（service_role 経由のみアクセス可）
 4. `004_harden_gamification_rls.sql` — ゲーミフィケーション系8テーブルのクライアント向けポリシーを撤去し service_role 専用に統一
 
+### Supabase キープアライブ（無料枠の自動停止対策）
+
+無料枠の Supabase プロジェクトは **1週間 無活動だと自動的に一時停止**される。
+`.github/workflows/supabase-keep-alive.yml` が毎日 1 回、REST API に軽量な
+1 行 SELECT を投げて「活動中」を維持する（手動実行は Actions タブ →
+"Supabase Keep-Alive" → Run workflow）。
+
+- 利用する Secrets は `SUPABASE_URL` / `SUPABASE_SERVICE_KEY`（デプロイと共用）。
+- 恒久的に停止を止めたい場合は Supabase Pro（$25/月〜）へのアップグレードが正攻法。
+
 ### 機能フラグ
 
 | 環境変数 | デフォルト | 説明 |
