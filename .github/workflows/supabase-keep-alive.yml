@@ -6,7 +6,10 @@ name: Supabase Keep-Alive
 #
 # 必要な GitHub Secrets（deploy-production.yml と共用）:
 #   - SUPABASE_URL
-#   - SUPABASE_SERVICE_KEY  ※ RLS をバイパスするため確実に DB に到達する
+#   - SUPABASE_SERVICE_KEY または SUPABASE_KEY
+#     ※ SERVICE_KEY を優先し、無ければ KEY にフォールバックする
+#       （services/supabase_client.py と同じ解決順。RLS をバイパスできる
+#        service_role キーが望ましいが、本番が SUPABASE_KEY しか持たない場合も動く）
 
 on:
   schedule:
@@ -34,11 +37,16 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           set -euo pipefail
 
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_KEY:-}" ]; then
-            echo "::error::SUPABASE_URL / SUPABASE_SERVICE_KEY secret が未設定です。リポジトリの Settings → Secrets and variables → Actions で登録してください。"
+          # アプリ本体（services/supabase_client.py）と同じ解決順:
+          # SERVICE_KEY を優先し、無ければ KEY にフォールバックする。
+          SUPABASE_API_KEY="${SUPABASE_SERVICE_KEY:-${SUPABASE_KEY:-}}"
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_API_KEY}" ]; then
+            echo "::error::SUPABASE_URL と SUPABASE_SERVICE_KEY（または SUPABASE_KEY）secret が未設定です。リポジトリの Settings → Secrets and variables → Actions で登録してください。"
             exit 1
           fi
 
@@ -46,8 +54,8 @@ jobs:
           # 応答ボディは出力しない（id 漏洩防止）。HTTP ステータスのみで判定する。
           status=$(curl -sS -o /dev/null -w '%{http_code}' \
             --retry 3 --retry-delay 10 --max-time 30 \
-            -H "apikey: ${SUPABASE_SERVICE_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+            -H "apikey: ${SUPABASE_API_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_API_KEY}" \
             "${SUPABASE_URL%/}/rest/v1/user_data?select=id&limit=1")
 
           echo "HTTP ${status}"
