@@ -88,3 +88,11 @@ class TestSupabaseUserDataWhenClientOk:
         assert isinstance(svc, SupabaseUserDataService)
         assert isinstance(svc, UserDataService)
         assert svc._client is mock_client
+
+
+class TestServiceKeyOnly:
+    def test_available_with_service_key_only(self, manager, monkeypatch):
+        monkeypatch.setenv(ENV_SUPABASE_URL, "https://example.supabase.co")
+        monkeypatch.delenv(ENV_SUPABASE_KEY, raising=False)
+        monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-key")
+        assert manager.is_available() is True
