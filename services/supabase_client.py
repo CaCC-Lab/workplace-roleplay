@@ -89,11 +89,13 @@ class SupabaseClientManager:
         if not self._env_configured():
             return None
         try:
-            from supabase import create_client  # type: ignore
+            from supabase import ClientOptions, create_client  # type: ignore
 
             url = os.environ[ENV_SUPABASE_URL].strip()
             key = (os.environ.get(ENV_SUPABASE_KEY) or os.environ.get(ENV_SUPABASE_SERVICE_KEY, "")).strip()
-            return create_client(url, key)
+            # リクエストごとに捨てるので、トークン自動更新のスレッドを起動しない
+            options = ClientOptions(auto_refresh_token=False, persist_session=False)
+            return create_client(url, key, options=options)
         except Exception:
             return None
 

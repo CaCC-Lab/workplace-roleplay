@@ -111,10 +111,11 @@ class TestCreateAuthClient:
         monkeypatch.setenv(ENV_SUPABASE_URL, "https://example.supabase.co")
         monkeypatch.setenv(ENV_SUPABASE_KEY, "anon-key")
         monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-key")
-        with patch("supabase.create_client", side_effect=lambda url, key: MagicMock(key=key)):
+        with patch("supabase.create_client", side_effect=lambda url, key, options=None: MagicMock(key=key, options=options)):
             shared = manager.get_client()
             auth_client = manager.create_auth_client()
 
         assert auth_client is not shared
         assert auth_client.key == "anon-key"
         assert shared.key == "service-key"
+        assert auth_client.options.auto_refresh_token is False
