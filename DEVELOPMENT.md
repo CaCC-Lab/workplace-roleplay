@@ -15,7 +15,7 @@
 
 ### 前提条件
 
-- Python 3.8以上
+- Python 3.10以上
 - Git
 - VSCode（推奨）
 - Google Cloud API キー（Gemini API用）

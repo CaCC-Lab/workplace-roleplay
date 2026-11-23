@@ -9,6 +9,14 @@ from flask import session
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 
+def message_text(message: Any) -> str:
+    """メッセージ本文のテキストを返す（Gemini 3 の署名付きコンテンツブロックにも対応）"""
+    if isinstance(message, BaseMessage):
+        return message.text
+    content = getattr(message, "content", message)
+    return content if isinstance(content, str) else str(content)
+
+
 def extract_content(resp: Union[AIMessage, str, List[Any], Dict[str, Any], Any]) -> str:
     """
     様々な形式のレスポンスから内容を抽出
@@ -20,7 +28,7 @@ def extract_content(resp: Union[AIMessage, str, List[Any], Dict[str, Any], Any])
         str: 抽出されたコンテンツ
     """
     if isinstance(resp, AIMessage):
-        return str(resp.content)
+        return message_text(resp)
     elif isinstance(resp, str):
         return resp
     elif isinstance(resp, list):

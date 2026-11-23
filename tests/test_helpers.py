@@ -363,3 +363,26 @@ class TestAddMessagesFromHistory:
 
         assert len(result) == 1
         assert isinstance(result[0], HumanMessage)
+
+
+class TestGemini3ContentBlocks:
+    """Gemini 3 は署名付きのコンテンツブロックで本文を返す"""
+
+    def test_コンテンツブロックから本文だけを取り出す(self):
+        from langchain_core.messages import AIMessage
+
+        from utils.helpers import extract_content, message_text
+
+        resp = AIMessage(content=[{"type": "text", "text": "こんにちは", "extras": {"signature": "sig"}}])
+        assert extract_content(resp) == "こんにちは"
+        assert message_text(resp) == "こんにちは"
+
+    def test_メッセージ以外はcontentか文字列化した値を返す(self):
+        from unittest.mock import MagicMock
+
+        from utils.helpers import message_text
+
+        chunk = MagicMock()
+        chunk.content = "abc"
+        assert message_text(chunk) == "abc"
+        assert message_text("plain") == "plain"

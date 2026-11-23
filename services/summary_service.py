@@ -10,16 +10,15 @@ from typing import Any, Optional
 
 from langchain_core.messages import HumanMessage
 
+from utils.helpers import message_text
+
 _VALID_MODES = frozenset({"scenario", "chat", "watch"})
 
 
 def _extract_text_from_llm_response(response: Any) -> str:
     if response is None:
         return ""
-    if hasattr(response, "content"):
-        c = getattr(response, "content", "")
-        return c if isinstance(c, str) else str(c)
-    return str(response)
+    return message_text(response)
 
 
 class SummaryService:

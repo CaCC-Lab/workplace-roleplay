@@ -2,6 +2,7 @@
 設定管理モジュールのテスト
 TDD原則に従い、設定の読み込みと検証をテスト
 """
+
 import os
 import pytest
 from unittest.mock import patch, MagicMock
@@ -67,7 +68,7 @@ class TestConfigBase:
             # 基本設定
             assert config.SECRET_KEY == "default-secret-key-change-in-production"
             assert config.DEFAULT_TEMPERATURE == 0.7
-            assert config.DEFAULT_MODEL == "gemini/gemini-2.5-flash-lite"
+            assert config.DEFAULT_MODEL == "gemini/gemini-3.8-flash"
 
         # セッション設定
         assert config.SESSION_TYPE == "filesystem"

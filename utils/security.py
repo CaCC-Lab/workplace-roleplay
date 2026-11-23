@@ -2,6 +2,7 @@
 セキュリティユーティリティ
 XSS、CSRF、入力検証などのセキュリティ機能を提供
 """
+
 import hashlib
 import hmac
 import re
@@ -12,6 +13,7 @@ from typing import Any, Dict, Optional, Tuple
 from functools import wraps
 from flask import request, jsonify, session
 import bleach
+from utils.gemini_models import is_valid_gemini_model_name
 
 # ロガーの設定
 logger = logging.getLogger(__name__)
@@ -115,25 +117,7 @@ class SecurityUtils:
         if not re.match(allowed_pattern, model_name):
             return False
 
-        # 既知の有効なモデル名リスト（プレフィックスなし）
-        valid_models = [
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-flash-002",
-            "gemini-1.5-flash-8b",
-            "gemini-1.5-pro",
-            "gemini-1.5-pro-latest",
-            "gemini-1.5-pro-002",
-            "gemini-1.0-pro",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-exp",
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",  # 追加！Gemini Web検索で存在確認済み
-            "gemini-2.5-pro",
-        ]
-
-        # プレフィックスを除去したモデル名で検証
-        return model_name in valid_models
+        return is_valid_gemini_model_name(model_name)
 
     @staticmethod
     def sanitize_input(text: str) -> str:

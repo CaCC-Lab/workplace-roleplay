@@ -25,15 +25,15 @@ class TestLLMService:
         from services.llm_service import LLMService
 
         # 廃止モデルのマッピングを確認
-        assert LLMService.DEPRECATED_MODELS["gemini-pro"] == "gemini-2.5-flash-lite"
-        assert LLMService.DEPRECATED_MODELS["gemini-pro-vision"] == "gemini-2.5-flash-lite"
-        assert LLMService.DEPRECATED_MODELS["gemini-1.5-flash"] == "gemini-2.5-flash-lite"
+        assert LLMService.DEPRECATED_MODELS["gemini-pro"] == "gemini-3.8-flash"
+        assert LLMService.DEPRECATED_MODELS["gemini-pro-vision"] == "gemini-3.8-flash"
+        assert LLMService.DEPRECATED_MODELS["gemini-1.5-flash"] == "gemini-3.8-flash"
 
     def test_利用可能モデルリスト(self):
         """利用可能なモデルのリスト"""
         from services.llm_service import LLMService
 
-        assert "gemini-2.5-flash-lite" in LLMService.AVAILABLE_MODELS
+        assert "gemini-3.8-flash" in LLMService.AVAILABLE_MODELS
 
 
 class TestCreateGeminiLLM:
@@ -69,7 +69,7 @@ class TestCreateGeminiLLM:
 
                 # 既定モデルに置き換えられる
                 call_args = mock_chat.call_args
-                assert call_args[1]["model"] == "gemini-2.5-flash-lite"
+                assert call_args[1]["model"] == "gemini-3.8-flash"
 
     def test_モデル作成エラー(self):
         """モデル作成時のエラー"""
@@ -223,7 +223,7 @@ class TestInitializeLLMExtended:
 
                 # プレフィックスが削除されてモデルが作成される
                 call_args = mock_chat.call_args
-                assert call_args[1]["model"] == "gemini-2.5-flash-lite"
+                assert call_args[1]["model"] == "gemini-3.8-flash"
 
     def test_初期化エラー(self):
         """初期化時のエラー"""

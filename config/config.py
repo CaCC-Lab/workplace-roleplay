@@ -2,6 +2,7 @@
 アプリケーション設定モジュール
 Pydanticを使用した型安全な設定管理
 """
+
 import os
 import json
 import warnings
@@ -9,6 +10,8 @@ from typing import Optional, Dict, Any
 from pydantic_settings import BaseSettings
 from pydantic import Field, field_validator
 from functools import lru_cache
+
+from utils.gemini_models import DEFAULT_GEMINI_MODEL, is_valid_gemini_model_name
 
 
 class Config(BaseSettings):
@@ -23,7 +26,7 @@ class Config(BaseSettings):
     # API設定
     GOOGLE_API_KEY: Optional[str] = Field(default=None, alias="GOOGLE_API_KEY")
     DEFAULT_TEMPERATURE: float = Field(default=0.7, alias="DEFAULT_TEMPERATURE")
-    DEFAULT_MODEL: str = Field(default="gemini/gemini-2.5-flash-lite", alias="DEFAULT_MODEL")
+    DEFAULT_MODEL: str = Field(default=f"gemini/{DEFAULT_GEMINI_MODEL}", alias="DEFAULT_MODEL")
     API_BASE_URL: Optional[str] = Field(default=None, alias="API_BASE_URL")
 
     # Ollama Cloud 設定（OpenAI互換API）
@@ -99,38 +102,7 @@ class Config(BaseSettings):
             return None
         import re
 
-        # サポートされているモデルの明示的リスト（2024年12月最新）
-        supported_models = [
-            # Gemini 2.5系（最新）
-            "gemini/gemini-2.5-pro",
-            "gemini/gemini-2.5-flash",
-            "gemini/gemini-2.5-flash-lite",
-            "gemini-2.5-pro",
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",
-            # Gemini 2.0系（現行）
-            "gemini/gemini-2.0-flash",
-            "gemini/gemini-2.0-flash-lite",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite",
-            # Gemini 1.5系（レガシー）
-            "gemini/gemini-1.5-pro",
-            "gemini/gemini-1.5-flash",
-            "gemini/gemini-1.5-flash-8b",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-8b",
-        ]
-
-        # 明示的リストにある場合は即座に許可
-        if v in supported_models:
-            return v
-
-        # 動的パターンマッチング（将来の拡張性）
-        # gemini-X.Y-{pro|flash|flash-lite}[-variant]パターンをサポート
-        gemini_pattern = re.compile(r"^(gemini/)?gemini-\d+\.\d+-(pro|flash|flash-lite)(-.*)?$")
-        if gemini_pattern.match(v):
-            warnings.warn(f"Using experimental model pattern: {v}. Please verify compatibility.", UserWarning)
+        if is_valid_gemini_model_name(v):
             return v
 
         # Ollama Cloud モデル: ollama/<name>[:<tag>] 形式（例: ollama/gemma4:31b-cloud）
