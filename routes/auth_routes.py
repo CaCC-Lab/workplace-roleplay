@@ -21,7 +21,7 @@ SESSION_TOKEN_KEY = "supabase_access_token"
 
 
 def _auth_service() -> Optional[SupabaseAuthService]:
-    client = get_supabase_client_manager().get_client()
+    client = get_supabase_client_manager().create_auth_client()
     if client is None:
         return None
     return SupabaseAuthService(client)
@@ -151,7 +151,7 @@ def api_logout():
         svc = _auth_service()
         if svc is not None:
             try:
-                svc.sign_out()
+                svc.sign_out(session.get(SESSION_TOKEN_KEY))
             except Exception:
                 pass
         session.pop(SESSION_TOKEN_KEY, None)

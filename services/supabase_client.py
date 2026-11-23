@@ -47,11 +47,11 @@ class SupabaseClientManager:
     @staticmethod
     def _env_configured() -> bool:
         url = (os.environ.get(ENV_SUPABASE_URL) or "").strip()
-        key = (os.environ.get(ENV_SUPABASE_KEY) or "").strip()
+        key = (os.environ.get(ENV_SUPABASE_SERVICE_KEY) or os.environ.get(ENV_SUPABASE_KEY) or "").strip()
         return bool(url and key)
 
     def is_available(self) -> bool:
-        """SUPABASE_URL / SUPABASE_KEY がともに非空なら True（接続可否とは独立）。"""
+        """SUPABASE_URL と SUPABASE_SERVICE_KEY / SUPABASE_KEY のどちらかが非空なら True（接続可否とは独立）。"""
         return self._env_configured()
 
     def get_client(self) -> Optional[Any]:
@@ -78,6 +78,26 @@ class SupabaseClientManager:
         except Exception:
             self._client_cache = None
         return self._client_cache
+
+    def create_auth_client(self) -> Optional[Any]:
+        """
+        認証操作専用の新しいクライアントを返す。
+
+        サインインするとクライアントの認証がユーザー権限に切り替わるため、
+        データ操作に使う共有クライアント（service_role）とは分ける。
+        """
+        if not self._env_configured():
+            return None
+        try:
+            from supabase import ClientOptions, create_client  # type: ignore
+
+            url = os.environ[ENV_SUPABASE_URL].strip()
+            key = (os.environ.get(ENV_SUPABASE_KEY) or os.environ.get(ENV_SUPABASE_SERVICE_KEY, "")).strip()
+            # リクエストごとに捨てるので、トークン自動更新のスレッドを起動しない
+            options = ClientOptions(auto_refresh_token=False, persist_session=False)
+            return create_client(url, key, options=options)
+        except Exception:
+            return None
 
     def get_user_data_service(self) -> Union[UserDataService, SupabaseUserDataService]:
         """

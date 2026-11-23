@@ -88,3 +88,34 @@ class TestSupabaseUserDataWhenClientOk:
         assert isinstance(svc, SupabaseUserDataService)
         assert isinstance(svc, UserDataService)
         assert svc._client is mock_client
+
+
+class TestServiceKeyOnly:
+    def test_available_with_service_key_only(self, manager, monkeypatch):
+        monkeypatch.setenv(ENV_SUPABASE_URL, "https://example.supabase.co")
+        monkeypatch.delenv(ENV_SUPABASE_KEY, raising=False)
+        monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-key")
+        assert manager.is_available() is True
+
+
+class TestCreateAuthClient:
+    def test_returns_none_when_env_unset(self, manager, monkeypatch):
+        monkeypatch.delenv(ENV_SUPABASE_URL, raising=False)
+        monkeypatch.delenv(ENV_SUPABASE_KEY, raising=False)
+        monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
+        assert manager.create_auth_client() is None
+
+    def test_does_not_share_cached_client(self, manager, monkeypatch):
+        from unittest.mock import patch
+
+        monkeypatch.setenv(ENV_SUPABASE_URL, "https://example.supabase.co")
+        monkeypatch.setenv(ENV_SUPABASE_KEY, "anon-key")
+        monkeypatch.setenv("SUPABASE_SERVICE_KEY", "service-key")
+        with patch("supabase.create_client", side_effect=lambda url, key, options=None: MagicMock(key=key, options=options)):
+            shared = manager.get_client()
+            auth_client = manager.create_auth_client()
+
+        assert auth_client is not shared
+        assert auth_client.key == "anon-key"
+        assert shared.key == "service-key"
+        assert auth_client.options.auto_refresh_token is False

@@ -1,9 +1,7 @@
 name: Deploy to Azure VM Production
 
+# 本番は Vercel へ移行したため、Azure VM へのデプロイは手動実行のみ
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       environment:

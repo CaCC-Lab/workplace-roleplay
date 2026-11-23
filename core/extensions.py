@@ -11,6 +11,7 @@ from flask_session import Session
 
 # Redis関連のインポート
 from utils.redis_manager import RedisConnectionError, RedisSessionManager, SessionConfig
+from utils.runtime import is_serverless, local_data_dir
 
 # グローバル変数として保持（他のモジュールから参照可能）
 redis_session_manager = None
@@ -35,16 +36,41 @@ def init_extensions(app: Flask, config=None):
 
         config = get_cached_config()
 
-    # セッションストアの初期化
-    redis_session_manager = _initialize_session_store(app, config)
+    if config.SESSION_TYPE == "supabase" and _setup_supabase_session(app):
+        redis_session_manager = None
+    else:
+        # セッションストアの初期化
+        redis_session_manager = _initialize_session_store(app, config)
 
-    # Flask-Sessionの初期化
-    Session(app)
+        # Flask-Sessionの初期化
+        Session(app)
 
     # Jinja2の自動エスケープを有効化（デフォルトで有効だが明示的に設定）
     app.jinja_env.autoescape = True
 
     return redis_session_manager
+
+
+def _setup_supabase_session(app: Flask) -> bool:
+    """
+    Supabase にセッションを保存する（サーバーレス環境向け）
+
+    Returns:
+        bool: Supabase に接続できて設定できた場合 True
+    """
+    from services.supabase_client import get_supabase_client_manager
+    from services.supabase_session import SupabaseSessionInterface
+
+    client = get_supabase_client_manager().get_client()
+    if client is None:
+        print("⚠️ Supabaseに接続できないため、セッションの保存先を切り替えます")
+        return False
+
+    app.session_interface = SupabaseSessionInterface(client)
+    if is_serverless():
+        app.config["SESSION_COOKIE_SECURE"] = True
+    print("✅ Supabaseセッションストアを使用します")
+    return True
 
 
 def _initialize_session_store(app: Flask, config):
@@ -114,14 +140,15 @@ def _setup_filesystem_session(app: Flask, config):
     print("📁 Filesystemセッションにフォールバックします")
     app.config["SESSION_TYPE"] = "filesystem"
 
-    session_dir = getattr(config, "SESSION_FILE_DIR", None) or "./flask_session"
+    default_dir = str(local_data_dir("flask_session")) if is_serverless() else "./flask_session"
+    session_dir = getattr(config, "SESSION_FILE_DIR", None) or default_dir
 
     if not os.path.exists(session_dir):
         try:
             os.makedirs(session_dir, exist_ok=True)
         except (OSError, PermissionError) as e:
             print(f"⚠️ セッションディレクトリ作成失敗: {session_dir} - {str(e)}")
-            session_dir = "./flask_session"
+            session_dir = default_dir
             os.makedirs(session_dir, exist_ok=True)
 
     app.config["SESSION_FILE_DIR"] = session_dir

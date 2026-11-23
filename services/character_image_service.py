@@ -9,12 +9,14 @@ import json
 from pathlib import Path
 from typing import Any, Optional, Union
 
+from utils.runtime import local_data_dir
+
 
 class CharacterImageService:
     """シナリオデータからプロフィールを組み立て、キャッシュキーと画像バイトを管理する。"""
 
     def __init__(self, cache_dir: Optional[Union[str, Path]] = None) -> None:
-        self._cache_dir = Path(cache_dir) if cache_dir is not None else Path(".character_image_cache")
+        self._cache_dir = Path(cache_dir) if cache_dir is not None else local_data_dir(".character_image_cache")
         self._cache_dir.mkdir(parents=True, exist_ok=True)
 
     def get_character_profile(self, scenario_data: Any) -> dict:

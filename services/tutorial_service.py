@@ -8,7 +8,11 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+from flask import session
+
 _MODES = ("scenario", "chat", "watch")
+_SESSION_PROGRESS_KEY = "tutorial_progress"
+_SESSION_VISITED_KEY = "tutorial_visited"
 
 _TUTORIAL_DATA: Dict[str, List[dict]] = {
     "scenario": [
@@ -87,8 +91,10 @@ class TutorialService:
     """チュートリアルステップ・進捗・FAQ・初回訪問フラグを扱う。"""
 
     def __init__(self, data_dir: Optional[Union[str, Path]] = None) -> None:
-        self._data_dir = Path(data_dir) if data_dir is not None else Path(".tutorial_data")
-        self._data_dir.mkdir(parents=True, exist_ok=True)
+        # data_dir を省略した場合は Flask セッションに保存する（サーバーレスでも消えないように）
+        self._data_dir = Path(data_dir) if data_dir is not None else None
+        if self._data_dir is not None:
+            self._data_dir.mkdir(parents=True, exist_ok=True)
 
     def get_tutorial_steps(self, mode: str) -> List[dict]:
         m = mode if mode in _TUTORIAL_DATA else "scenario"
@@ -120,6 +126,12 @@ class TutorialService:
         return [dict(x) for x in _FAQ]
 
     def is_first_visit(self, user_id: str) -> bool:
+        if self._data_dir is None:
+            visited = list(session.get(_SESSION_VISITED_KEY, []))
+            if user_id in visited:
+                return False
+            session[_SESSION_VISITED_KEY] = visited + [user_id]
+            return True
         flag = self._data_dir / f".first_visit_{self._safe_id(user_id)}"
         if flag.exists():
             return False
@@ -132,14 +144,21 @@ class TutorialService:
     def _progress_path(self, user_id: str) -> Path:
         return self._data_dir / f"progress_{self._safe_id(user_id)}.json"
 
-    def _load_progress(self, user_id: str) -> dict:
+    def _read_progress(self, user_id: str) -> Optional[dict]:
+        if self._data_dir is None:
+            return session.get(_SESSION_PROGRESS_KEY, {}).get(user_id)
         path = self._progress_path(user_id)
         if not path.exists():
-            return _default_progress_skeleton()
+            return None
         try:
             with open(path, encoding="utf-8") as f:
-                data = json.load(f)
+                return json.load(f)
         except (json.JSONDecodeError, OSError):
+            return None
+
+    def _load_progress(self, user_id: str) -> dict:
+        data = self._read_progress(user_id)
+        if not isinstance(data, dict):
             return _default_progress_skeleton()
         base = _default_progress_skeleton()
         for m in _MODES:
@@ -151,6 +170,11 @@ class TutorialService:
         return base
 
     def _save_progress(self, user_id: str, progress: dict) -> None:
+        if self._data_dir is None:
+            stored = dict(session.get(_SESSION_PROGRESS_KEY, {}))
+            stored[user_id] = progress
+            session[_SESSION_PROGRESS_KEY] = stored
+            return
         path = self._progress_path(user_id)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(progress, f, ensure_ascii=False, indent=2)
