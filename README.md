@@ -186,7 +186,7 @@ ENABLE_LEARNING_HISTORY=false
 ENABLE_STRENGTH_ANALYSIS=false
 
 # デフォルトモデル
-DEFAULT_MODEL=gemini/gemini-2.5-flash-lite
+DEFAULT_MODEL=gemini/gemini-3.8-flash
 
 # Supabase（オプション: 設定するとDB永続化+匿名認証が有効）
 SUPABASE_URL=https://xxxxx.supabase.co
@@ -234,7 +234,7 @@ Phase B で導入。用途ごとに最適なモデルを割り当てられる。
 
 ハイブリッド構成例（コストと品質のバランス）:
 ```
-DEFAULT_MODEL=gemini/gemini-2.5-flash        # 軽快な雑談向け（無料枠内）
+DEFAULT_MODEL=gemini/gemini-3.8-flash        # 軽快な雑談向け
 SCENARIO_MODEL=ollama/gemma4:31b-cloud       # 演じ分けの品質を優先
 FEEDBACK_MODEL=ollama/gemma4:31b-cloud       # 深い洞察が必要
 # WATCH_MODEL / CHAT_MODEL は未設定で DEFAULT_MODEL にフォールバック
@@ -268,7 +268,7 @@ Supabase Dashboard → SQL Editor で番号順に実行する:
 | `ENABLE_TTS` | `false` | 音声読み上げ機能 |
 | `ENABLE_LEARNING_HISTORY` | `false` | 学習履歴機能 |
 | `ENABLE_STRENGTH_ANALYSIS` | `false` | 強み分析機能 |
-| `DEFAULT_MODEL` | `gemini/gemini-2.5-flash-lite` | デフォルトAIモデル |
+| `DEFAULT_MODEL` | `gemini/gemini-3.8-flash` | デフォルトAIモデル |
 
 ### アプリケーションの起動
 

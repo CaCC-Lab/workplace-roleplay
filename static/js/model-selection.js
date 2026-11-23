@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     modelSelect.value = savedModel;
                 } else {
                     // デフォルトでgemini-2.5-flashを選択
-                    const defaultModel = 'gemini/gemini-2.5-flash-lite';
+                    const defaultModel = 'gemini/gemini-3.8-flash';
                     const defaultModelExists = geminiModels.some(model => model.value === defaultModel);
                     
                     if (defaultModelExists) {

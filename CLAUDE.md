@@ -39,7 +39,7 @@ pytest                   # テスト実行（テストが作成されている�
 ## アーキテクチャ概要
 
 ### LLMプロバイダー統合
-- **Google Gemini専用**: 既定は gemini-2.5-flash-lite（APIキーで利用できるGeminiモデルを選択可能）
+- **Google Gemini専用**: 既定は gemini-3.8-flash（APIキーで利用できるGeminiモデルを選択可能）
 - **動的モデル選択**: `/api/models`エンドポイントで利用可能なGeminiモデルを取得
 - **音声読み上げ**: Web Speech APIを使用したブラウザ内蔵の音声合成機能
 

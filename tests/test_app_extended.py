@@ -137,7 +137,6 @@ class TestInitializeGeminiApi:
         assert "Gemini API初期化完了" not in capsys.readouterr().out
 
 
-
 class TestInitializeLlm:
     """initialize_llm関数のテスト"""
 
@@ -313,7 +312,7 @@ class TestGetAvailableGeminiModels:
 
                     result = get_available_gemini_models()
 
-                    assert "gemini/gemini-2.5-flash-lite" in result
+                    assert "gemini/gemini-3.8-flash" in result
 
 
 class TestLoadScenarios:

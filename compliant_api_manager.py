@@ -7,6 +7,8 @@ import os
 import time
 from typing import Optional, Dict, Any, Tuple
 
+from utils.gemini_models import DEFAULT_GEMINI_MODEL
+
 
 class CompliantAPIManager:
     """
@@ -200,9 +202,8 @@ def create_compliant_gemini_client():
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         client = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash-lite",  # 推奨モデル
+            model=DEFAULT_GEMINI_MODEL,
             google_api_key=api_key,
-            temperature=0.7,
             max_tokens=1000,
             timeout=30,  # 適切なタイムアウト設定
             max_retries=2,  # Google推奨の再試行回数

@@ -60,7 +60,7 @@ class TestLLMService:
 
                 # 代替モデルで呼ばれていることを確認
                 call_args = mock_chat.call_args
-                assert call_args[1]["model"] == "gemini-2.5-flash-lite"
+                assert call_args[1]["model"] == "gemini-3.8-flash"
 
     def test_create_gemini_llm_エラー(self):
         """LLM作成エラー"""
@@ -225,7 +225,7 @@ class TestLLMService:
             service = LLMService()
             models = service.get_available_models()
 
-            assert "gemini-2.5-flash-lite" in models
+            assert "gemini-3.8-flash" in models
 
     def test_cleanup(self):
         """リソースのクリーンアップ"""
@@ -262,7 +262,7 @@ class TestDeprecatedModels:
 
                 LLMService().create_gemini_llm(model_name)
 
-                assert mock_chat.call_args[1]["model"] == "gemini-2.5-flash-lite"
+                assert mock_chat.call_args[1]["model"] == "gemini-3.8-flash"
 
     def test_現行モデルは置き換えられない(self):
         with patch("services.llm_service.CompliantAPIManager") as mock_manager:
@@ -286,4 +286,31 @@ class TestDeprecatedModels:
 
         # 代替モデルが有効なモデルであることを確認
         for deprecated_model, replacement in deprecated.items():
-            assert "gemini-1.5" in replacement or "gemini-2" in replacement
+            assert replacement == "gemini-3.8-flash"
+
+
+class TestGemini3Parameters:
+    """Gemini 3 系以降では非推奨の temperature を送らない"""
+
+    def _create(self, model_name):
+        with patch("services.llm_service.CompliantAPIManager") as mock_manager:
+            mock_manager.return_value.get_api_key.return_value = "test-key"
+            with patch("services.llm_service.ChatGoogleGenerativeAI") as mock_chat:
+                from services.llm_service import LLMService
+
+                LLMService().create_gemini_llm(model_name)
+                return mock_chat.call_args[1]
+
+    def test_Gemini3はtemperatureを渡さない(self):
+        kwargs = self._create("gemini-3.8-flash")
+        assert kwargs["model"] == "gemini-3.8-flash"
+        assert "temperature" not in kwargs
+        assert "convert_system_message_to_human" not in kwargs
+
+    def test_Gemini2系はtemperatureを渡す(self):
+        kwargs = self._create("gemini-2.5-flash-lite")
+        assert "temperature" in kwargs
+
+    @pytest.mark.parametrize("model_name", ["gemini-2.5-flash", "gemini-2.5-pro"])
+    def test_新規キーで使えない25系は既定モデルに置き換える(self, model_name):
+        assert self._create(model_name)["model"] == "gemini-3.8-flash"

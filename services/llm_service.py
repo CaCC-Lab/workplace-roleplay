@@ -9,7 +9,7 @@ import os
 import sys
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
-from langchain.schema import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 try:  # Ollama Cloud は OpenAI 互換 API 経由で利用
@@ -20,7 +20,7 @@ except ImportError:  # pragma: no cover - オプショナル依存
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from compliant_api_manager import CompliantAPIManager
 from config import Config
-from utils.gemini_models import DEFAULT_GEMINI_MODEL
+from utils.gemini_models import DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODELS, supports_sampling_parameters
 
 
 class LLMService:
@@ -48,13 +48,13 @@ class LLMService:
             "gemini-1.5-pro",
             "gemini-2.0-flash",
             "gemini-2.0-flash-lite",
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
         )
     }
 
     # 利用可能なGeminiモデル（実際のAPI応答に基づく）
-    AVAILABLE_MODELS = [
-        "gemini-2.5-flash-lite",
-    ]
+    AVAILABLE_MODELS = [model.split("/", 1)[1] for model in FALLBACK_GEMINI_MODELS]
 
     def __init__(self, config: Optional[Config] = None):
         """
@@ -90,12 +90,12 @@ class LLMService:
             current_api_key = self.api_key_manager.get_api_key()
 
             # モデルインスタンスを作成
+            sampling = {"temperature": self.default_temperature} if supports_sampling_parameters(model_name) else {}
             llm = ChatGoogleGenerativeAI(
                 model=model_name,
                 google_api_key=current_api_key,
-                temperature=self.default_temperature,
-                convert_system_message_to_human=True,
                 streaming=True,
+                **sampling,
             )
 
             # 使用回数を記録
