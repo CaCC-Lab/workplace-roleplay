@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["hnd1"],
+  "installCommand": "pip install -r requirements.txt",
+  "buildCommand": "python scripts/vercel_build.py",
+  "regions": [
+    "hnd1"
+  ],
   "functions": {
     "app.py": {
       "maxDuration": 300

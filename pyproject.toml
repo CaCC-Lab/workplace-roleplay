@@ -71,6 +71,3 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 show_missing = true
-
-[tool.vercel.scripts]
-build = "python scripts/vercel_build.py"
