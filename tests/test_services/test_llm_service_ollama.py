@@ -19,10 +19,9 @@ from services.llm_service import LLMService
 
 @pytest.fixture
 def service():
-    """GOOGLE_API_KEY が無くても初期化できるよう genai.configure をスキップ"""
-    with patch("services.llm_service.genai.configure"):
-        with patch("services.llm_service.CompliantAPIManager"):
-            yield LLMService()
+    """GOOGLE_API_KEY が無くても初期化できるよう API キー管理をモック"""
+    with patch("services.llm_service.CompliantAPIManager"):
+        yield LLMService()
 
 
 class TestCreateOllamaLlm:

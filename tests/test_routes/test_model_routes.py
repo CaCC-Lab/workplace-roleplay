@@ -51,14 +51,14 @@ class TestGetAllAvailableModels:
         """Gemini APIからモデル一覧を取得"""
         from routes.model_routes import get_all_available_models
 
-        with patch("google.generativeai.configure"):
-            with patch("google.generativeai.list_models") as mock_list:
-                mock_model1 = MagicMock()
-                mock_model1.name = "models/gemini-1.5-pro"
-                mock_model2 = MagicMock()
-                mock_model2.name = "models/gemini-1.5-flash"
+        with patch("routes.model_routes.config.GOOGLE_API_KEY", "test-key"):
+            with patch("google.genai.Client") as mock_client:
+                mock_model1 = MagicMock(supported_actions=["generateContent"])
+                mock_model1.name = "models/gemini-2.5-pro"
+                mock_model2 = MagicMock(supported_actions=["generateContent"])
+                mock_model2.name = "models/gemini-2.5-flash"
 
-                mock_list.return_value = [mock_model1, mock_model2]
+                mock_client.return_value.models.list.return_value = [mock_model1, mock_model2]
 
                 result = get_all_available_models()
 
@@ -80,8 +80,8 @@ class TestGetAllAvailableModels:
         """例外発生時はフォールバックモデルを返す"""
         from routes.model_routes import get_all_available_models
 
-        with patch("google.generativeai.configure") as mock_config:
-            mock_config.side_effect = Exception("API Error")
+        with patch("routes.model_routes.config.GOOGLE_API_KEY", "test-key"), patch("google.genai.Client") as mock_client:
+            mock_client.side_effect = Exception("API Error")
 
             result = get_all_available_models()
 

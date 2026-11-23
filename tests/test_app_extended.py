@@ -100,7 +100,7 @@ class TestRegisterTemplateFilters:
 class TestInitializeGeminiApi:
     """_initialize_gemini_api関数のテスト"""
 
-    def test_APIキーありで初期化(self):
+    def test_APIキーありで初期化(self, capsys):
         """APIキーがある場合の初期化"""
         from app import _initialize_gemini_api
 
@@ -108,12 +108,11 @@ class TestInitializeGeminiApi:
         mock_config.GOOGLE_API_KEY = "test-api-key"
         mock_config.TESTING = False
 
-        with patch("google.generativeai.configure") as mock_configure:
-            _initialize_gemini_api(mock_config)
+        _initialize_gemini_api(mock_config)
 
-            mock_configure.assert_called_once_with(api_key="test-api-key")
+        assert "Gemini API初期化完了" in capsys.readouterr().out
 
-    def test_テストモードで初期化スキップ(self):
+    def test_テストモードで初期化スキップ(self, capsys):
         """テストモードではAPI初期化をスキップ"""
         from app import _initialize_gemini_api
 
@@ -121,12 +120,11 @@ class TestInitializeGeminiApi:
         mock_config.GOOGLE_API_KEY = "test-api-key"
         mock_config.TESTING = True
 
-        with patch("google.generativeai.configure") as mock_configure:
-            _initialize_gemini_api(mock_config)
+        _initialize_gemini_api(mock_config)
 
-            mock_configure.assert_not_called()
+        assert "Gemini API初期化完了" not in capsys.readouterr().out
 
-    def test_APIキーなしで初期化(self):
+    def test_APIキーなしで初期化(self, capsys):
         """APIキーがない場合"""
         from app import _initialize_gemini_api
 
@@ -134,24 +132,10 @@ class TestInitializeGeminiApi:
         mock_config.GOOGLE_API_KEY = None
         mock_config.TESTING = False
 
-        with patch("google.generativeai.configure") as mock_configure:
-            _initialize_gemini_api(mock_config)
+        _initialize_gemini_api(mock_config)
 
-            mock_configure.assert_not_called()
+        assert "Gemini API初期化完了" not in capsys.readouterr().out
 
-    def test_初期化エラー時(self):
-        """初期化でエラーが発生した場合"""
-        from app import _initialize_gemini_api
-
-        mock_config = MagicMock()
-        mock_config.GOOGLE_API_KEY = "test-key"
-        mock_config.TESTING = False
-
-        with patch("google.generativeai.configure") as mock_configure:
-            mock_configure.side_effect = Exception("API Error")
-
-            # エラーでも例外は発生しない
-            _initialize_gemini_api(mock_config)
 
 
 class TestInitializeLlm:
@@ -288,16 +272,16 @@ class TestGetAvailableGeminiModels:
         """利用可能なモデルリストを取得"""
         from app import get_available_gemini_models
 
-        mock_model1 = MagicMock()
+        mock_model1 = MagicMock(supported_actions=["generateContent"])
         mock_model1.name = "models/gemini-1.5-flash"
-        mock_model2 = MagicMock()
+        mock_model2 = MagicMock(supported_actions=["generateContent"])
         mock_model2.name = "models/gemini-1.5-pro"
 
         with patch("app.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
                     mock_list.return_value = [mock_model1, mock_model2]
 
                     result = get_available_gemini_models()
@@ -323,14 +307,14 @@ class TestGetAvailableGeminiModels:
         with patch("app.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
                     mock_list.side_effect = Exception("API Error")
 
                     result = get_available_gemini_models()
 
-                    assert "gemini/gemini-1.5-pro" in result
-                    assert "gemini/gemini-1.5-flash" in result
+                    assert "gemini/gemini-2.5-flash" in result
+                    assert "gemini/gemini-2.5-pro" in result
 
 
 class TestLoadScenarios:

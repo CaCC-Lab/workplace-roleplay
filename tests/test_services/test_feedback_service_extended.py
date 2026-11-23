@@ -80,9 +80,9 @@ class TestFeedbackService:
         with patch("services.feedback_service.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
-                    mock_model = MagicMock()
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
+                    mock_model = MagicMock(supported_actions=["generateContent"])
                     mock_model.name = "models/gemini-1.5-flash"
                     mock_list.return_value = [mock_model]
 
@@ -104,9 +104,9 @@ class TestFeedbackService:
         with patch("services.feedback_service.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
-                    mock_model = MagicMock()
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
+                    mock_model = MagicMock(supported_actions=["generateContent"])
                     mock_model.name = "models/gemini-1.5-pro"
                     mock_list.return_value = [mock_model]
 
@@ -128,9 +128,9 @@ class TestFeedbackService:
         with patch("services.feedback_service.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
-                    mock_model = MagicMock()
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
+                    mock_model = MagicMock(supported_actions=["generateContent"])
                     mock_model.name = "models/gemini-1.5-flash"
                     mock_list.return_value = [mock_model]
 
@@ -153,8 +153,8 @@ class TestFeedbackService:
         with patch("services.feedback_service.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
                     mock_list.side_effect = Exception("API Error")
 
                     with patch("app.create_model_and_get_response") as mock_create:
@@ -173,8 +173,8 @@ class TestFeedbackService:
         with patch("services.feedback_service.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
                     mock_list.return_value = []  # モデルなし
 
                     with patch("app.create_model_and_get_response") as mock_create:
@@ -194,9 +194,9 @@ class TestFeedbackService:
         with patch("services.feedback_service.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
-                    mock_model = MagicMock()
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
+                    mock_model = MagicMock(supported_actions=["generateContent"])
                     mock_model.name = "models/gemini-1.5-flash"
                     mock_list.return_value = [mock_model]
 
@@ -216,9 +216,9 @@ class TestFeedbackService:
         with patch("services.feedback_service.get_cached_config") as mock_config:
             mock_config.return_value.GOOGLE_API_KEY = "test-key"
 
-            with patch("google.generativeai.configure"):
-                with patch("google.generativeai.list_models") as mock_list:
-                    mock_model = MagicMock()
+            with patch("google.genai.Client") as mock_client:
+                with patch.object(mock_client.return_value.models, "list") as mock_list:
+                    mock_model = MagicMock(supported_actions=["generateContent"])
                     mock_model.name = "models/gemini-1.5-flash"
                     mock_list.return_value = [mock_model]
 

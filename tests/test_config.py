@@ -67,7 +67,7 @@ class TestConfigBase:
             # 基本設定
             assert config.SECRET_KEY == "default-secret-key-change-in-production"
             assert config.DEFAULT_TEMPERATURE == 0.7
-            assert config.DEFAULT_MODEL == "gemini/gemini-1.5-flash"
+            assert config.DEFAULT_MODEL == "gemini/gemini-2.5-flash"
 
         # セッション設定
         assert config.SESSION_TYPE == "filesystem"

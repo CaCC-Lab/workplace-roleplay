@@ -23,7 +23,7 @@ class Config(BaseSettings):
     # API設定
     GOOGLE_API_KEY: Optional[str] = Field(default=None, alias="GOOGLE_API_KEY")
     DEFAULT_TEMPERATURE: float = Field(default=0.7, alias="DEFAULT_TEMPERATURE")
-    DEFAULT_MODEL: str = Field(default="gemini/gemini-1.5-flash", alias="DEFAULT_MODEL")
+    DEFAULT_MODEL: str = Field(default="gemini/gemini-2.5-flash", alias="DEFAULT_MODEL")
     API_BASE_URL: Optional[str] = Field(default=None, alias="API_BASE_URL")
 
     # Ollama Cloud 設定（OpenAI互換API）

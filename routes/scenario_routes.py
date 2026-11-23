@@ -85,18 +85,12 @@ def _get_all_available_models() -> Dict[str, Any]:
 
         return get_all_available_models()
     except ImportError:
+        from utils.gemini_models import FALLBACK_GEMINI_MODELS
+
         return {
             "models": [
-                {
-                    "id": "gemini/gemini-1.5-pro",
-                    "name": "gemini-1.5-pro",
-                    "provider": "gemini",
-                },
-                {
-                    "id": "gemini/gemini-1.5-flash",
-                    "name": "gemini-1.5-flash",
-                    "provider": "gemini",
-                },
+                {"id": model_id, "name": model_id.split("/")[-1], "provider": "gemini"}
+                for model_id in FALLBACK_GEMINI_MODELS
             ]
         }
 

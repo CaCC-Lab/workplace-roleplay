@@ -136,14 +136,12 @@ AIの行動・対応・努力・理解度は一切評価しないこと。
         try:
             # 利用可能なモデルを取得
             config = get_cached_config()
-            import google.generativeai as genai
+            from utils.gemini_models import FALLBACK_GEMINI_MODELS, list_gemini_model_ids
 
             try:
-                genai.configure(api_key=config.GOOGLE_API_KEY)
-                models = genai.list_models()
-                gemini_models = [f"gemini/{m.name.split('/')[-1]}" for m in models if "gemini" in m.name.lower()]
+                gemini_models = list_gemini_model_ids(config.GOOGLE_API_KEY) or list(FALLBACK_GEMINI_MODELS)
             except Exception:
-                gemini_models = ["gemini/gemini-1.5-flash", "gemini/gemini-1.5-pro"]
+                gemini_models = list(FALLBACK_GEMINI_MODELS)
 
             if preferred_model:
                 # Ollama Cloud 等、Gemini 以外のプロバイダは直接利用（Gemini リスト検証をスキップ）

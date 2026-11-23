@@ -38,7 +38,7 @@ def check_required_packages():
         "flake8",
         "isort",
         "mypy",
-        "google.generativeai",
+        "google.genai",
         "langchain",
         "redis",
     ]
@@ -47,10 +47,10 @@ def check_required_packages():
 
     for package in required_packages:
         try:
-            if package == "google.generativeai":
-                import google.generativeai as genai
+            if package == "google.genai":
+                from google.genai import version
 
-                print(f"✅ {package}: {genai.__version__}")
+                print(f"✅ {package}: {version.__version__}")
             elif package == "langchain":
                 import langchain
 

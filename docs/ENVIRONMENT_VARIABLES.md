@@ -39,10 +39,10 @@
 
 #### DEFAULT_MODEL
 - **説明**: デフォルトで使用するGeminiモデル
-- **デフォルト**: `gemini/gemini-1.5-flash`
+- **デフォルト**: `gemini/gemini-2.5-flash`
 - **値**: 
-  - `gemini/gemini-1.5-pro`
-  - `gemini/gemini-1.5-flash`
+  - `gemini/gemini-2.5-pro`
+  - `gemini/gemini-2.5-flash`
 
 ### セッション設定
 
