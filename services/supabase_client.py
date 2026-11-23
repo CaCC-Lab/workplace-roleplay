@@ -79,6 +79,24 @@ class SupabaseClientManager:
             self._client_cache = None
         return self._client_cache
 
+    def create_auth_client(self) -> Optional[Any]:
+        """
+        認証操作専用の新しいクライアントを返す。
+
+        サインインするとクライアントの認証がユーザー権限に切り替わるため、
+        データ操作に使う共有クライアント（service_role）とは分ける。
+        """
+        if not self._env_configured():
+            return None
+        try:
+            from supabase import create_client  # type: ignore
+
+            url = os.environ[ENV_SUPABASE_URL].strip()
+            key = (os.environ.get(ENV_SUPABASE_KEY) or os.environ.get(ENV_SUPABASE_SERVICE_KEY, "")).strip()
+            return create_client(url, key)
+        except Exception:
+            return None
+
     def get_user_data_service(self) -> Union[UserDataService, SupabaseUserDataService]:
         """
         クライアント取得に成功した場合は SupabaseUserDataService、

@@ -21,7 +21,7 @@ SESSION_TOKEN_KEY = "supabase_access_token"
 
 
 def _auth_service() -> Optional[SupabaseAuthService]:
-    client = get_supabase_client_manager().get_client()
+    client = get_supabase_client_manager().create_auth_client()
     if client is None:
         return None
     return SupabaseAuthService(client)
