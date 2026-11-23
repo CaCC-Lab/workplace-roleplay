@@ -170,3 +170,10 @@ def test_Supabaseの読み込み失敗時は新しいセッションで続行(cl
     fake.table = broken
 
     assert client.get("/get").json["value"] is None
+
+
+def test_ブラウザーを閉じても残るCookieを発行する(client, fake):
+    res = client.get("/set/a")
+
+    cookie = res.headers.get("Set-Cookie", "")
+    assert "Expires=" in cookie

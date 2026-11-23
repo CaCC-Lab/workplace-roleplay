@@ -132,13 +132,17 @@ class SupabaseSessionInterface(SessionInterface):
         response.set_cookie(
             name,
             self._signer(app).sign(session.sid).decode(),
-            expires=self.get_expiration_time(app, session),
+            expires=self._cookie_expires(app, now + lifetime),
             httponly=self.get_cookie_httponly(app),
             domain=domain,
             path=path,
             secure=self.get_cookie_secure(app),
             samesite=self.get_cookie_samesite(app),
         )
+
+    def _cookie_expires(self, app: Flask, expires_at: datetime) -> Optional[datetime]:
+        """Flask-Session と同じく、既定ではブラウザーを閉じても Cookie を残す"""
+        return expires_at if app.config.get("SESSION_PERMANENT", True) else None
 
     def _delete(self, sid: str) -> None:
         try:
