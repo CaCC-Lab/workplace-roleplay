@@ -312,5 +312,5 @@ class TestGemini3Parameters:
         assert "temperature" in kwargs
 
     @pytest.mark.parametrize("model_name", ["gemini-2.5-flash", "gemini-2.5-pro"])
-    def test_新規キーで使えない25系は既定モデルに置き換える(self, model_name):
-        assert self._create(model_name)["model"] == "gemini-3.8-flash"
+    def test_既存キーで使える25系は選択どおり使う(self, model_name):
+        assert self._create(model_name)["model"] == model_name
