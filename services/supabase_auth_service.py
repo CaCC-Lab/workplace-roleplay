@@ -56,9 +56,13 @@ class SupabaseAuthService:
         except Exception as e:
             return {"user": None, "session": None, "error": str(e)}
 
-    def sign_out(self) -> Dict[str, Any]:
+    def sign_out(self, token: Optional[str] = None) -> Dict[str, Any]:
+        """サインアウト。token があればそのセッションを Supabase 側でも失効させる"""
         try:
-            self._client.auth.sign_out()
+            if token:
+                self._client.auth.admin.sign_out(token)
+            else:
+                self._client.auth.sign_out()
             return {"success": True}
         except Exception as e:
             return {"success": False, "error": str(e)}

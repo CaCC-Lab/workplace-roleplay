@@ -81,3 +81,14 @@ class TestGetCurrentUser:
         assert r["user"] is None
         assert r["error"] is not None
         mock_auth.sign_in_with_password.assert_not_called()
+
+
+def test_sign_out_with_token_revokes_that_session():
+    from unittest.mock import MagicMock
+
+    client = MagicMock()
+    result = SupabaseAuthService(client).sign_out("user-jwt")
+
+    assert result == {"success": True}
+    client.auth.admin.sign_out.assert_called_once_with("user-jwt")
+    client.auth.sign_out.assert_not_called()
