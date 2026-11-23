@@ -10,14 +10,13 @@ from typing import Any, List, Optional
 
 from langchain_core.messages import HumanMessage
 
+from utils.helpers import message_text
+
 
 def _extract_text_from_llm_response(response: Any) -> str:
     if response is None:
         return ""
-    if hasattr(response, "content"):
-        c = getattr(response, "content", "")
-        return c if isinstance(c, str) else str(c)
-    return str(response)
+    return message_text(response)
 
 
 class RealtimeFeedbackService:
@@ -53,9 +52,7 @@ class RealtimeFeedbackService:
                 return self._empty_analyze()
 
             prompt = self._build_analyze_prompt(msg, history or [], scenario_context)
-            raw = _extract_text_from_llm_response(
-                self._llm.invoke([HumanMessage(content=prompt)])
-            )
+            raw = _extract_text_from_llm_response(self._llm.invoke([HumanMessage(content=prompt)]))
             return self._parse_analyze_response(raw)
         except Exception:
             return self._empty_analyze()
@@ -82,9 +79,7 @@ class RealtimeFeedbackService:
                         lines.append(f"{turn.get('role', '')}: {turn.get('content', '')}")
                 prompt += "直近の会話:\n" + "\n".join(lines)
 
-            raw = _extract_text_from_llm_response(
-                self._llm.invoke([HumanMessage(content=prompt)])
-            )
+            raw = _extract_text_from_llm_response(self._llm.invoke([HumanMessage(content=prompt)]))
             return self._parse_string_list(raw, max_items=3)
         except Exception:
             return []

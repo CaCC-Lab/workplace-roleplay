@@ -21,6 +21,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from compliant_api_manager import CompliantAPIManager
 from config import Config
 from utils.gemini_models import DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODELS, supports_sampling_parameters
+from utils.helpers import message_text
 
 
 class LLMService:
@@ -217,9 +218,10 @@ class LLMService:
             # ストリーミングレスポンスを生成
             accumulated_response = ""
             async for chunk in llm.astream(messages):
-                if chunk.content:
-                    accumulated_response += chunk.content
-                    yield chunk.content
+                text = message_text(chunk)
+                if text:
+                    accumulated_response += text
+                    yield text
 
             # レスポンスが空の場合はエラー
             if not accumulated_response:
@@ -287,7 +289,7 @@ class LLMService:
             response = llm.invoke(messages_or_prompt)
 
             if extract_content and hasattr(response, "content"):
-                return response.content
+                return message_text(response)
             return response
         except Exception as e:
             print(f"Error in invoke_sync: {str(e)}")
