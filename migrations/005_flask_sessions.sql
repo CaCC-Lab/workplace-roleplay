@@ -24,3 +24,6 @@ ALTER TABLE public.flask_sessions ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON public.flask_sessions FROM anon;
 REVOKE ALL ON public.flask_sessions FROM authenticated;
+
+-- 既定の権限付与を無効にしているプロジェクトでも、サーバー（service_role）から読み書きできるようにする
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.flask_sessions TO service_role;
