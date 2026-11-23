@@ -96,3 +96,33 @@ class TestFirstVisit:
         # Then: 初回 True、2回目以降 False
         assert first is True
         assert second is False
+
+
+class TestSessionStorage:
+    """data_dir を省略した場合は Flask セッションに保存する"""
+
+    @pytest.fixture
+    def app(self):
+        from flask import Flask
+
+        app = Flask(__name__)
+        app.secret_key = "test-secret"
+        return app
+
+    def test_進捗をセッションに保存する(self, app):
+        with app.test_request_context():
+            from flask import session
+
+            svc = TutorialService()
+            svc.mark_step_complete("u1", "scenario", 1)
+
+            assert TutorialService().get_user_progress("u1")["scenario"]["completed_steps"] == [1]
+            assert "tutorial_progress" in session
+
+    def test_初回訪問フラグをセッションに保存する(self, app):
+        with app.test_request_context():
+            svc = TutorialService()
+
+            assert svc.is_first_visit("u1") is True
+            assert svc.is_first_visit("u1") is False
+            assert svc.is_first_visit("u2") is True

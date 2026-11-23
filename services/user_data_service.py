@@ -11,6 +11,7 @@ import shutil
 from typing import Any, Dict, Optional
 
 from services.gamification_constants import SIX_AXES, utc_now_iso
+from utils.runtime import local_data_dir
 
 
 class UserDataService:
@@ -19,7 +20,7 @@ class UserDataService:
     DATA_DIR = "user_data"
 
     def __init__(self, data_dir: Optional[str] = None) -> None:
-        self._data_dir = data_dir if data_dir is not None else self.DATA_DIR
+        self._data_dir = data_dir if data_dir is not None else str(local_data_dir(self.DATA_DIR))
         self._delegate: Optional[Any] = None
         if data_dir is None:
             try:

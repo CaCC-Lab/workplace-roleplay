@@ -1,0 +1,14 @@
+tests/
+docs/
+design-docs/
+examples/
+要件定義書/
+logs/
+flask_session/
+user_data/
+htmlcov/
+deployment/
+*.md
+!README.md
+test_*.py
+test_*.sh

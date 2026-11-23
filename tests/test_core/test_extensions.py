@@ -264,3 +264,45 @@ class TestGetRedisSessionManager:
         result = get_redis_session_manager()
 
         assert result is None
+
+
+class TestSupabaseSession:
+    """SESSION_TYPE=supabase の初期化"""
+
+    def test_Supabaseに接続できればセッション保存先にする(self, monkeypatch):
+        from core.extensions import init_extensions
+        from services.supabase_session import SupabaseSessionInterface
+
+        monkeypatch.setenv("VERCEL", "1")
+        app = Flask(__name__)
+        mock_config = MagicMock()
+        mock_config.SESSION_TYPE = "supabase"
+
+        with patch("services.supabase_client.get_supabase_client_manager") as mock_mgr, \
+             patch("core.extensions.Session") as mock_session:
+            mock_mgr.return_value.get_client.return_value = MagicMock()
+
+            result = init_extensions(app, mock_config)
+
+            assert result is None
+            assert isinstance(app.session_interface, SupabaseSessionInterface)
+            assert app.config["SESSION_COOKIE_SECURE"] is True
+            mock_session.assert_not_called()
+
+    def test_Supabaseに接続できなければ従来の保存先にする(self):
+        from core.extensions import init_extensions
+
+        app = Flask(__name__)
+        mock_config = MagicMock()
+        mock_config.SESSION_TYPE = "supabase"
+
+        with patch("services.supabase_client.get_supabase_client_manager") as mock_mgr, \
+             patch("core.extensions._initialize_session_store") as mock_init, \
+             patch("core.extensions.Session") as mock_session:
+            mock_mgr.return_value.get_client.return_value = None
+            mock_init.return_value = None
+
+            init_extensions(app, mock_config)
+
+            mock_init.assert_called_once()
+            mock_session.assert_called_once_with(app)
