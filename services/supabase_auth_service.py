@@ -60,7 +60,7 @@ class SupabaseAuthService:
         """サインアウト。token があればそのセッションを Supabase 側でも失効させる"""
         try:
             if token:
-                self._client.auth.admin.sign_out(token)
+                self._client.auth.admin.sign_out(token, "local")
             else:
                 self._client.auth.sign_out()
             return {"success": True}

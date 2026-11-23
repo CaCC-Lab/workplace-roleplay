@@ -90,5 +90,5 @@ def test_sign_out_with_token_revokes_that_session():
     result = SupabaseAuthService(client).sign_out("user-jwt")
 
     assert result == {"success": True}
-    client.auth.admin.sign_out.assert_called_once_with("user-jwt")
+    client.auth.admin.sign_out.assert_called_once_with("user-jwt", "local")
     client.auth.sign_out.assert_not_called()
