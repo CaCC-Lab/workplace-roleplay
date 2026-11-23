@@ -1,3 +1,32 @@
+# Vercel はこの依存をインストールする（gunicorn / gevent などVMやDocker専用のものは除く）
+# 依存を増やすときは requirements.txt と両方を更新する
+[project]
+name = "workplace-roleplay"
+version = "0.0.0"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=2.3.0",
+    "flask-session>=0.5.0",
+    "flask-wtf>=1.2.0",
+    "flask-babel>=4.0.0",
+    "langchain>=1.0.0,<2.0.0",
+    "langchain-core>=1.7.5,<2.0.0",
+    "langchain-google-genai>=4.4.0,<5.0.0",
+    "langchain-openai>=1.0.0,<2.0.0",
+    "google-api-core>=2.15.0",
+    "google-genai>=2.20.0",
+    "python-dotenv>=0.21.0",
+    "pyyaml>=6.0",
+    "pydantic>=1.10.0",
+    "pydantic-settings>=2.0.0",
+    "requests>=2.28.0",
+    "redis>=4.0.0",
+    "bleach>=6.0.0",
+    "vibelogger>=0.1.0",
+    "supabase>=2.0.0",
+    "flasgger>=0.9.7",
+]
+
 [tool.black]
 line-length = 120
 target-version = ['py311']
