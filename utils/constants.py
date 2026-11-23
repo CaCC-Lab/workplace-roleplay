@@ -3,7 +3,7 @@
 """
 
 # デフォルト設定
-DEFAULT_CHAT_MODEL = "gemini-2.5-flash"
+DEFAULT_CHAT_MODEL = "gemini-2.5-flash-lite"
 DEFAULT_VOICE = "kore"
 DEFAULT_TEMPERATURE = 0.7
 
@@ -14,7 +14,7 @@ MAX_SCENARIO_HISTORY = 30  # シナリオ履歴の最大保持数
 MAX_WATCH_HISTORY = 20  # 観戦履歴の最大保持数
 
 # 利用可能なモデル
-AVAILABLE_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"]
+AVAILABLE_MODELS = ["gemini-2.5-flash-lite"]
 
 # 利用可能な音声（女性）
 FEMALE_VOICES = [

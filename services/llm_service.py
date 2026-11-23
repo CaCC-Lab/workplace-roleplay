@@ -2,6 +2,7 @@
 LLM（Large Language Model）関連のサービス
 Gemini APIとの連携を管理
 """
+
 import os
 
 # プロジェクトルートからインポート
@@ -25,6 +26,16 @@ from utils.gemini_models import DEFAULT_GEMINI_MODEL
 class LLMService:
     """LLM連携を管理するサービス"""
 
+    # 提供終了したモデルの接頭辞（-001 などの固定版も含めて置き換える）
+    DEPRECATED_MODEL_PREFIXES = (
+        "gemini-pro",
+        "gemini-1.",
+        "gemini-2.0-",
+        "gemini-2.5-flash-preview",
+        "gemini-2.5-flash-lite-preview",
+        "gemini-2.5-pro-preview",
+    )
+
     # 廃止されたモデルと代替モデルのマッピング
     DEPRECATED_MODELS = {
         name: DEFAULT_GEMINI_MODEL
@@ -32,25 +43,17 @@ class LLMService:
             "gemini-pro",
             "gemini-pro-vision",
             "gemini-1.0-pro",
-            "gemini-1.0-pro-latest",
             "gemini-1.0-pro-vision",
-            "gemini-1.0-pro-vision-latest",
             "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-flash-002",
-            "gemini-1.5-flash-8b",
-            "gemini-1.5-flash-8b-latest",
             "gemini-1.5-pro",
-            "gemini-1.5-pro-latest",
-            "gemini-1.5-pro-002",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
         )
     }
 
     # 利用可能なGeminiモデル（実際のAPI応答に基づく）
     AVAILABLE_MODELS = [
-        "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
-        "gemini-2.5-pro",
     ]
 
     def __init__(self, config: Optional[Config] = None):
@@ -78,9 +81,9 @@ class LLMService:
         """
         try:
             # 廃止されたモデルの場合は代替モデルに置き換え
-            if model_name in self.DEPRECATED_MODELS:
+            if model_name in self.DEPRECATED_MODELS or model_name.startswith(self.DEPRECATED_MODEL_PREFIXES):
                 original_model = model_name
-                model_name = self.DEPRECATED_MODELS[model_name]
+                model_name = DEFAULT_GEMINI_MODEL
                 print(f"Model '{original_model}' is deprecated. Using '{model_name}' instead.")
 
             # APIキーマネージャーからキーを取得
@@ -123,10 +126,7 @@ class LLMService:
             RuntimeError: langchain_openai 未インストール / OLLAMA_API_KEY 未設定
         """
         if ChatOpenAI is None:
-            raise RuntimeError(
-                "langchain-openai is not installed. "
-                "Install with: pip install langchain-openai"
-            )
+            raise RuntimeError("langchain-openai is not installed. " "Install with: pip install langchain-openai")
 
         api_key = (os.environ.get("OLLAMA_API_KEY") or "").strip()
         if not api_key:

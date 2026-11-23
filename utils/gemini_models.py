@@ -4,9 +4,9 @@ Gemini モデル一覧の取得と既定モデルの定義
 
 from typing import List, Optional
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
 
-FALLBACK_GEMINI_MODELS = [f"gemini/{DEFAULT_GEMINI_MODEL}", "gemini/gemini-2.5-pro"]
+FALLBACK_GEMINI_MODELS = [f"gemini/{DEFAULT_GEMINI_MODEL}"]
 
 # 会話に使えない Gemini 系モデル（音声合成・画像生成・埋め込み等）
 _NON_CHAT_KEYWORDS = ("tts", "image", "embedding", "live", "audio", "aqa")

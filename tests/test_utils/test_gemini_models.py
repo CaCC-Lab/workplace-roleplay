@@ -38,5 +38,5 @@ class TestListGeminiModelIds:
 
 class TestDefaults:
     def test_既定モデルは提供中の世代(self):
-        assert DEFAULT_GEMINI_MODEL == "gemini-2.5-flash"
+        assert DEFAULT_GEMINI_MODEL == "gemini-2.5-flash-lite"
         assert f"gemini/{DEFAULT_GEMINI_MODEL}" in FALLBACK_GEMINI_MODELS

@@ -60,7 +60,7 @@ class TestLLMService:
 
                 # 代替モデルで呼ばれていることを確認
                 call_args = mock_chat.call_args
-                assert "gemini-2.5-flash" in str(call_args)
+                assert call_args[1]["model"] == "gemini-2.5-flash-lite"
 
     def test_create_gemini_llm_エラー(self):
         """LLM作成エラー"""
@@ -225,8 +225,7 @@ class TestLLMService:
             service = LLMService()
             models = service.get_available_models()
 
-            assert "gemini-2.5-flash" in models
-            assert "gemini-2.5-pro" in models
+            assert "gemini-2.5-flash-lite" in models
 
     def test_cleanup(self):
         """リソースのクリーンアップ"""
@@ -250,6 +249,30 @@ class TestLLMService:
 
 class TestDeprecatedModels:
     """廃止モデルのマッピングテスト"""
+
+    @pytest.mark.parametrize(
+        "model_name",
+        ["gemini-1.5-flash-001", "gemini-1.5-pro-001", "gemini-2.0-flash-001", "gemini-2.5-flash-preview-05-20"],
+    )
+    def test_固定版や旧プレビュー版も既定モデルに置き換えられる(self, model_name):
+        with patch("services.llm_service.CompliantAPIManager") as mock_manager:
+            mock_manager.return_value.get_api_key.return_value = "test-key"
+            with patch("services.llm_service.ChatGoogleGenerativeAI") as mock_chat:
+                from services.llm_service import LLMService
+
+                LLMService().create_gemini_llm(model_name)
+
+                assert mock_chat.call_args[1]["model"] == "gemini-2.5-flash-lite"
+
+    def test_現行モデルは置き換えられない(self):
+        with patch("services.llm_service.CompliantAPIManager") as mock_manager:
+            mock_manager.return_value.get_api_key.return_value = "test-key"
+            with patch("services.llm_service.ChatGoogleGenerativeAI") as mock_chat:
+                from services.llm_service import LLMService
+
+                LLMService().create_gemini_llm("gemini-3.6-flash")
+
+                assert mock_chat.call_args[1]["model"] == "gemini-3.6-flash"
 
     def test_全ての廃止モデルがマッピングされている(self):
         """全ての廃止モデルがマッピングされていることを確認"""

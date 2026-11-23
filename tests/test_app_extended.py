@@ -313,8 +313,7 @@ class TestGetAvailableGeminiModels:
 
                     result = get_available_gemini_models()
 
-                    assert "gemini/gemini-2.5-flash" in result
-                    assert "gemini/gemini-2.5-pro" in result
+                    assert "gemini/gemini-2.5-flash-lite" in result
 
 
 class TestLoadScenarios:

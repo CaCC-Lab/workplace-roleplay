@@ -145,13 +145,14 @@ class TestGetFallbackModels:
     def test_フォールバックモデルを返す(self):
         """フォールバックモデルの構造を確認"""
         from routes.main_routes import _get_fallback_models
+        from utils.gemini_models import FALLBACK_GEMINI_MODELS
 
         result = _get_fallback_models()
 
         assert "models" in result
         assert "categories" in result
         assert "gemini" in result["categories"]
-        assert len(result["models"]) == 2
+        assert len(result["models"]) == len(FALLBACK_GEMINI_MODELS)
 
         # モデルの構造確認
         for model in result["models"]:
