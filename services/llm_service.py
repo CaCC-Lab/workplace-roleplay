@@ -2,13 +2,13 @@
 LLM（Large Language Model）関連のサービス
 Gemini APIとの連携を管理
 """
+
 import os
 
 # プロジェクトルートからインポート
 import sys
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
-import google.generativeai as genai
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -20,30 +20,40 @@ except ImportError:  # pragma: no cover - オプショナル依存
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from compliant_api_manager import CompliantAPIManager
 from config import Config
+from utils.gemini_models import DEFAULT_GEMINI_MODEL
 
 
 class LLMService:
     """LLM連携を管理するサービス"""
 
+    # 提供終了したモデルの接頭辞（-001 などの固定版も含めて置き換える）
+    DEPRECATED_MODEL_PREFIXES = (
+        "gemini-pro",
+        "gemini-1.",
+        "gemini-2.0-",
+        "gemini-2.5-flash-preview",
+        "gemini-2.5-flash-lite-preview",
+        "gemini-2.5-pro-preview",
+    )
+
     # 廃止されたモデルと代替モデルのマッピング
     DEPRECATED_MODELS = {
-        "gemini-pro-vision": "gemini-1.5-flash",
-        "gemini-1.0-pro-vision": "gemini-1.5-flash",
-        "gemini-1.0-pro-vision-latest": "gemini-1.5-flash-latest",
-        "gemini-pro": "gemini-1.5-flash",  # gemini-proも新しいモデルに置き換え
-        "gemini-1.0-pro": "gemini-1.5-flash",
+        name: DEFAULT_GEMINI_MODEL
+        for name in (
+            "gemini-pro",
+            "gemini-pro-vision",
+            "gemini-1.0-pro",
+            "gemini-1.0-pro-vision",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+        )
     }
 
     # 利用可能なGeminiモデル（実際のAPI応答に基づく）
     AVAILABLE_MODELS = [
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-flash-8b",
-        "gemini-1.5-flash-8b-latest",
-        "gemini-1.5-pro",
-        "gemini-1.5-pro-latest",
-        "gemini-1.0-pro",
-        "gemini-1.0-pro-latest",
+        "gemini-2.5-flash-lite",
     ]
 
     def __init__(self, config: Optional[Config] = None):
@@ -58,19 +68,7 @@ class LLMService:
         self.models = {}
         self.default_temperature = self.config.DEFAULT_TEMPERATURE
 
-        # Gemini APIの初期化
-        self._initialize_genai()
-
-    def _initialize_genai(self):
-        """Gemini APIの初期化"""
-        try:
-            # APIキーマネージャーからキーを取得
-            api_key = self.api_key_manager.get_api_key()
-            genai.configure(api_key=api_key)
-        except Exception as e:
-            print(f"Warning: Failed to initialize Gemini API: {e}")
-
-    def create_gemini_llm(self, model_name: str = "gemini-1.5-flash") -> ChatGoogleGenerativeAI:
+    def create_gemini_llm(self, model_name: str = DEFAULT_GEMINI_MODEL) -> ChatGoogleGenerativeAI:
         """
         LangChainのGemini Chat modelインスタンス生成
         廃止されたモデルを自動的に代替モデルに置き換える
@@ -83,9 +81,9 @@ class LLMService:
         """
         try:
             # 廃止されたモデルの場合は代替モデルに置き換え
-            if model_name in self.DEPRECATED_MODELS:
+            if model_name in self.DEPRECATED_MODELS or model_name.startswith(self.DEPRECATED_MODEL_PREFIXES):
                 original_model = model_name
-                model_name = self.DEPRECATED_MODELS[model_name]
+                model_name = DEFAULT_GEMINI_MODEL
                 print(f"Model '{original_model}' is deprecated. Using '{model_name}' instead.")
 
             # APIキーマネージャーからキーを取得
@@ -128,10 +126,7 @@ class LLMService:
             RuntimeError: langchain_openai 未インストール / OLLAMA_API_KEY 未設定
         """
         if ChatOpenAI is None:
-            raise RuntimeError(
-                "langchain-openai is not installed. "
-                "Install with: pip install langchain-openai"
-            )
+            raise RuntimeError("langchain-openai is not installed. " "Install with: pip install langchain-openai")
 
         api_key = (os.environ.get("OLLAMA_API_KEY") or "").strip()
         if not api_key:
@@ -197,7 +192,7 @@ class LLMService:
         self,
         message: str,
         history: List[Dict[str, str]],
-        model_name: str = "gemini-1.5-flash",
+        model_name: str = DEFAULT_GEMINI_MODEL,
         system_prompt: Optional[str] = None,
     ) -> AsyncGenerator[str, None]:
         """
@@ -273,7 +268,7 @@ class LLMService:
     def invoke_sync(
         self,
         messages_or_prompt: Union[str, List],
-        model_name: str = "gemini-1.5-flash",
+        model_name: str = DEFAULT_GEMINI_MODEL,
         extract_content: bool = True,
     ) -> Union[str, Any]:
         """

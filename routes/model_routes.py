@@ -13,6 +13,7 @@ from flask import Blueprint, jsonify, session
 
 from config import get_cached_config
 from errors import with_error_handling
+from utils.gemini_models import FALLBACK_GEMINI_MODELS
 
 # Blueprint作成
 model_bp = Blueprint("model", __name__)
@@ -26,21 +27,13 @@ def get_all_available_models():
     すべての利用可能なモデルを取得し、カテゴリ別に整理する
     """
     try:
-        import google.generativeai as genai
+        from utils.gemini_models import list_gemini_model_ids
 
         api_key = config.GOOGLE_API_KEY
         if not api_key:
             return _get_fallback_models()
 
-        genai.configure(api_key=api_key)
-        models = genai.list_models()
-
-        gemini_models = []
-        for model in models:
-            if "gemini" in model.name.lower():
-                model_short_name = model.name.split("/")[-1]
-                model_name = f"gemini/{model_short_name}"
-                gemini_models.append(model_name)
+        gemini_models = list_gemini_model_ids(api_key)
 
         model_dicts = []
         for model_id in gemini_models:
@@ -55,12 +48,7 @@ def get_all_available_models():
 def _get_fallback_models():
     """フォールバック用のモデルリストを返す"""
     basic_models = [
-        {"id": "gemini/gemini-1.5-pro", "name": "gemini-1.5-pro", "provider": "gemini"},
-        {
-            "id": "gemini/gemini-1.5-flash",
-            "name": "gemini-1.5-flash",
-            "provider": "gemini",
-        },
+        {"id": model_id, "name": model_id.split("/")[-1], "provider": "gemini"} for model_id in FALLBACK_GEMINI_MODELS
     ]
     return {"models": basic_models, "categories": {"gemini": basic_models}}
 

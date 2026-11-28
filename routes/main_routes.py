@@ -12,6 +12,7 @@ from flask import Blueprint, Flask, Response, current_app, render_template, send
 
 from config import get_cached_config
 from errors import secure_error_handler
+from utils.gemini_models import FALLBACK_GEMINI_MODELS
 
 # Blueprint作成
 main_bp = Blueprint("main", __name__)
@@ -28,25 +29,13 @@ def get_all_available_models() -> Dict[str, Any]:
         Dict[str, Any]: カテゴリ別モデルのマップと、全モデルリスト
     """
     try:
-        import google.generativeai as genai
+        from utils.gemini_models import list_gemini_model_ids
 
-        # Gemini APIの設定を確認
         api_key = config.GOOGLE_API_KEY
         if not api_key:
-            print("Warning: GOOGLE_API_KEY is not set")
             return _get_fallback_models()
 
-        # 利用可能なモデルを取得
-        genai.configure(api_key=api_key)
-        models = genai.list_models()
-
-        # Geminiモデルをフィルタリング
-        gemini_models = []
-        for model in models:
-            if "gemini" in model.name.lower():
-                model_short_name = model.name.split("/")[-1]
-                model_name = f"gemini/{model_short_name}"
-                gemini_models.append(model_name)
+        gemini_models = list_gemini_model_ids(api_key)
 
         # 文字列リストから辞書リストに変換
         model_dicts = []
@@ -62,12 +51,7 @@ def get_all_available_models() -> Dict[str, Any]:
 def _get_fallback_models() -> Dict[str, Any]:
     """フォールバック用のモデルリストを返す"""
     basic_models = [
-        {"id": "gemini/gemini-1.5-pro", "name": "gemini-1.5-pro", "provider": "gemini"},
-        {
-            "id": "gemini/gemini-1.5-flash",
-            "name": "gemini-1.5-flash",
-            "provider": "gemini",
-        },
+        {"id": model_id, "name": model_id.split("/")[-1], "provider": "gemini"} for model_id in FALLBACK_GEMINI_MODELS
     ]
     return {"models": basic_models, "categories": {"gemini": basic_models}}
 

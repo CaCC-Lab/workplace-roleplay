@@ -99,11 +99,11 @@ class TestGetAllAvailableModels:
         """Gemini APIからモデル一覧を取得"""
         from routes.main_routes import get_all_available_models
 
-        with patch("google.generativeai.configure"):
-            with patch("google.generativeai.list_models") as mock_list:
-                mock_model1 = MagicMock()
+        with patch("routes.main_routes.config.GOOGLE_API_KEY", "test-key"), patch("google.genai.Client") as mock_client:
+            with patch.object(mock_client.return_value.models, "list") as mock_list:
+                mock_model1 = MagicMock(supported_actions=["generateContent"])
                 mock_model1.name = "models/gemini-1.5-pro"
-                mock_model2 = MagicMock()
+                mock_model2 = MagicMock(supported_actions=["generateContent"])
                 mock_model2.name = "models/gemini-1.5-flash"
 
                 mock_list.return_value = [mock_model1, mock_model2]
@@ -129,8 +129,8 @@ class TestGetAllAvailableModels:
         """例外発生時はフォールバックモデルを返す"""
         from routes.main_routes import get_all_available_models
 
-        with patch("google.generativeai.configure") as mock_config:
-            mock_config.side_effect = Exception("API Error")
+        with patch("routes.main_routes.config.GOOGLE_API_KEY", "test-key"), patch("google.genai.Client") as mock_client:
+            mock_client.side_effect = Exception("API Error")
 
             result = get_all_available_models()
 
@@ -145,13 +145,14 @@ class TestGetFallbackModels:
     def test_フォールバックモデルを返す(self):
         """フォールバックモデルの構造を確認"""
         from routes.main_routes import _get_fallback_models
+        from utils.gemini_models import FALLBACK_GEMINI_MODELS
 
         result = _get_fallback_models()
 
         assert "models" in result
         assert "categories" in result
         assert "gemini" in result["categories"]
-        assert len(result["models"]) == 2
+        assert len(result["models"]) == len(FALLBACK_GEMINI_MODELS)
 
         # モデルの構造確認
         for model in result["models"]:

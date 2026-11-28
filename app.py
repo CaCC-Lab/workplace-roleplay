@@ -13,6 +13,7 @@ from flask import Flask
 
 # 設定モジュール
 from config import get_cached_config
+from utils.gemini_models import DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODELS
 
 # コアモジュール
 from core.extensions import init_extensions
@@ -88,11 +89,8 @@ def _register_template_filters(app: Flask):
 def _initialize_gemini_api(config):
     """Gemini APIを初期化"""
     try:
-        import google.generativeai as genai
-
         api_key = config.GOOGLE_API_KEY
         if api_key and not config.TESTING:
-            genai.configure(api_key=api_key)
             print("✅ Gemini API初期化完了")
         elif config.TESTING:
             print("📝 テストモード: Gemini API初期化スキップ")
@@ -118,7 +116,7 @@ def initialize_llm(model_name: str):
     return service.initialize_llm(model_name)
 
 
-def create_gemini_llm(model_name: str = "gemini-1.5-flash"):
+def create_gemini_llm(model_name: str = DEFAULT_GEMINI_MODEL):
     """LangChainのGemini Chat modelインスタンス生成"""
     from services.llm_service import LLMService
 
@@ -166,26 +164,13 @@ def get_available_gemini_models():
     """利用可能なGeminiモデルのリストを返す"""
     try:
         config = get_cached_config()
-        import google.generativeai as genai
+        from utils.gemini_models import list_gemini_model_ids
 
-        if not config.GOOGLE_API_KEY:
-            return []
-
-        genai.configure(api_key=config.GOOGLE_API_KEY)
-        models = genai.list_models()
-
-        gemini_models = []
-        for model in models:
-            if "gemini" in model.name.lower():
-                model_short_name = model.name.split("/")[-1]
-                model_name = f"gemini/{model_short_name}"
-                gemini_models.append(model_name)
-
-        return gemini_models
+        return list_gemini_model_ids(config.GOOGLE_API_KEY)
 
     except Exception as e:
         print(f"Error fetching Gemini models: {str(e)}")
-        return ["gemini/gemini-1.5-pro", "gemini/gemini-1.5-flash"]
+        return list(FALLBACK_GEMINI_MODELS)
 
 
 # シナリオのロード

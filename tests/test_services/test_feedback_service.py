@@ -160,15 +160,12 @@ class TestTryMultipleModelsForPrompt:
         return FeedbackService()
 
     @patch("services.feedback_service.get_cached_config")
-    @patch("google.generativeai.list_models")
-    @patch("google.generativeai.configure")
+    @patch("utils.gemini_models.list_gemini_model_ids")
     @patch("app.create_model_and_get_response")
-    def test_returns_tuple(self, mock_create, mock_configure, mock_list_models, mock_config, feedback_service):
+    def test_returns_tuple(self, mock_create, mock_list_models, mock_config, feedback_service):
         """タプルが返されることをテスト"""
         mock_config.return_value.GOOGLE_API_KEY = "test-key"
-        mock_model = MagicMock()
-        mock_model.name = "models/gemini-1.5-flash"
-        mock_list_models.return_value = [mock_model]
+        mock_list_models.return_value = ["gemini/gemini-2.5-flash"]
         mock_create.return_value = "フィードバック内容"
 
         result = feedback_service.try_multiple_models_for_prompt("テストプロンプト")
@@ -177,17 +174,14 @@ class TestTryMultipleModelsForPrompt:
         assert len(result) == 3
 
     @patch("services.feedback_service.get_cached_config")
-    @patch("google.generativeai.list_models")
-    @patch("google.generativeai.configure")
+    @patch("utils.gemini_models.list_gemini_model_ids")
     @patch("app.create_model_and_get_response")
     def test_returns_content_on_success(
-        self, mock_create, mock_configure, mock_list_models, mock_config, feedback_service
+        self, mock_create, mock_list_models, mock_config, feedback_service
     ):
         """成功時にコンテンツが返されることをテスト"""
         mock_config.return_value.GOOGLE_API_KEY = "test-key"
-        mock_model = MagicMock()
-        mock_model.name = "models/gemini-1.5-flash"
-        mock_list_models.return_value = [mock_model]
+        mock_list_models.return_value = ["gemini/gemini-2.5-flash"]
         mock_create.return_value = "フィードバック内容"
 
         content, used_model, error = feedback_service.try_multiple_models_for_prompt("テストプロンプト")
@@ -196,9 +190,8 @@ class TestTryMultipleModelsForPrompt:
         assert error is None
 
     @patch("services.feedback_service.get_cached_config")
-    @patch("google.generativeai.list_models")
-    @patch("google.generativeai.configure")
-    def test_returns_error_when_no_models(self, mock_configure, mock_list_models, mock_config, feedback_service):
+    @patch("utils.gemini_models.list_gemini_model_ids")
+    def test_returns_error_when_no_models(self, mock_list_models, mock_config, feedback_service):
         """モデルがない場合にエラーが返されることをテスト"""
         mock_config.return_value.GOOGLE_API_KEY = "test-key"
         mock_list_models.return_value = []
@@ -209,19 +202,16 @@ class TestTryMultipleModelsForPrompt:
         assert error is not None
 
     @patch("services.feedback_service.get_cached_config")
-    @patch("google.generativeai.list_models")
-    @patch("google.generativeai.configure")
+    @patch("utils.gemini_models.list_gemini_model_ids")
     @patch("app.create_model_and_get_response")
     def test_handles_rate_limit_error(
-        self, mock_create, mock_configure, mock_list_models, mock_config, feedback_service
+        self, mock_create, mock_list_models, mock_config, feedback_service
     ):
         """レート制限エラーのハンドリングテスト"""
         from google.api_core.exceptions import ResourceExhausted
 
         mock_config.return_value.GOOGLE_API_KEY = "test-key"
-        mock_model = MagicMock()
-        mock_model.name = "models/gemini-1.5-flash"
-        mock_list_models.return_value = [mock_model]
+        mock_list_models.return_value = ["gemini/gemini-2.5-flash"]
         mock_create.side_effect = ResourceExhausted("Rate limit exceeded")
 
         content, used_model, error = feedback_service.try_multiple_models_for_prompt("テストプロンプト")

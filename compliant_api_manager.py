@@ -200,7 +200,7 @@ def create_compliant_gemini_client():
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         client = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",  # 推奨モデル
+            model="gemini-2.5-flash-lite",  # 推奨モデル
             google_api_key=api_key,
             temperature=0.7,
             max_tokens=1000,
