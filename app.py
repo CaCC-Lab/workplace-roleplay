@@ -74,17 +74,31 @@ def create_app(config=None) -> Flask:
 
 
 def _apply_proxy_fix(app: Flask):
-    """TRUSTED_PROXY_COUNT 段のリバースプロキシだけを信頼して接続元 IP を復元する"""
+    """
+    TRUSTED_PROXY_IPS（既定: ループバック）からの接続に限り、
+    TRUSTED_PROXY_COUNT 段（既定: 1）の X-Forwarded-For を信頼して接続元 IP を復元する
+    """
     import os
 
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
     try:
-        hops = int(os.environ.get("TRUSTED_PROXY_COUNT", "0"))
+        hops = int(os.environ.get("TRUSTED_PROXY_COUNT", "1"))
     except ValueError:
         hops = 0
-    if hops > 0:
-        from werkzeug.middleware.proxy_fix import ProxyFix
+    if hops <= 0:
+        return
 
-        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=hops)
+    trusted_peers = {ip.strip() for ip in os.environ.get("TRUSTED_PROXY_IPS", "127.0.0.1,::1").split(",") if ip.strip()}
+    direct_app = app.wsgi_app
+    proxied_app = ProxyFix(direct_app, x_for=hops)
+
+    def trusted_proxy_app(environ, start_response):
+        if environ.get("REMOTE_ADDR") in trusted_peers:
+            return proxied_app(environ, start_response)
+        return direct_app(environ, start_response)
+
+    app.wsgi_app = trusted_proxy_app
 
 
 def _register_template_filters(app: Flask):

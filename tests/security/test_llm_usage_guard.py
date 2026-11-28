@@ -367,19 +367,24 @@ class TestProxyTrustBoundary:
 
         return test_app.test_client()
 
-    def test_既定ではX_Forwarded_Forを信頼しない(self, monkeypatch):
+    def test_信頼プロキシ以外からのX_Forwarded_Forは無視(self, monkeypatch):
         client = self._app(monkeypatch, None)
         data = client.get("/ip", headers={"X-Forwarded-For": "6.6.6.6"}, environ_base={"REMOTE_ADDR": "9.9.9.9"})
         assert data.get_json()["ip"] == "9.9.9.9"
 
-    def test_信頼するプロキシ1段なら末尾のIPのみ採用(self, monkeypatch):
-        client = self._app(monkeypatch, 1)
+    def test_ローカルのnginxからは末尾のIPのみ採用(self, monkeypatch):
+        client = self._app(monkeypatch, None)
         data = client.get(
             "/ip",
             headers={"X-Forwarded-For": "6.6.6.6, 203.0.113.5"},
             environ_base={"REMOTE_ADDR": "127.0.0.1"},
         )
         assert data.get_json()["ip"] == "203.0.113.5"
+
+    def test_信頼段数0ならX_Forwarded_Forを使わない(self, monkeypatch):
+        client = self._app(monkeypatch, 0)
+        data = client.get("/ip", headers={"X-Forwarded-For": "6.6.6.6"}, environ_base={"REMOTE_ADDR": "127.0.0.1"})
+        assert data.get_json()["ip"] == "127.0.0.1"
 
     def test_IPv6は64ビット単位で集約(self, monkeypatch):
         client = self._app(monkeypatch, None)
