@@ -9,9 +9,11 @@ import shlex
 import subprocess
 import sys
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
+
+from config import Config, ConfigForTesting, DevelopmentConfig, ProductionConfig, get_config
 
 
 @pytest.fixture
@@ -40,9 +42,6 @@ def clean_env():
     # 環境変数を復元
     os.environ.clear()
     os.environ.update(original_env)
-
-
-from config import Config, ConfigForTesting, DevelopmentConfig, ProductionConfig, get_config
 
 
 # テスト用の設定クラス（.envを読まない）
