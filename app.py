@@ -7,16 +7,17 @@ workplace-roleplay メインアプリケーション
 - アプリケーションファクトリパターンを採用
 """
 
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
 from flask import Flask
 
 # 設定モジュール
 from config import get_cached_config
+from core.error_handlers import register_error_handlers
 
 # コアモジュール
 from core.extensions import init_extensions
-from core.error_handlers import register_error_handlers
 from core.middleware import register_middleware
 
 # ルート登録
@@ -49,6 +50,8 @@ def create_app(config=None) -> Flask:
     app.config["SESSION_TYPE"] = config.SESSION_TYPE
     app.config["SESSION_LIFETIME"] = config.SESSION_LIFETIME_MINUTES * 60
 
+    _apply_proxy_fix(app)
+
     # 拡張の初期化（セッション、Redis等）
     init_extensions(app, config)
 
@@ -68,6 +71,20 @@ def create_app(config=None) -> Flask:
     _initialize_gemini_api(config)
 
     return app
+
+
+def _apply_proxy_fix(app: Flask):
+    """TRUSTED_PROXY_COUNT 段のリバースプロキシだけを信頼して接続元 IP を復元する"""
+    import os
+
+    try:
+        hops = int(os.environ.get("TRUSTED_PROXY_COUNT", "0"))
+    except ValueError:
+        hops = 0
+    if hops > 0:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=hops)
 
 
 def _register_template_filters(app: Flask):

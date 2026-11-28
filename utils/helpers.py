@@ -204,11 +204,12 @@ def add_to_session_history(session_key: str, entry: Dict[str, Any], sub_key: Opt
     if "timestamp" not in entry:
         entry["timestamp"] = datetime.now().isoformat()
 
-    # 履歴に追加
-    if sub_key:
-        session[session_key][sub_key].append(entry)
-    else:
-        session[session_key].append(entry)
+    # 履歴に追加（直近 MAX_SESSION_HISTORY_ENTRIES 件のみ保持）
+    from utils.llm_guard import MAX_SESSION_HISTORY_ENTRIES
+
+    history = session[session_key][sub_key] if sub_key else session[session_key]
+    history.append(entry)
+    del history[:-MAX_SESSION_HISTORY_ENTRIES]
 
     session.modified = True
 

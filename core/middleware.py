@@ -13,6 +13,8 @@ CSRF_PROTECTED_ENDPOINTS = [
     "/api/clear_history",
     "/api/chat",
     "/api/scenario_chat",
+    "/api/get_assist",
+    "/api/generate_character_image",
     "/api/watch/start",
     "/api/watch/next",
     "/api/scenario_feedback",
@@ -76,6 +78,10 @@ def register_middleware(app: Flask):
             except ImportError:
                 # CSRFTokenクラスが存在しない場合はスキップ
                 pass
+
+    from utils.llm_guard import register_llm_guard
+
+    register_llm_guard(app)
 
     @app.after_request
     def record_metrics(response):

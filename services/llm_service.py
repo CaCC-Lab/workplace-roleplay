@@ -2,6 +2,7 @@
 LLM（Large Language Model）関連のサービス
 Gemini APIとの連携を管理
 """
+
 import os
 
 # プロジェクトルートからインポート
@@ -11,6 +12,8 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 import google.generativeai as genai
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
+
+from utils.llm_guard import apply_llm_guard
 
 try:  # Ollama Cloud は OpenAI 互換 API 経由で利用
     from langchain_openai import ChatOpenAI  # type: ignore
@@ -103,7 +106,7 @@ class LLMService:
             # 使用回数を記録
             self.api_key_manager.record_successful_request(current_api_key)
 
-            return llm
+            return apply_llm_guard(llm)
 
         except Exception as e:
             # エラーを記録
@@ -128,10 +131,7 @@ class LLMService:
             RuntimeError: langchain_openai 未インストール / OLLAMA_API_KEY 未設定
         """
         if ChatOpenAI is None:
-            raise RuntimeError(
-                "langchain-openai is not installed. "
-                "Install with: pip install langchain-openai"
-            )
+            raise RuntimeError("langchain-openai is not installed. " "Install with: pip install langchain-openai")
 
         api_key = (os.environ.get("OLLAMA_API_KEY") or "").strip()
         if not api_key:
@@ -144,13 +144,14 @@ class LLMService:
 
         base_url = (os.environ.get("OLLAMA_BASE_URL") or self.OLLAMA_DEFAULT_BASE_URL).strip()
 
-        return ChatOpenAI(
+        llm = ChatOpenAI(
             model=model_name,
             api_key=api_key,
             base_url=base_url,
             temperature=self.default_temperature,
             streaming=True,
         )
+        return apply_llm_guard(llm)
 
     def initialize_llm(self, model_name: str):
         """
