@@ -306,6 +306,11 @@ class TestModelAllowlist:
         assert SecurityUtils.validate_model_name("gemini/gemini-3-flash-preview")
         assert not SecurityUtils.validate_model_name("gemini/gemini-3-pro-preview")
 
+    def test_運営者設定のGeminiモデルは接頭辞の有無を問わず許可(self, monkeypatch):
+        monkeypatch.setenv("CHAT_MODEL", "gemini-3-flash-preview")
+        assert SecurityUtils.validate_model_name("gemini/gemini-3-flash-preview")
+        assert SecurityUtils.validate_model_name("gemini-3-flash-preview")
+
     def test_register時に_envを読み込む(self, monkeypatch):
         with patch("dotenv.load_dotenv") as load:
             llm_guard.register_llm_guard(Flask(__name__), limiter=UsageLimiter())

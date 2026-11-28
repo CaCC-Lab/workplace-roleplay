@@ -106,7 +106,8 @@ class SecurityUtils:
         # （OLLAMA_ALLOWED_MODELS と DEFAULT_MODEL / <MODE>_MODEL）
         from utils.llm_guard import allowed_ollama_models, operator_configured_models
 
-        if model_name in operator_configured_models():
+        configured = {name.removeprefix("gemini/") for name in operator_configured_models()}
+        if model_name.removeprefix("gemini/") in configured:
             return True
         if model_name.startswith("ollama/"):
             return model_name in allowed_ollama_models()
