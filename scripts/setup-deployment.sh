@@ -369,7 +369,7 @@ Group=$APP_USER
 WorkingDirectory=$APP_PATH/current
 Environment=PATH=$APP_PATH/current/venv/bin
 EnvironmentFile=$APP_PATH/current/.env
-ExecStart=$APP_PATH/current/venv/bin/gunicorn \\
+ExecStart=/usr/bin/env FLASK_ENV=production $APP_PATH/current/venv/bin/gunicorn \\
     --bind 0.0.0.0:5000 \\
     --workers 2 \\
     --worker-class gevent \\

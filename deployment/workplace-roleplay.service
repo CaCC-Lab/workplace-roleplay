@@ -8,7 +8,7 @@ User=ryu
 Group=ryu
 WorkingDirectory=/home/ryu/workplace-roleplay
 Environment="PATH=/home/ryu/workplace-roleplay/venv/bin"
-ExecStart=/home/ryu/workplace-roleplay/venv/bin/python /home/ryu/workplace-roleplay/app.py
+ExecStart=/usr/bin/env FLASK_ENV=production /home/ryu/workplace-roleplay/venv/bin/python /home/ryu/workplace-roleplay/app.py
 
 # Restart policy
 Restart=always

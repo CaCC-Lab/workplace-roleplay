@@ -11,7 +11,7 @@ Group=ryu
 WorkingDirectory=/opt/workplace-app/current
 Environment=PATH=/opt/workplace-app/current/venv/bin
 EnvironmentFile=/opt/workplace-app/current/.env
-ExecStart=/opt/workplace-app/current/venv/bin/gunicorn \
+ExecStart=/usr/bin/env FLASK_ENV=production /opt/workplace-app/current/venv/bin/gunicorn \
     --bind 0.0.0.0:5000 \
     --workers 2 \
     --worker-class gevent \
