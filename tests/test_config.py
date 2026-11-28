@@ -2,11 +2,16 @@
 設定管理モジュールのテスト
 TDD原則に従い、設定の読み込みと検証をテスト
 """
-import os
-import pytest
-from unittest.mock import patch, MagicMock
-import tempfile
+
 import json
+import os
+import shlex
+import subprocess
+import sys
+import tempfile
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 @pytest.fixture
@@ -37,7 +42,7 @@ def clean_env():
     os.environ.update(original_env)
 
 
-from config import get_config, Config, DevelopmentConfig, ProductionConfig, ConfigForTesting
+from config import Config, ConfigForTesting, DevelopmentConfig, ProductionConfig, get_config
 
 
 # テスト用の設定クラス（.envを読まない）
@@ -121,7 +126,8 @@ class TestConfigBase:
     def test_必須環境変数のチェック(self):
         """本番環境で必須の環境変数がチェックされることを確認"""
         # テスト用に一時的にProductionConfigクラスを作成（.envを読まない）
-        from pydantic import field_validator, Field
+        from pydantic import Field, field_validator
+
         from config.config import Config
 
         class TestProductionConfig(Config):
@@ -248,28 +254,112 @@ class TestConfigFactory:
             config = get_config()
             assert isinstance(config, DevelopmentConfig)
 
-    def test_production_selection_fails_when_required_settings_are_missing(self, monkeypatch, tmp_path):
-        """本番設定の必須項目が不足している場合は設定取得を拒否"""
+    def test_development_and_testing_defaults_are_unchanged(self, monkeypatch, tmp_path):
+        """直接の設定取得では開発・テストの既存既定値を維持"""
+        monkeypatch.chdir(tmp_path)
+        for name in (
+            "FLASK_ENV",
+            "FLASK_SECRET_KEY",
+            "GOOGLE_API_KEY",
+            "FLASK_DEBUG",
+            "TESTING",
+        ):
+            monkeypatch.delenv(name, raising=False)
+
+        with pytest.warns(UserWarning, match="Using default SECRET_KEY in development"):
+            development_config = get_config()
+
+        assert isinstance(development_config, DevelopmentConfig)
+        assert development_config.FLASK_ENV == "development"
+        assert development_config.DEBUG is True
+        assert development_config.TESTING is False
+
+        monkeypatch.setenv("FLASK_ENV", "testing")
+        testing_config = get_config()
+
+        assert isinstance(testing_config, ConfigForTesting)
+        assert testing_config.FLASK_ENV == "testing"
+        assert testing_config.TESTING is True
+
+    def test_production_launch_prefix_overrides_inherited_development_environment(self, tmp_path):
+        """実際のsystemd起動prefixが開発環境変数を本番へ上書きする"""
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        launchers = (
+            "deployment/workplace-roleplay.service",
+            "scripts/workplace-app.service",
+            "scripts/setup-deployment.sh",
+        )
+        production_prefix = None
+
+        for relative_path in launchers:
+            with open(os.path.join(repo_root, relative_path), encoding="utf-8") as service_file:
+                command_line = next(line for line in service_file if line.startswith("ExecStart="))
+            command = shlex.split(command_line.partition("=")[2])
+            assert command[:2] == ["/usr/bin/env", "FLASK_ENV=production"]
+            if relative_path == "deployment/workplace-roleplay.service":
+                production_prefix = command[:2]
+
+        assert production_prefix is not None
+        config_check = (
+            "from config import get_config, ProductionConfig; "
+            "config = get_config(); "
+            "assert isinstance(config, ProductionConfig); "
+            "assert config.DEBUG is False; "
+            "assert config.SECURE_COOKIES is True; "
+            "assert config.HOT_RELOAD is False; "
+            "print(type(config).__name__)"
+        )
+        result = subprocess.run(
+            [*production_prefix, sys.executable, "-c", config_check],
+            cwd=tmp_path,
+            env={
+                "FLASK_ENV": "development",
+                "FLASK_SECRET_KEY": "phase1-valid-secret-key-for-tests-12345",
+                "GOOGLE_API_KEY": "test-google-api-key",
+                "PATH": os.defpath,
+                "PYTHONPATH": repo_root,
+            },
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.stdout.strip() == "ProductionConfig"
+
+    @pytest.mark.parametrize(
+        "secret_key,error_message",
+        [
+            (None, "A secure SECRET_KEY is required in production"),
+            ("", "A secure SECRET_KEY is required in production"),
+            ("default-secret-key-change-in-production", "A secure SECRET_KEY is required in production"),
+            ("short", "SECRET_KEY must be at least 32 characters long in production"),
+            ("a" * 40, "SECRET_KEY is too simple and predictable"),
+        ],
+    )
+    def test_production_rejects_missing_empty_or_insecure_secret(
+        self, secret_key, error_message, monkeypatch, tmp_path
+    ):
+        """本番設定では未設定・空・弱いシークレットキーを拒否"""
         monkeypatch.chdir(tmp_path)
         monkeypatch.setenv("FLASK_ENV", "production")
-        monkeypatch.delenv("FLASK_SECRET_KEY", raising=False)
+        monkeypatch.setenv("GOOGLE_API_KEY", "test-google-api-key")
+        if secret_key is None:
+            monkeypatch.delenv("FLASK_SECRET_KEY", raising=False)
+        else:
+            monkeypatch.setenv("FLASK_SECRET_KEY", secret_key)
+
+        with pytest.raises(ValueError, match=error_message):
+            get_config()
+
+    def test_production_rejects_missing_google_api_key(self, monkeypatch, tmp_path):
+        """本番設定では有効なシークレットキーがあってもAPIキー不足を拒否"""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("FLASK_ENV", "production")
+        monkeypatch.setenv("FLASK_SECRET_KEY", "phase1-valid-secret-key-for-tests-12345")
         monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
 
         with pytest.raises(ValueError, match="GOOGLE_API_KEY is required in production"):
             get_config()
-
-    def test_production_service_entrypoints_force_production_config(self):
-        """本番サービスの起動コマンドは ProductionConfig を選択する"""
-        repo_root = os.path.dirname(os.path.dirname(__file__))
-        service_commands = {
-            "deployment/workplace-roleplay.service": "ExecStart=/usr/bin/env FLASK_ENV=production ",
-            "scripts/workplace-app.service": "ExecStart=/usr/bin/env FLASK_ENV=production ",
-            "scripts/setup-deployment.sh": "ExecStart=/usr/bin/env FLASK_ENV=production ",
-        }
-
-        for relative_path, command in service_commands.items():
-            with open(os.path.join(repo_root, relative_path), encoding="utf-8") as service_file:
-                assert command in service_file.read()
 
 
 class TestConfigValidation:
