@@ -2,18 +2,20 @@
 A/Bテスト用の並行エンドポイント
 既存システムに影響を与えずに新サービスをテスト
 """
+
 import time
 from datetime import datetime
 
-from config.feature_flags import get_feature_flags
 from flask import Blueprint, Response, jsonify, request
+
+from config.feature_flags import get_feature_flags
 
 # サービスインポート
 from services.chat_service import ChatService
 from services.llm_service import LLMService
 from services.session_service import SessionService
-
-from utils.security import CSRFProtection, rate_limiter
+from utils.llm_guard import MAX_USER_MESSAGE_CHARS
+from utils.security import CSRFProtection, SecurityUtils, rate_limiter
 
 # Blueprintの作成
 ab_test_bp = Blueprint("ab_test", __name__, url_prefix="/api/v2")
@@ -59,6 +61,10 @@ def chat_v2():
 
         if not message:
             return jsonify({"error": "メッセージが空です"}), 400
+        if len(message) > MAX_USER_MESSAGE_CHARS:
+            return jsonify({"error": f"メッセージは{MAX_USER_MESSAGE_CHARS}文字以内で入力してください"}), 400
+        if model_name is not None and not SecurityUtils.validate_model_name(model_name):
+            return jsonify({"error": "無効なモデル名です"}), 400
 
         # SSEレスポンスの生成（改善版）
         def generate():
@@ -157,6 +163,8 @@ def chat_compare():
 
         if not message:
             return jsonify({"error": "メッセージが空です"}), 400
+        if len(message) > MAX_USER_MESSAGE_CHARS:
+            return jsonify({"error": f"メッセージは{MAX_USER_MESSAGE_CHARS}文字以内で入力してください"}), 400
 
         # タイミング測定
         start_time = time.time()

@@ -40,7 +40,6 @@ except ImportError:
 # サービス層のインポート
 from services.feedback_service import get_feedback_service
 from services.model_selector import resolve_model
-
 from utils.helpers import (
     add_messages_from_history,
     add_to_session_history,
@@ -49,6 +48,12 @@ from utils.helpers import (
     get_situation_description,
     get_topic_description,
     initialize_session_history,
+)
+from utils.llm_guard import (
+    MAX_FEEDBACK_HISTORY_ENTRIES,
+    MAX_USER_MESSAGE_CHARS,
+    MAX_WATCH_FIELD_CHARS,
+    is_text_too_long,
 )
 
 # Blueprint作成
@@ -87,6 +92,8 @@ def handle_chat() -> Response:
     ok, msg_err = SecurityUtils.validate_message(message)
     if not ok:
         raise ValidationError(msg_err or "メッセージが無効です", field="message")
+    if len(message) > MAX_USER_MESSAGE_CHARS:
+        raise ValidationError(f"メッセージは{MAX_USER_MESSAGE_CHARS}文字以内で入力してください", field="message")
 
     model_name = resolve_model("chat", data.get("model"))
 
@@ -119,13 +126,19 @@ def handle_chat() -> Response:
         moderation_result = None
         try:
             from services.moderation_service import ModerationService
+
             mod_svc = ModerationService()
             moderation_result = mod_svc.check_message(message)
             if not moderation_result.get("allowed", True):
-                return jsonify({
-                    "response": "申し訳ございませんが、そのメッセージは送信できません。",
-                    "moderation": moderation_result,
-                }), 400
+                return (
+                    jsonify(
+                        {
+                            "response": "申し訳ございませんが、そのメッセージは送信できません。",
+                            "moderation": moderation_result,
+                        }
+                    ),
+                    400,
+                )
         except Exception:
             pass
 
@@ -139,6 +152,7 @@ def handle_chat() -> Response:
         # リアルタイムフィードバック
         try:
             from services.realtime_feedback_service import RealtimeFeedbackService
+
             rtf = RealtimeFeedbackService()
             history = session.get("chat_history", [])
             if rtf.should_provide_feedback(history):
@@ -166,6 +180,14 @@ def start_chat() -> Response:
         partner_type = data.get("partner_type", "colleague")
         situation = data.get("situation", "break")
         topic = data.get("topic", "general")
+
+        if not SecurityUtils.validate_model_name(model_name):
+            return jsonify({"error": "無効なモデル名です"}), 400
+        if any(
+            not isinstance(v, str) or is_text_too_long(v, MAX_WATCH_FIELD_CHARS)
+            for v in (partner_type, situation, topic)
+        ):
+            return jsonify({"error": f"設定項目は{MAX_WATCH_FIELD_CHARS}文字以内で指定してください"}), 400
 
         # セッションの初期化と設定の保存
         clear_session_history("chat_history")
@@ -205,7 +227,7 @@ def start_chat() -> Response:
         first_user_msg = "上記の設定で、あなたから雑談を始めてください。最初の声かけとして、状況に応じた自然な挨拶や話題提供をしてください。"
 
         try:
-            from app import initialize_llm, extract_content
+            from app import extract_content, initialize_llm
 
             llm = initialize_llm(model_name)
             messages = [
@@ -298,10 +320,14 @@ def get_chat_feedback() -> Response:
 
         # フィードバックプロンプトを構築（サービス層を使用）
         feedback_service = get_feedback_service()
+        partner_type = data.get("partner_type", "colleague")
+        situation = data.get("situation", "break")
+        if any(not isinstance(v, str) or is_text_too_long(v, MAX_WATCH_FIELD_CHARS) for v in (partner_type, situation)):
+            return jsonify({"error": f"設定項目は{MAX_WATCH_FIELD_CHARS}文字以内で指定してください"}), 400
         feedback_prompt = feedback_service.build_chat_feedback_prompt(
-            session["chat_history"],
-            data.get("partner_type", "colleague"),
-            data.get("situation", "break"),
+            session["chat_history"][-MAX_FEEDBACK_HISTORY_ENTRIES:],
+            partner_type,
+            situation,
         )
 
         (

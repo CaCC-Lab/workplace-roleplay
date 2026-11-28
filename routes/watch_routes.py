@@ -6,10 +6,10 @@ Handles AI conversation observation functionality.
 from datetime import datetime
 from typing import Any
 
-from config.feature_flags import get_feature_flags
 from flask import Blueprint, jsonify, render_template, request, session
 
 from config import get_cached_config
+from config.feature_flags import get_feature_flags
 from errors import ExternalAPIError, secure_error_handler
 
 # セキュリティ関連のインポート
@@ -31,14 +31,13 @@ except ImportError:
             return str(e)
 
 
+from services.model_selector import resolve_model
+from services.quiz_service import QuizService
+
 # サービス層のインポート
 from services.watch_service import get_watch_service
-from services.quiz_service import QuizService
-from services.model_selector import resolve_model
-
-from utils.helpers import (
-    clear_session_history,
-)
+from utils.helpers import clear_session_history
+from utils.llm_guard import MAX_WATCH_FIELD_CHARS, MAX_WATCH_PROMPT_HISTORY, MAX_WATCH_TURNS, is_text_too_long
 
 # Blueprint作成
 watch_bp = Blueprint("watch", __name__)
@@ -89,9 +88,10 @@ def start_watch():
         if not SecurityUtils.validate_model_name(model_b):
             return jsonify({"error": "無効なモデルB名です"}), 400
 
-        partner_type = SecurityUtils.sanitize_input(data.get("partner_type", ""))
-        situation = SecurityUtils.sanitize_input(data.get("situation", ""))
-        topic = SecurityUtils.sanitize_input(data.get("topic", ""))
+        raw_fields = [data.get(key, "") for key in ("partner_type", "situation", "topic")]
+        if any(not isinstance(v, str) or is_text_too_long(v, MAX_WATCH_FIELD_CHARS) for v in raw_fields):
+            return jsonify({"error": f"設定項目は{MAX_WATCH_FIELD_CHARS}文字以内で指定してください"}), 400
+        partner_type, situation, topic = (SecurityUtils.sanitize_input(v) for v in raw_fields)
 
         # セッションの初期化
         clear_session_history("watch_history")
@@ -145,6 +145,8 @@ def next_watch_message() -> Any:
 
         settings = session["watch_settings"]
         history = session["watch_history"]
+        if len(history) >= MAX_WATCH_TURNS:
+            return jsonify({"error": f"観戦は{MAX_WATCH_TURNS}発言までです。新しい観戦を開始してください"}), 400
 
         watch_service = get_watch_service()
         current_speaker = settings["current_speaker"]
@@ -158,7 +160,7 @@ def next_watch_message() -> Any:
 
             try:
                 llm = initialize_llm(model)
-                next_message = watch_service.generate_next_message(llm, history)
+                next_message = watch_service.generate_next_message(llm, history[-MAX_WATCH_PROMPT_HISTORY:])
             except Exception as e:
                 app_error = handle_llm_specific_error(e, model)
                 return jsonify({"error": app_error.message}), app_error.status_code

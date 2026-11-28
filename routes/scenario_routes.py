@@ -6,27 +6,21 @@ Handles scenario-related API endpoints.
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
-from config.feature_flags import get_feature_flags
-from flask import (
-    Blueprint,
-    Response,
-    jsonify,
-    render_template,
-    request,
-    session,
-    url_for,
-)
+from flask import Blueprint, Response, jsonify, render_template, request, session, url_for
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+
+from config import get_cached_config
+from config.feature_flags import get_feature_flags
+from errors import NotFoundError, ValidationError, with_error_handling
+from services.model_selector import resolve_model
 
 # サービス層のインポート
 from services.scenario_service import get_scenario_service
-from services.model_selector import resolve_model
-
-from config import get_cached_config
-from errors import (
-    NotFoundError,
-    ValidationError,
-    with_error_handling,
+from utils.llm_guard import (
+    MAX_ASSIST_CONTEXT_CHARS,
+    MAX_FEEDBACK_HISTORY_ENTRIES,
+    MAX_USER_MESSAGE_CHARS,
+    is_text_too_long,
 )
 
 # セキュリティ関連のインポート
@@ -228,7 +222,10 @@ def scenario_chat() -> Response:
             return jsonify({"error": "Invalid JSON"}), 400
 
         # 入力値のサニタイズ
-        user_message = SecurityUtils.sanitize_input(data.get("message", ""))
+        raw_message = data.get("message", "")
+        if not isinstance(raw_message, str) or is_text_too_long(raw_message, MAX_USER_MESSAGE_CHARS):
+            return jsonify({"error": f"メッセージは{MAX_USER_MESSAGE_CHARS}文字以内で入力してください"}), 400
+        user_message = SecurityUtils.sanitize_input(raw_message)
         scenario_id = data.get("scenario_id", "")
         selected_model = resolve_model("scenario", data.get("model"))
 
@@ -360,7 +357,7 @@ def get_scenario_feedback() -> Response:
         if "scenario_history" not in session or scenario_id not in session["scenario_history"]:
             return jsonify({"error": "会話履歴が見つかりません"}), 404
 
-        history = session["scenario_history"][scenario_id]
+        history = session["scenario_history"][scenario_id][-MAX_FEEDBACK_HISTORY_ENTRIES:]
 
         is_reverse_role = scenario_data.get("role_type") == "reverse"
 
@@ -400,7 +397,10 @@ def get_scenario_feedback() -> Response:
                     hist_len = len(session.get("scenario_history", {}).get(scenario_id, []))
                     sess_id = f"{scenario_id}_{session.get('user_id', 'anon')}_{hist_len}"
                     gamification_result = on_scenario_feedback(
-                        strength_scores, scenario_id, scenario_data, session_id=sess_id,
+                        strength_scores,
+                        scenario_id,
+                        scenario_data,
+                        session_id=sess_id,
                     )
                     if gamification_result:
                         response_data["gamification"] = gamification_result
@@ -475,12 +475,20 @@ def get_scenario_category(scenario_id):
 @with_error_handling
 def get_assist() -> Any:
     """AIアシストの提案を取得するエンドポイント"""
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise ValidationError("無効なJSONデータです")
     scenario_id = data.get("scenario_id")
     current_context = data.get("current_context", "")
 
     if not scenario_id:
         raise ValidationError("シナリオIDが必要です")
+    if not isinstance(scenario_id, str):
+        raise ValidationError("無効なシナリオIDです", field="scenario_id")
+    if not isinstance(current_context, str) or is_text_too_long(current_context, MAX_ASSIST_CONTEXT_CHARS):
+        raise ValidationError(
+            f"current_context は{MAX_ASSIST_CONTEXT_CHARS}文字以内で指定してください", field="current_context"
+        )
 
     scenario = scenario_service.get_scenario_by_id(scenario_id)
     if not scenario:
@@ -498,6 +506,8 @@ def get_assist() -> Any:
 """
 
     selected_model = resolve_model("scenario", session.get("selected_model"))
+    if not SecurityUtils.validate_model_name(selected_model):
+        raise ValidationError("無効なモデル名です", field="model")
 
     from app import create_model_and_get_response
 

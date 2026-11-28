@@ -7,16 +7,17 @@ workplace-roleplay メインアプリケーション
 - アプリケーションファクトリパターンを採用
 """
 
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
 from flask import Flask
 
 # 設定モジュール
 from config import get_cached_config
+from core.error_handlers import register_error_handlers
 
 # コアモジュール
 from core.extensions import init_extensions
-from core.error_handlers import register_error_handlers
 from core.middleware import register_middleware
 
 # ルート登録
@@ -49,6 +50,8 @@ def create_app(config=None) -> Flask:
     app.config["SESSION_TYPE"] = config.SESSION_TYPE
     app.config["SESSION_LIFETIME"] = config.SESSION_LIFETIME_MINUTES * 60
 
+    _apply_proxy_fix(app)
+
     # 拡張の初期化（セッション、Redis等）
     init_extensions(app, config)
 
@@ -68,6 +71,34 @@ def create_app(config=None) -> Flask:
     _initialize_gemini_api(config)
 
     return app
+
+
+def _apply_proxy_fix(app: Flask):
+    """
+    TRUSTED_PROXY_IPS（既定: ループバック）からの接続に限り、
+    TRUSTED_PROXY_COUNT 段（既定: 1）の X-Forwarded-For を信頼して接続元 IP を復元する
+    """
+    import os
+
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
+    try:
+        hops = int(os.environ.get("TRUSTED_PROXY_COUNT", "1"))
+    except ValueError:
+        hops = 0
+    if hops <= 0:
+        return
+
+    trusted_peers = {ip.strip() for ip in os.environ.get("TRUSTED_PROXY_IPS", "127.0.0.1,::1").split(",") if ip.strip()}
+    direct_app = app.wsgi_app
+    proxied_app = ProxyFix(direct_app, x_for=hops)
+
+    def trusted_proxy_app(environ, start_response):
+        if environ.get("REMOTE_ADDR") in trusted_peers:
+            return proxied_app(environ, start_response)
+        return direct_app(environ, start_response)
+
+    app.wsgi_app = trusted_proxy_app
 
 
 def _register_template_filters(app: Flask):

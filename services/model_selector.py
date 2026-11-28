@@ -16,6 +16,7 @@ feedback モード:
     - watch    : 観戦モード
     - feedback : フィードバック生成
 """
+
 from __future__ import annotations
 
 import os
@@ -46,13 +47,13 @@ def resolve_model(mode: str, session_selected: Optional[str] = None) -> str:
         ValueError: 未知の mode が渡された場合
     """
     if mode not in _MODE_ENV_MAP:
-        raise ValueError(
-            f"Unknown mode: {mode!r}. "
-            f"Expected one of: {sorted(_MODE_ENV_MAP.keys())}"
-        )
+        raise ValueError(f"Unknown mode: {mode!r}. " f"Expected one of: {sorted(_MODE_ENV_MAP.keys())}")
 
     # フィードバックは会話モデルと切り離し、FEEDBACK_MODEL / DEFAULT_MODEL のみ
     if mode == "feedback":
+        session_selected = None
+    elif session_selected and not get_config().ENABLE_MODEL_SELECTION:
+        # モデル選択が無効な環境ではクライアント指定のモデルを使わない
         session_selected = None
 
     # 1. session_selected が最優先

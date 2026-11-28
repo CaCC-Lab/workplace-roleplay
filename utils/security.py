@@ -2,16 +2,18 @@
 セキュリティユーティリティ
 XSS、CSRF、入力検証などのセキュリティ機能を提供
 """
+
 import hashlib
 import hmac
-import re
 import json
-import time
 import logging
-from typing import Any, Dict, Optional, Tuple
+import re
+import time
 from functools import wraps
-from flask import request, jsonify, session
+from typing import Any, Dict, Optional, Tuple
+
 import bleach
+from flask import jsonify, request, session
 
 # ロガーの設定
 logger = logging.getLogger(__name__)
@@ -100,11 +102,15 @@ class SecurityUtils:
         if len(model_name) > SecurityUtils.MAX_MODEL_NAME_LENGTH:
             return False
 
-        # Ollama Cloud モデル: ollama/<name>[:<tag>] 形式を許可
-        # 例: ollama/gemma4:31b-cloud, ollama/qwen2.5:72b-cloud
-        ollama_pattern = r"^ollama/[a-zA-Z0-9_.\-]+(:[a-zA-Z0-9_.\-]+)?$"
-        if re.match(ollama_pattern, model_name):
+        # Ollama Cloud モデル: 運営者が環境変数で明示したモデルのみ許可
+        # （OLLAMA_ALLOWED_MODELS と DEFAULT_MODEL / <MODE>_MODEL）
+        from utils.llm_guard import allowed_ollama_models, operator_configured_models
+
+        configured = {name.removeprefix("gemini/") for name in operator_configured_models()}
+        if model_name.removeprefix("gemini/") in configured:
             return True
+        if model_name.startswith("ollama/"):
+            return model_name in allowed_ollama_models()
 
         # gemini/プレフィックスを除去
         if model_name.startswith("gemini/"):
