@@ -128,6 +128,11 @@ class TestUsageLimiter:
         assert limiter.hit([(limit, "x")]) is None
         assert limiter.hit([(limit, "x")]) is not None
 
+    def test_共有ストア未設定でfail_closedなら例外で止める(self):
+        limiter = UsageLimiter(store=None, fail_mode="closed")
+        with pytest.raises(llm_guard.RateLimitStoreUnavailable):
+            limiter.hit([(Limit("x", "session", 5, 60, "UNUSED_ENV"), "s1")])
+
     def test_Redis障害時にfail_closedなら例外で止める(self):
         limiter = UsageLimiter(store=RedisStore(FakeRedis(fail=True)), fail_mode="closed")
         with pytest.raises(llm_guard.RateLimitStoreUnavailable):
@@ -178,6 +183,18 @@ class TestEndpointRateLimit:
         guarded_app.extensions["llm_usage_limiter"] = UsageLimiter(
             store=RedisStore(FakeRedis(fail=True)), fail_mode="closed"
         )
+        with (
+            patch("routes.scenario_routes.scenario_service") as svc,
+            patch("app.create_model_and_get_response", return_value="ヒント") as llm_call,
+        ):
+            svc.get_scenario_by_id.return_value = SCENARIO
+            response = _assist(csrf_client)
+
+        assert response.status_code == 503
+        llm_call.assert_not_called()
+
+    def test_共有ストア未設定でfail_closedなら503でLLMを呼ばない(self, guarded_app, csrf_client):
+        guarded_app.extensions["llm_usage_limiter"] = UsageLimiter(store=None, fail_mode="closed")
         with (
             patch("routes.scenario_routes.scenario_service") as svc,
             patch("app.create_model_and_get_response", return_value="ヒント") as llm_call,

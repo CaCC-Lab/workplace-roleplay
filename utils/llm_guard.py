@@ -188,6 +188,8 @@ class UsageLimiter:
 
     def _incr(self, key: str, ttl: int) -> int:
         if self.store is None:
+            if self.fail_mode == "closed":
+                raise RateLimitStoreUnavailable()
             return self.fallback.incr(key, ttl)
         try:
             return self.store.incr(key, ttl)
@@ -284,6 +286,10 @@ def register_llm_guard(app: Flask, limiter: Optional[UsageLimiter] = None) -> Us
     if limiter is None:
         fail_mode = (os.environ.get("LLM_RATE_LIMIT_FAIL_MODE") or "local").strip().lower()
         limiter = UsageLimiter(store=_build_store(app), fail_mode="closed" if fail_mode == "closed" else "local")
+        if limiter.store is None and _is_enabled(app):
+            logger.warning(
+                "LLM rate limit has no shared store; set LLM_RATE_LIMIT_REDIS_URL (fail mode: %s)", limiter.fail_mode
+            )
     _limiter = limiter
     app.extensions["llm_usage_limiter"] = limiter
 
