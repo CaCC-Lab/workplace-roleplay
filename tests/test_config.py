@@ -248,6 +248,29 @@ class TestConfigFactory:
             config = get_config()
             assert isinstance(config, DevelopmentConfig)
 
+    def test_production_selection_fails_when_required_settings_are_missing(self, monkeypatch, tmp_path):
+        """本番設定の必須項目が不足している場合は設定取得を拒否"""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("FLASK_ENV", "production")
+        monkeypatch.delenv("FLASK_SECRET_KEY", raising=False)
+        monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+
+        with pytest.raises(ValueError, match="GOOGLE_API_KEY is required in production"):
+            get_config()
+
+    def test_production_service_entrypoints_force_production_config(self):
+        """本番サービスの起動コマンドは ProductionConfig を選択する"""
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        service_commands = {
+            "deployment/workplace-roleplay.service": "ExecStart=/usr/bin/env FLASK_ENV=production ",
+            "scripts/workplace-app.service": "ExecStart=/usr/bin/env FLASK_ENV=production ",
+            "scripts/setup-deployment.sh": "ExecStart=/usr/bin/env FLASK_ENV=production ",
+        }
+
+        for relative_path, command in service_commands.items():
+            with open(os.path.join(repo_root, relative_path), encoding="utf-8") as service_file:
+                assert command in service_file.read()
+
 
 class TestConfigValidation:
     """設定値の検証ロジックのテスト"""
