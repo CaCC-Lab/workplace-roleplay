@@ -104,9 +104,11 @@ class SecurityUtils:
 
         # Ollama Cloud モデル: 運営者が環境変数で明示したモデルのみ許可
         # （OLLAMA_ALLOWED_MODELS と DEFAULT_MODEL / <MODE>_MODEL）
-        if model_name.startswith("ollama/"):
-            from utils.llm_guard import allowed_ollama_models
+        from utils.llm_guard import allowed_ollama_models, operator_configured_models
 
+        if model_name in operator_configured_models():
+            return True
+        if model_name.startswith("ollama/"):
             return model_name in allowed_ollama_models()
 
         # gemini/プレフィックスを除去

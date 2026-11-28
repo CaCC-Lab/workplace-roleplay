@@ -301,6 +301,17 @@ class TestModelAllowlist:
         monkeypatch.setenv("SCENARIO_MODEL", "ollama/gemma4:31b-cloud")
         assert "ollama/gemma4:31b-cloud" in allowed_ollama_models()
 
+    def test_運営者が設定したGeminiモデルは固定リスト外でも許可(self, monkeypatch):
+        monkeypatch.setenv("CHAT_MODEL", "gemini/gemini-3-flash-preview")
+        assert SecurityUtils.validate_model_name("gemini/gemini-3-flash-preview")
+        assert not SecurityUtils.validate_model_name("gemini/gemini-3-pro-preview")
+
+    def test_register時に_envを読み込む(self, monkeypatch):
+        with patch("dotenv.load_dotenv") as load:
+            llm_guard.register_llm_guard(Flask(__name__), limiter=UsageLimiter())
+        load.assert_called_once()
+        monkeypatch.setattr(llm_guard, "_limiter", None)
+
     def test_モデル選択無効時はクライアント指定を無視する(self, monkeypatch):
         from services.model_selector import resolve_model
 

@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 MAX_USER_MESSAGE_CHARS = 2000
 MAX_ASSIST_CONTEXT_CHARS = 4000
 MAX_WATCH_FIELD_CHARS = 100
-MAX_SESSION_HISTORY_ENTRIES = 50
+MAX_SESSION_HISTORY_ENTRIES = 200
 MAX_FEEDBACK_HISTORY_ENTRIES = 12
 MAX_WATCH_PROMPT_HISTORY = 10
 MAX_WATCH_TURNS = 40
@@ -58,17 +58,26 @@ def max_output_tokens() -> int:
     return _env_int("LLM_MAX_OUTPUT_TOKENS", DEFAULT_MAX_OUTPUT_TOKENS)
 
 
+def operator_configured_models() -> set:
+    """運営者が DEFAULT_MODEL / <MODE>_MODEL で設定したモデル"""
+    names = {(os.environ.get(key) or "").strip() for key in _MODEL_ENV_KEYS}
+    try:
+        from config import get_cached_config
+
+        names.add((get_cached_config().DEFAULT_MODEL or "").strip())
+    except Exception:
+        pass
+    names.discard("")
+    return names
+
+
 def allowed_ollama_models() -> set:
     """運営者が環境変数で明示した Ollama Cloud モデルだけを許可する"""
-    names = set()
+    names = {name for name in operator_configured_models() if name.startswith("ollama/")}
     for raw in (os.environ.get("OLLAMA_ALLOWED_MODELS") or "").split(","):
         name = raw.strip()
         if name:
             names.add(name if name.startswith("ollama/") else f"ollama/{name}")
-    for key in _MODEL_ENV_KEYS:
-        value = (os.environ.get(key) or "").strip()
-        if value.startswith("ollama/"):
-            names.add(value)
     return names
 
 
@@ -269,6 +278,9 @@ def register_llm_guard(app: Flask, limiter: Optional[UsageLimiter] = None) -> Us
     """LLM エンドポイントの利用量制限を登録する（CSRF 検証の後に実行される）"""
     global _limiter
 
+    from dotenv import load_dotenv
+
+    load_dotenv()
     if limiter is None:
         fail_mode = (os.environ.get("LLM_RATE_LIMIT_FAIL_MODE") or "local").strip().lower()
         limiter = UsageLimiter(store=_build_store(app), fail_mode="closed" if fail_mode == "closed" else "local")
